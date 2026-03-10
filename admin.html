@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>贷准 · 产品库管理后台</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --navy: #0a1628;
+    --navy2: #111e35;
+    --gold: #c8a96e;
+    --gold2: #e8c98a;
+    --green: #22c55e;
+    --red: #ef4444;
+    --border: rgba(200,169,110,.18);
+    --text: #e8e8e8;
+    --text2: rgba(232,232,232,.6);
+    --card: rgba(255,255,255,.04);
+    --card-hover: rgba(255,255,255,.07);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--navy);
+    color: var(--text);
+    font-family: 'Noto Serif SC', serif;
+    min-height: 100vh;
+  }
+
+  /* ── 登录页 ── */
+  #loginPage {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at 30% 40%, rgba(200,169,110,.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 70%, rgba(10,22,40,.8) 0%, transparent 50%),
+                var(--navy);
+  }
+
+  .login-box {
+    width: 380px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 40px;
+    text-align: center;
+    backdrop-filter: blur(20px);
+  }
+
+  .login-logo {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  .login-logo em { color: #fff; font-style: normal; }
+
+  .login-sub {
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 36px;
+    letter-spacing: 3px;
+  }
+
+  .login-input {
+    width: 100%;
+    background: rgba(255,255,255,.06);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    color: #fff;
+    font-size: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 4px;
+    text-align: center;
+    margin-bottom: 16px;
+    transition: border-color .2s;
+    outline: none;
+  }
+
+  .login-input:focus { border-color: var(--gold); }
+
+  .login-btn {
+    width: 100%;
+    background: var(--gold);
+    color: var(--navy);
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Noto Serif SC', serif;
+    transition: all .2s;
+  }
+
+  .login-btn:hover { background: var(--gold2); transform: translateY(-1px); }
+
+  .login-err {
+    color: #f87171;
+    font-size: 12px;
+    margin-top: 10px;
+    display: none;
+  }
+
+  /* ── 主后台 ── */
+  #adminPage { display: none; }
+
+  .admin-header {
+    background: rgba(255,255,255,.03);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+  }
+
+  .admin-logo { font-size: 20px; font-weight: 700; color: var(--gold); letter-spacing: 1px; }
+  .admin-logo em { color: #fff; font-style: normal; }
+  .admin-logo span { font-size: 12px; color: var(--text2); margin-left: 10px; letter-spacing: 2px; }
+
+  .header-actions { display: flex; gap: 12px; align-items: center; }
+
+  .btn {
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-family: 'Noto Serif SC', serif;
+    transition: all .2s;
+  }
+
+  .btn-gold { background: var(--gold); color: var(--navy); }
+  .btn-gold:hover { background: var(--gold2); }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text2); }
+  .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+  .btn-red { background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.3); color: #f87171; }
+  .btn-red:hover { background: rgba(239,68,68,.25); }
+  .btn-green { background: rgba(34,197,94,.15); border: 1px solid rgba(34,197,94,.3); color: #4ade80; }
+  .btn-green:hover { background: rgba(34,197,94,.25); }
+
+  .admin-body {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  /* ── 统计栏 ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .stat-card .num { font-size: 28px; font-weight: 700; color: var(--gold); }
+  .stat-card .label { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+  /* ── 工具栏 ── */
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-left { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  .search-input {
+    background: rgba(255,255,255,.05);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'Noto Serif SC', serif;
+    outline: none;
+    width: 220px;
+    transition: border-color .2s;
+  }
+
+  .search-input:focus { border-color: var(--gold); }
+  .search-input::placeholder { color: var(--text2); }
+
+  .filter-select {
+    background: rgba(255,255,255,.05);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  /* ── 产品表格 ── */
+  .products-table {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .table-header {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr 120px 100px 90px 90px 100px;
+    gap: 0;
+    padding: 14px 20px;
+    background: rgba(200,169,110,.06);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--gold);
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+
+  .product-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr 120px 100px 90px 90px 100px;
+    gap: 0;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(200,169,110,.06);
+    align-items: center;
+    transition: background .15s;
+    font-size: 13px;
+  }
+
+  .product-row:last-child { border-bottom: none; }
+  .product-row:hover { background: var(--card-hover); }
+
+  .product-row .bank-name { font-weight: 600; color: #fff; }
+  .product-row .product-name { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .badge-active { background: rgba(34,197,94,.15); color: #4ade80; border: 1px solid rgba(34,197,94,.2); }
+  .badge-inactive { background: rgba(239,68,68,.12); color: #f87171; border: 1px solid rgba(239,68,68,.2); }
+
+  .row-actions { display: flex; gap: 6px; }
+
+  .icon-btn {
+    width: 30px; height: 30px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    transition: all .15s;
+  }
+
+  .icon-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(200,169,110,.08); }
+  .icon-btn.delete:hover { border-color: #f87171; color: #f87171; background: rgba(239,68,68,.08); }
+
+  /* ── 模态框 ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.7);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--navy2);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 32px;
+  }
+
+  .modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group.full { grid-column: 1/-1; }
+
+  .form-label {
+    display: block;
+    font-size: 12px;
+    color: var(--gold);
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+
+  .req { color: #f87171; }
+
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    background: rgba(255,255,255,.05);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'Noto Serif SC', serif;
+    outline: none;
+    transition: border-color .2s;
+  }
+
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--gold); }
+  .form-textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+  .form-select option { background: var(--navy2); }
+
+  .modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── 提示框 ── */
+  .toast {
+    position: fixed;
+    bottom: 32px; right: 32px;
+    background: rgba(34,197,94,.15);
+    border: 1px solid rgba(34,197,94,.3);
+    color: #4ade80;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    z-index: 9999;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all .3s;
+    pointer-events: none;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { background: rgba(239,68,68,.15); border-color: rgba(239,68,68,.3); color: #f87171; }
+
+  /* ── 空状态 ── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text2);
+  }
+
+  .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── 导出预览 ── */
+  .preview-box {
+    background: rgba(0,0,0,.3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text2);
+    line-height: 1.8;
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+
+  .section-sub { font-size: 12px; color: var(--text2); margin-bottom: 20px; }
+
+  @media(max-width: 768px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .table-header { display: none; }
+    .product-row { grid-template-columns: 1fr auto; gap: 8px; padding: 14px; }
+    .product-row > *:not(:first-child):not(:last-child) { display: none; }
+    .product-row .col-bank { display: block; }
+    .product-row .col-actions { display: flex; }
+    .form-grid-2 { grid-template-columns: 1fr; }
+    .admin-header { padding: 0 16px; }
+    .admin-body { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ 登录页 ══ -->
+<div id="loginPage">
+  <div class="login-box">
+    <div class="login-logo"><em>贷</em>准</div>
+    <div class="login-sub">产品库管理后台</div>
+    <input class="login-input" type="password" id="pwInput" placeholder="请输入管理密码" 
+           onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">登 录</button>
+    <div class="login-err" id="loginErr">密码错误，请重试</div>
+  </div>
+</div>
+
+<!-- ══ 主后台 ══ -->
+<div id="adminPage">
+  <header class="admin-header">
+    <div>
+      <div class="admin-logo"><em>贷</em>准 <span>产品库管理</span></div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-green" onclick="openExport()">📤 导出AI提示词</button>
+      <button class="btn btn-gold" onclick="openAdd()">＋ 新增产品</button>
+      <button class="btn btn-outline" onclick="doLogout()">退出</button>
+    </div>
+  </header>
+
+  <div class="admin-body">
+
+    <!-- 统计 -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="num" id="statTotal">0</div>
+        <div class="label">产品总数</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="statActive">0</div>
+        <div class="label">启用中</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="statBanks">0</div>
+        <div class="label">合作银行</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="statCities">0</div>
+        <div class="label">覆盖城市</div>
+      </div>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="section-title">产品库</div>
+        <input class="search-input" type="text" id="searchInput" placeholder="搜索银行/产品名称…" oninput="renderTable()">
+        <select class="filter-select" id="filterCity" onchange="renderTable()">
+          <option value="">全部城市</option>
+        </select>
+        <select class="filter-select" id="filterStatus" onchange="renderTable()">
+          <option value="">全部状态</option>
+          <option value="active">启用</option>
+          <option value="inactive">停用</option>
+        </select>
+      </div>
+      <div>
+        <button class="btn btn-outline" onclick="importDefault()" style="font-size:12px">导入默认产品库</button>
+      </div>
+    </div>
+
+    <!-- 表格 -->
+    <div class="products-table">
+      <div class="table-header">
+        <div></div>
+        <div>银行 / 产品</div>
+        <div>准入条件</div>
+        <div>利率范围</div>
+        <div>最高额度</div>
+        <div>覆盖城市</div>
+        <div>状态</div>
+        <div>操作</div>
+      </div>
+      <div id="tableBody"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ 新增/编辑 模态框 ══ -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modalIcon">➕</span>
+      <span id="modalTitle">新增产品</span>
+    </div>
+
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label">银行名称 <span class="req">*</span></label>
+        <input class="form-input" id="f-bank" placeholder="如：招商银行">
+      </div>
+      <div class="form-group">
+        <label class="form-label">产品名称 <span class="req">*</span></label>
+        <input class="form-input" id="f-product" placeholder="如：闪电贷">
+      </div>
+      <div class="form-group">
+        <label class="form-label">利率范围 <span class="req">*</span></label>
+        <input class="form-input" id="f-rate" placeholder="如：3.24%-18%">
+      </div>
+      <div class="form-group">
+        <label class="form-label">最高额度 <span class="req">*</span></label>
+        <input class="form-input" id="f-amount" placeholder="如：最高30万">
+      </div>
+      <div class="form-group">
+        <label class="form-label">最低月收入要求（元）</label>
+        <input class="form-input" type="number" id="f-minIncome" placeholder="如：5000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">近3月查询上限（次）</label>
+        <input class="form-input" type="number" id="f-maxQuery" placeholder="如：6">
+      </div>
+      <div class="form-group">
+        <label class="form-label">最高负债率（%）</label>
+        <input class="form-input" type="number" id="f-maxDebt" placeholder="如：70">
+      </div>
+      <div class="form-group">
+        <label class="form-label">逾期要求</label>
+        <select class="form-select" id="f-overdue">
+          <option value="zero">零逾期（无任何逾期）</option>
+          <option value="mild">轻微（历史≤30天可过）</option>
+          <option value="any">宽松（有逾期也可申请）</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">覆盖城市</label>
+        <input class="form-input" id="f-cities" placeholder="如：厦门,全国（逗号分隔，全国则填"全国"）">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">准入条件详述 <span class="req">*</span></label>
+        <textarea class="form-textarea" id="f-conditions" 
+          placeholder="详细描述准入条件，AI会严格按此匹配。例如：需工行代发工资或公积金缴纳≥12个月，无当前逾期，在职员工优先。"></textarea>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">加分项 / 特殊说明</label>
+        <textarea class="form-textarea" id="f-bonus" 
+          placeholder="如：有房全款通过率+20%；公积金客户优先；接受个体工商户等" style="min-height:60px"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">代表 Emoji</label>
+        <input class="form-input" id="f-emoji" placeholder="如：🏦 💳 🏛" maxlength="4">
+      </div>
+      <div class="form-group">
+        <label class="form-label">状态</label>
+        <select class="form-select" id="f-status">
+          <option value="active">✅ 启用</option>
+          <option value="inactive">⏸ 停用</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-gold" onclick="saveProduct()">💾 保存产品</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 导出模态框 ══ -->
+<div class="modal-overlay" id="exportModal">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-title">📤 导出 AI 提示词</div>
+    <div class="section-sub">复制下方内容，粘贴到 HTML 文件中 <code style="color:var(--gold)">【银行产品准入标准</code> 部分替换即可</div>
+    <div class="preview-box" id="exportPreview"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="document.getElementById('exportModal').classList.remove('open')">关闭</button>
+      <button class="btn btn-gold" onclick="copyExport()">📋 复制全部</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Toast ══ -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══ 配置 ══
+const ADMIN_PASSWORD = 'dazhun2024'; // 修改这里改密码
+const STORAGE_KEY = 'dazhun_products';
+
+// ══ 默认产品库 ══
+const DEFAULT_PRODUCTS = [
+  { id: 1, bank:'招商银行', product:'闪电贷', rate:'3.24%-18%', amount:'最高30万', minIncome:5000, maxQuery:6, maxDebt:70, overdue:'zero', cities:'全国', conditions:'无当前逾期，近3月查询≤6次，负债率≤70%，月收入≥5000元，在职员工。国企/事业单位优先审批，额度更高。', bonus:'国企/事业单位通过率+15%；公积金客户利率更低', emoji:'💳', status:'active' },
+  { id: 2, bank:'工商银行', product:'融e借', rate:'3.35%-4.35%', amount:'最高80万', minIncome:5000, maxQuery:8, maxDebt:70, overdue:'zero', cities:'全国', conditions:'需工行代发工资或公积金缴纳≥12个月，无当前逾期，在职员工。', bonus:'公积金客户额度更高；工资代发客户利率优惠', emoji:'🏦', status:'active' },
+  { id: 3, bank:'中国银行', product:'随心智贷', rate:'3.15%-5.22%', amount:'最高50万', minIncome:6000, maxQuery:7, maxDebt:65, overdue:'zero', cities:'全国', conditions:'无当前逾期，负债率≤65%，月收入≥6000元，中行账户持有者优先。', bonus:'名下有全款房产通过率+20%；中行代发工资利率更优', emoji:'🏛', status:'active' },
+  { id: 4, bank:'建设银行', product:'快贷', rate:'3.45%-4.8%', amount:'最高30万', minIncome:4000, maxQuery:8, maxDebt:70, overdue:'zero', cities:'全国', conditions:'无当前逾期，信用历史≥1年，建行账户持有者优先审批。', bonus:'建行代发工资客户额度翻倍；龙卡信用卡持有者加分', emoji:'🏗', status:'active' },
+  { id: 5, bank:'浦发银行', product:'浦闪贷', rate:'3.20%-6%', amount:'最高50万', minIncome:8000, maxQuery:5, maxDebt:70, overdue:'zero', cities:'全国', conditions:'月收入≥8000元，无当前逾期，近3月查询≤5次，T+0放款。', bonus:'国企/央企员工通过率高；白领人群优先', emoji:'🌟', status:'active' },
+  { id: 6, bank:'农业银行', product:'网捷贷', rate:'3.28%-4.5%', amount:'最高20万', minIncome:3000, maxQuery:8, maxDebt:75, overdue:'mild', cities:'全国', conditions:'农行账户持有者，公务员/国企/事业单位优先，无严重逾期。', bonus:'公务员/国企员工通过率极高；农业相关从业者加分', emoji:'🌾', status:'active' },
+  { id: 7, bank:'交通银行', product:'惠民贷', rate:'3.40%-5.88%', amount:'最高30万', minIncome:4000, maxQuery:8, maxDebt:70, overdue:'zero', cities:'全国', conditions:'社保或公积金缴纳≥6个月，负债率≤70%，无当前逾期，接受个体工商户。', bonus:'个体工商户专属通道；社保缴纳时间越长额度越高', emoji:'🚗', status:'active' },
+  { id: 8, bank:'兴业银行', product:'兴闪贷', rate:'3.55%-7.2%', amount:'最高20万', minIncome:3000, maxQuery:10, maxDebt:75, overdue:'mild', cities:'全国', conditions:'历史逾期≤30天且已结清可申请，近6月查询≤8次，对征信有瑕疵的客户容忍度高。', bonus:'征信有瑕疵首选；逾期已结清客户仍可尝试', emoji:'💰', status:'active' },
+  { id: 9, bank:'邮储银行', product:'邮享贷', rate:'3.60%-7.2%', amount:'最高10万', minIncome:2000, maxQuery:10, maxDebt:80, overdue:'zero', cities:'全国', conditions:'社保缴纳≥3个月，无当前逾期，门槛最低，适合保底备选方案。', bonus:'农村户籍客户专属产品；条件最宽松', emoji:'📮', status:'active' },
+  { id: 10, bank:'平安银行', product:'平安贷', rate:'3.78%-7.99%', amount:'最高50万', minIncome:5000, maxQuery:8, maxDebt:75, overdue:'zero', cities:'全国', conditions:'月收入≥5000元，无当前逾期，接受个体工商户，平安客户优先。', bonus:'个体工商户友好；平安保险/证券客户额度更高', emoji:'🛡', status:'active' },
+  { id: 11, bank:'光大银行', product:'光大贷', rate:'3.65%-6%', amount:'最高20万', minIncome:4000, maxQuery:7, maxDebt:75, overdue:'zero', cities:'全国', conditions:'社保或公积金证明，负债率≤75%，近3月查询≤7次，负债率要求相对宽松。', bonus:'对负债率要求比其他银行宽松；光大信用卡持有者加分', emoji:'☀️', status:'active' },
+];
+
+// ══ 状态 ══
+let products = [];
+let editingId = null;
+
+// ══ 初始化 ══
+function init() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if(saved) {
+    try { products = JSON.parse(saved); } catch(e) { products = []; }
+  }
+  renderTable();
+  updateStats();
+  updateCityFilter();
+}
+
+function saveToStorage() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+}
+
+// ══ 登录 ══
+function doLogin() {
+  const pw = document.getElementById('pwInput').value;
+  if(pw === ADMIN_PASSWORD) {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('adminPage').style.display = 'block';
+    init();
+  } else {
+    document.getElementById('loginErr').style.display = 'block';
+    document.getElementById('pwInput').value = '';
+    setTimeout(()=> document.getElementById('loginErr').style.display='none', 2000);
+  }
+}
+
+function doLogout() {
+  document.getElementById('adminPage').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('pwInput').value = '';
+}
+
+// ══ 渲染表格 ══
+function renderTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const cityFilter = document.getElementById('filterCity').value;
+  const statusFilter = document.getElementById('filterStatus').value;
+
+  let filtered = products.filter(p => {
+    const matchSearch = !search || p.bank.toLowerCase().includes(search) || p.product.toLowerCase().includes(search);
+    const matchCity = !cityFilter || (p.cities||'').includes(cityFilter);
+    const matchStatus = !statusFilter || p.status === statusFilter;
+    return matchSearch && matchCity && matchStatus;
+  });
+
+  const body = document.getElementById('tableBody');
+
+  if(filtered.length === 0) {
+    body.innerHTML = `<div class="empty-state"><div class="icon">🏦</div><p>${products.length === 0 ? '暂无产品，点击「导入默认产品库」快速开始' : '没有符合条件的产品'}</p></div>`;
+    return;
+  }
+
+  body.innerHTML = filtered.map((p, idx) => `
+    <div class="product-row">
+      <div style="color:var(--text2);font-size:12px">${idx+1}</div>
+      <div class="col-bank">
+        <div class="bank-name">${p.emoji||'🏦'} ${p.bank}</div>
+        <div class="product-name">${p.product}</div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.5">${(p.conditions||'').slice(0,40)}…</div>
+      <div style="color:var(--gold);font-weight:600;font-size:13px">${p.rate}</div>
+      <div style="font-size:13px">${p.amount}</div>
+      <div style="font-size:12px;color:var(--text2)">${p.cities||'全国'}</div>
+      <div><span class="badge ${p.status==='active'?'badge-active':'badge-inactive'}">${p.status==='active'?'启用':'停用'}</span></div>
+      <div class="row-actions col-actions">
+        <button class="icon-btn" onclick="openEdit(${p.id})" title="编辑">✏️</button>
+        <button class="icon-btn" onclick="toggleStatus(${p.id})" title="${p.status==='active'?'停用':'启用'}">${p.status==='active'?'⏸':'▶️'}</button>
+        <button class="icon-btn delete" onclick="deleteProduct(${p.id})" title="删除">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateStats() {
+  document.getElementById('statTotal').textContent = products.length;
+  document.getElementById('statActive').textContent = products.filter(p=>p.status==='active').length;
+  document.getElementById('statBanks').textContent = new Set(products.map(p=>p.bank)).size;
+  const cities = new Set();
+  products.forEach(p => (p.cities||'').split(',').forEach(c => cities.add(c.trim())));
+  document.getElementById('statCities').textContent = cities.size;
+}
+
+function updateCityFilter() {
+  const cities = new Set(['全国']);
+  products.forEach(p => (p.cities||'').split(',').forEach(c => { if(c.trim()) cities.add(c.trim()); }));
+  const sel = document.getElementById('filterCity');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">全部城市</option>' + [...cities].map(c=>`<option value="${c}" ${cur===c?'selected':''}>${c}</option>`).join('');
+}
+
+// ══ 增删改 ══
+function openAdd() {
+  editingId = null;
+  document.getElementById('modalIcon').textContent = '➕';
+  document.getElementById('modalTitle').textContent = '新增产品';
+  clearForm();
+  document.getElementById('editModal').classList.add('open');
+}
+
+function openEdit(id) {
+  editingId = id;
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('modalIcon').textContent = '✏️';
+  document.getElementById('modalTitle').textContent = '编辑产品';
+  document.getElementById('f-bank').value = p.bank||'';
+  document.getElementById('f-product').value = p.product||'';
+  document.getElementById('f-rate').value = p.rate||'';
+  document.getElementById('f-amount').value = p.amount||'';
+  document.getElementById('f-minIncome').value = p.minIncome||'';
+  document.getElementById('f-maxQuery').value = p.maxQuery||'';
+  document.getElementById('f-maxDebt').value = p.maxDebt||'';
+  document.getElementById('f-overdue').value = p.overdue||'zero';
+  document.getElementById('f-cities').value = p.cities||'';
+  document.getElementById('f-conditions').value = p.conditions||'';
+  document.getElementById('f-bonus').value = p.bonus||'';
+  document.getElementById('f-emoji').value = p.emoji||'';
+  document.getElementById('f-status').value = p.status||'active';
+  document.getElementById('editModal').classList.add('open');
+}
+
+function clearForm() {
+  ['f-bank','f-product','f-rate','f-amount','f-minIncome','f-maxQuery','f-maxDebt','f-cities','f-conditions','f-bonus','f-emoji'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('f-overdue').value = 'zero';
+  document.getElementById('f-status').value = 'active';
+}
+
+function closeModal() {
+  document.getElementById('editModal').classList.remove('open');
+}
+
+function saveProduct() {
+  const bank = document.getElementById('f-bank').value.trim();
+  const product = document.getElementById('f-product').value.trim();
+  const rate = document.getElementById('f-rate').value.trim();
+  const amount = document.getElementById('f-amount').value.trim();
+  const conditions = document.getElementById('f-conditions').value.trim();
+
+  if(!bank || !product || !rate || !amount || !conditions) {
+    showToast('请填写所有必填项（标*字段）', true); return;
+  }
+
+  const data = {
+    bank, product, rate, amount, conditions,
+    minIncome: parseInt(document.getElementById('f-minIncome').value)||0,
+    maxQuery: parseInt(document.getElementById('f-maxQuery').value)||10,
+    maxDebt: parseInt(document.getElementById('f-maxDebt').value)||80,
+    overdue: document.getElementById('f-overdue').value,
+    cities: document.getElementById('f-cities').value.trim()||'全国',
+    bonus: document.getElementById('f-bonus').value.trim(),
+    emoji: document.getElementById('f-emoji').value.trim()||'🏦',
+    status: document.getElementById('f-status').value,
+  };
+
+  if(editingId) {
+    const idx = products.findIndex(p=>p.id===editingId);
+    if(idx>=0) products[idx] = { ...products[idx], ...data };
+    showToast('产品已更新 ✓');
+  } else {
+    data.id = Date.now();
+    products.push(data);
+    showToast('产品已添加 ✓');
+  }
+
+  saveToStorage();
+  renderTable();
+  updateStats();
+  updateCityFilter();
+  closeModal();
+}
+
+function toggleStatus(id) {
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+  p.status = p.status==='active' ? 'inactive' : 'active';
+  saveToStorage();
+  renderTable();
+  updateStats();
+  showToast(p.status==='active' ? '已启用' : '已停用');
+}
+
+function deleteProduct(id) {
+  if(!confirm('确定要删除这个产品吗？')) return;
+  products = products.filter(p=>p.id!==id);
+  saveToStorage();
+  renderTable();
+  updateStats();
+  updateCityFilter();
+  showToast('已删除');
+}
+
+function importDefault() {
+  if(products.length > 0 && !confirm('导入默认产品库将覆盖现有数据，确定吗？')) return;
+  products = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+  saveToStorage();
+  renderTable();
+  updateStats();
+  updateCityFilter();
+  showToast('默认产品库已导入 ✓');
+}
+
+// ══ 导出AI提示词 ══
+function openExport() {
+  const active = products.filter(p=>p.status==='active');
+  if(active.length === 0) { showToast('没有启用的产品', true); return; }
+
+  const overdueMap = { zero:'零逾期（无任何逾期）', mild:'历史逾期≤30天可通过', any:'逾期要求宽松' };
+
+  const lines = active.map(p =>
+    `${p.bank}-${p.product}：利率${p.rate} | 最高${p.amount} | 准入：${p.conditions}${p.bonus?' | 加分项：'+p.bonus:''} | 最低月收入≥${p.minIncome}元 | 近3月查询≤${p.maxQuery}次 | 负债率≤${p.maxDebt}% | 逾期要求：${overdueMap[p.overdue]||p.overdue}`
+  ).join('\n');
+
+  const preview = `【银行产品准入标准（严格执行）】\n${lines}\n\n【通用匹配规则】\n- 当前逾期(odCur)>0：仅推荐逾期要求为"宽松"或"轻微"的产品\n- 近3月查询次数超过产品上限：该产品通过率下调30%\n- 负债率超过产品上限：不得推荐该产品\n- 月收入低于产品最低要求：不得推荐该产品\n- 通过率计算：基础70 + 收入达标(+10) + 无逾期(+15) + 查询正常(+5) - 负债每超10%(−5) - 查询每超1次(−3)`;
+
+  document.getElementById('exportPreview').textContent = preview;
+  document.getElementById('exportModal').classList.add('open');
+}
+
+function copyExport() {
+  const text = document.getElementById('exportPreview').textContent;
+  navigator.clipboard.writeText(text).then(()=>showToast('已复制到剪贴板 ✓')).catch(()=>{
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('已复制 ✓');
+  });
+}
+
+// ══ Toast ══
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError?' error':'');
+  setTimeout(()=>t.className='toast', 2500);
+}
+
+// ══ 键盘快捷键 ══
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape') {
+    closeModal();
+    document.getElementById('exportModal').classList.remove('open');
+  }
+});
+</script>
+</body>
+</html>
