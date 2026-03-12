@@ -3228,26 +3228,10 @@ async function dpOcrExtract(base64, mediaType, fileName) {
     if(data.error) throw new Error(data.error.message||'API错误');
     if(data.message && !data.content) throw new Error(data.message);
 
-    let raw = (data.content||[]).map(b=>b.text||'').join('').replace(/```json[^`]*```|```/g,'').trim();
-    // 如果JSON被截断，尝试找到最后一个完整对象并补全数组
-    let extracted;
-    try {
-      extracted = JSON.parse(raw);
-    } catch(jsonErr) {
-      // 尝试截取到最后一个完整的 } 并补全
-      const lastBrace = raw.lastIndexOf('}');
-      if(lastBrace > 0) {
-        const fixedRaw = raw.substring(0, lastBrace+1) + ']';
-        const startBracket = fixedRaw.indexOf('[');
-        try {
-          extracted = JSON.parse(startBracket>=0 ? fixedRaw.substring(startBracket) : '['+fixedRaw);
-        } catch(e2) {
-          throw new Error('JSON解析失败，请重试或手动添加贷款');
-        }
-      } else {
-        throw new Error('识别内容为空，请确认上传的是人行征信报告');
-      }
-    }
+    const raw = (data.content||[]).map(b=>b.text||'').join('');
+    console.log('[dpOcr] AI raw:', raw.substring(0,300));
+    const extracted = extractJson(raw);
+    if(!extracted) throw new Error('识别内容为空，请确认上传的是人行征信报告');
 
     if(!Array.isArray(extracted) || extracted.length===0) {
       throw new Error('未能从征信中识别到贷款信息，请确认上传的是人行征信报告');
@@ -3655,19 +3639,11 @@ async function autoFillFromCredit(base64, mediaType) {
     if(data.error) throw new Error(data.error.message || JSON.stringify(data.error));
     if(data.message && !data.content) throw new Error(data.message);
 
-    const aiText = (data.content||[]).map(b=>b.text||'').join('').replace(/```json[^`]*```|```/g,'').trim();
+    const aiText = (data.content||[]).map(b=>b.text||'').join('');
     if(!aiText) throw new Error('AI未返回内容（stop_reason:' + (data.stop_reason||'unknown') + '），请重试');
-    let d;
-    try { d = JSON.parse(aiText); } catch(je) {
-      // 尝试截取到最后一个完整字段
-      const lastComma = aiText.lastIndexOf(',');
-      const lastBrace = aiText.lastIndexOf('}');
-      const cutAt = lastBrace > lastComma ? lastBrace : lastComma;
-      if(cutAt > 0) {
-        try { d = JSON.parse(aiText.substring(0, cutAt) + (aiText[cutAt]==='}' ? '' : '}}')); }
-        catch(e2) { throw new Error('识别结果格式错误，请重试'); }
-      } else { throw new Error('识别结果格式错误，请重试'); }
-    }
+    console.log('[autoFill] AI raw:', aiText.substring(0,300));
+    const d = extractJson(aiText);
+    if(!d) throw new Error('无法从AI响应中提取JSON，请重试');
 
     // 自动填充字段
     const setVal = (id, val) => { const el = document.getElementById(id); if(el && val) el.value = val; };
@@ -3722,6 +3698,30 @@ function updateProgress(){
 // ══ 代理地址：部署Cloudflare Worker后替换此处 ══
 const PROXY_URL = 'https://api.dzhun.com.cn';
 const FORMSPREE_URL = 'https://formspree.io/f/mpqypayz';
+
+// 从AI文本中提取JSON（兼容模型在JSON前后附加说明文字的情况）
+function extractJson(text) {
+  // 先尝试直接解析
+  try { return JSON.parse(text.trim()); } catch(e) {}
+  // 剥离 ```json ... ``` 代码块
+  const stripped = text.replace(/```json[\s\S]*?```|```[\s\S]*?```/g, s => s.replace(/```json|```/g,'').trim()).trim();
+  try { return JSON.parse(stripped); } catch(e) {}
+  // 提取第一个 { ... } 或 [ ... ] 块
+  for (const [open, close] of [['{','}'],['[',']']]) {
+    const start = text.indexOf(open);
+    const end   = text.lastIndexOf(close);
+    if (start >= 0 && end > start) {
+      try { return JSON.parse(text.substring(start, end + 1)); } catch(e) {}
+      // 尝试截断到最后一个完整对象
+      const partial = text.substring(start, end + 1);
+      const lastClose = partial.lastIndexOf(close);
+      if (lastClose > 0) {
+        try { return JSON.parse(partial.substring(0, lastClose + 1)); } catch(e) {}
+      }
+    }
+  }
+  return null;
+}
 
 // 统一API调用函数
 async function callAI(messages, max_tokens = 1500) {
@@ -4504,11 +4504,15 @@ async function _ccAnalysePDF() {
     })
   });
   clearTimeout(timeout);
-  if(!resp.ok) { const e = await resp.text(); throw new Error(`HTTP ${resp.status}: ${e.slice(0,120)}`); }
-  const data = await resp.json();
+  const rText = await resp.text();
+  if(!rText||!rText.trim()) throw new Error('服务器返回空响应，请重试');
+  if(!resp.ok) throw new Error(`HTTP ${resp.status}: ${rText.slice(0,120)}`);
+  let data; try { data = JSON.parse(rText); } catch(e){ throw new Error('服务器响应格式异常'); }
   if(data.error) throw new Error(data.error.message || 'PDF分析失败');
-  let raw = data.content.map(b=>b.text||'').join('').replace(/```json[\s\S]*?```|```/g,'').trim();
-  return JSON.parse(raw);
+  const raw = (data.content||[]).map(b=>b.text||'').join('');
+  const result = extractJson(raw);
+  if(!result) throw new Error('PDF分析结果解析失败，请重试');
+  return result;
 }
 
 // ── Manual input analysis ──
