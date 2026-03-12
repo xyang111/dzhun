@@ -3363,17 +3363,52 @@ async function dpStartAnalysis(){
   const msgs=['AI正在分析你的负债结构…','计算每笔贷款的真实利息…','制定最优还款顺序…','生成上岸计划…'];
   let mi=0;
   const mt=setInterval(()=>{mi=(mi+1)%msgs.length;const el=document.getElementById('dp-loading-text');if(el)el.innerHTML=msgs[mi]+'<br><span style="font-size:12px;opacity:.6">通常需要15-30秒</span>';},3000);
-  const prompt=`你是专业个人债务规划师，帮普通工薪族上岸。用务实语气，不说废话套话。
+  // 计算每笔贷款的总利息（简单利息估算）
+  const loanWithInterest = dpLoans.map(l => {
+    const r = l.rate / 100 / 12;
+    const n = l.months || Math.ceil(l.principal / l.monthly);
+    const totalPay = l.monthly * n;
+    const interest = Math.max(0, Math.round(totalPay - l.principal));
+    return { ...l, est_months: n, est_interest: interest };
+  });
+  const totalInterest = loanWithInterest.reduce((s,l) => s + l.est_interest, 0);
+  const loanDescDetailed = loanWithInterest.map((l,i) =>
+    `${i+1}. ${l.name}：剩余本金¥${l.principal.toLocaleString()}，年利率${l.rate}%，月还¥${l.monthly.toLocaleString()}，预计还${l.est_months}期，预计利息¥${l.est_interest.toLocaleString()}`
+  ).join('\n');
 
-【客户情况】月收入：${income}元 | 职业：${jobMap[job]||job} | 月支出：${document.getElementById('dp-expense').value||'未填'}元 | 可额外还款：${document.getElementById('dp-extra').value||'未填'}元 | 最担心：${worryMap[document.getElementById('dp-worry').value]||''} | 备注：${document.getElementById('dp-note').value||'无'}
+  // 雪崩法（高利率优先）顺序
+  const avalancheOrder = [...loanWithInterest].sort((a,b) => b.rate - a.rate).map((l,i) => `${i+1}.${l.name}(${l.rate}%)`).join('→');
+  // 雪球法（小余额优先）顺序
+  const snowballOrder = [...loanWithInterest].sort((a,b) => a.principal - b.principal).map((l,i) => `${i+1}.${l.name}(¥${l.principal.toLocaleString()})`).join('→');
 
-【负债清单（${dpLoans.length}笔）】
-${loanDesc}
+  const extraPayment = parseInt(document.getElementById('dp-extra').value) || 0;
+  // 粗略估算两种策略节省（雪崩法节省约15-25%利息）
+  const avalancheSave = Math.round(totalInterest * 0.18);
+  const snowballSave = Math.round(totalInterest * 0.08);
 
-【汇总】总负债¥${totalDebt.toLocaleString()} | 月最低还款¥${totalMonthly.toLocaleString()} | 月收入负债率${debtRatio}% | 策略：${dpStrategy==='avalanche'?'雪崩法（优先还高利率）':'雪球法（优先还小额）'}
+  const prompt=`你是专业个人债务规划师，服务对象是普通工薪族。用务实直接的语气，给具体可操作的建议，不说废话套话。
 
-严格返回JSON不含其他文字：{"overall":"整体评估2-3句直接说清楚","danger":"危险信号每条⚠️开头换行分隔","strategy_rec":"推荐哪种策略及原因","order":[{"rank":1,"name":"贷款名","reason":"原因","payoff_months":数字}],"timeline":"上岸时间预测，几个月/年还完，总利息多少","advice_income":"提升收入2-3条换行，针对该职业给真实建议","advice_expense":"降低开支2-3条换行，实际可操作","advice_refinance":"是否建议以低换高及怎么操作","advice_emergency":"本月撑不住怎么办的紧急处理","monthly_plan":[{"month":"第1个月","action":"还款动作","amount":数字,"remaining":数字,"note":"备注"}]}
-monthly_plan给前12个月。所有建议必须针对具体职业，不能是通用废话。`;
+【客户情况】
+月收入：${income}元 | 职业：${jobMap[job]||job} | 月固定支出：${document.getElementById('dp-expense').value||'未填'}元
+每月可额外还款：${extraPayment}元 | 最担心：${worryMap[document.getElementById('dp-worry').value]||''} | 备注：${document.getElementById('dp-note').value||'无'}
+
+【负债清单（${dpLoans.length}笔，含利息估算）】
+${loanDescDetailed}
+
+【财务摘要】
+总负债¥${totalDebt.toLocaleString()} | 预计总利息¥${totalInterest.toLocaleString()} | 月最低还款¥${totalMonthly.toLocaleString()} | 月收入负债率${debtRatio}%
+雪崩法顺序：${avalancheOrder}（预计节省利息约¥${avalancheSave.toLocaleString()}）
+雪球法顺序：${snowballOrder}（预计节省利息约¥${snowballSave.toLocaleString()}，但更快还清小额贷款提升信心）
+用户当前选择策略：${dpStrategy==='avalanche'?'雪崩法':'雪球法'}
+
+【判断是否有转贷机会】
+- 如有年利率>15%的贷款，评估是否可申请银行信用贷（年化6-12%）替换
+- 如有多笔小额贷款，评估是否可合并为一笔低息贷款
+
+请基于以上数据，针对"${jobMap[job]||job}"这个职业，给出具体可操作的方案。
+
+严格返回JSON不含其他文字：{"overall":"整体评估2-3句，直接说清楚风险等级和核心问题","danger":"危险信号，每条⚠️开头，换行分隔，没有则返回空字符串","strategy_rec":"具体说明推荐哪种策略、节省多少利息、适合哪类人群，用数字说话","order":[{"rank":1,"name":"贷款名","reason":"选择原因（含具体数字）","payoff_months":预计还清月数}],"timeline":"精确预测：按当前还款几年几月还完，总利息约多少；若每月多还${extraPayment||1000}元则几年几月还完，节省利息多少","advice_income":"针对${jobMap[job]||job}的真实提收建议，3条，每条换行，包含具体行动和预期月增收","advice_expense":"降低开支3条换行，针对家庭实际情况，给出月节省金额估算","advice_refinance":"评估转贷可行性：哪笔贷款利率过高，去哪家银行申请什么产品，年化利率多少，具体操作步骤","advice_emergency":"如果本月资金周转不过来的紧急处理方案，说明哪笔贷款可以申请延期/减免","monthly_plan":[{"month":"第1个月","action":"具体还款动作和金额分配","amount":当月总还款额数字,"remaining":当月还完后剩余总负债数字,"note":"关键事项提醒"}]}
+monthly_plan输出前12个月。所有建议必须针对${jobMap[job]||job}，不得出现通用废话。`;
   try {
     const raw=await callAI([{role:'user',content:prompt}],2000);
     clearInterval(mt);
@@ -3616,14 +3651,29 @@ async function autoFillFromCredit(base64, mediaType) {
       signal: controller.signal,
       body: JSON.stringify({
         model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 800,
+        max_tokens: 1200,
         messages:[{
           role:'user',
           content:[
             fileBlock,
             {
               type:'text',
-              text:'请仔细阅读这份人行征信报告，提取数字数据。找不到的填0。只返回JSON不含其他文字：{"monthly_debt":<贷款月供合计整数>,"card_limit":<信用卡总授信额整数>,"card_used":<已用额度整数>,"q3":<近3月查询次数整数>,"q6":<近6月查询整数>,"q12":<近12月查询整数>,"overdue_cur":<当前逾期笔数整数>,"overdue_max":<历史最长逾期天数整数>,"loan_count":<贷款账户数整数>,"card_count":<信用卡账户数整数>,"hist_years":<信用历史年数整数>}'
+              text:`你是资深银行信贷审核员，精通人行征信报告格式。请仔细阅读这份征信报告，按以下规则精确提取数据：
+
+【提取规则】
+1. monthly_debt：所有贷款账户"本月应还款"或"月还款额"之和（房贷+车贷+信用贷款+消费贷等），单位：元整数
+2. card_limit：所有信用卡账户"授信额度"之和，单位：元整数
+3. card_used：所有信用卡账户"已用额度"或"余额"之和，单位：元整数
+4. q3/q6/q12："贷款审批"+"贷款交易"+"信用卡审批"三类查询在近3月/6月/12月的总次数
+5. overdue_cur：当前处于逾期状态（状态码为1-7或标注"逾期"）的账户笔数
+6. overdue_max：历史所有账户中最长逾期天数（状态码1=1-7天,2=8-30天,3=31-60天,4=61-90天,5=91-120天,6=121-150天,7=151+天，按天数换算）
+7. loan_count：所有贷款类账户总数（含房贷、车贷、个人消费贷、经营贷等，不含信用卡）
+8. card_count：所有信用卡账户总数（含借记卡附带信用额度）
+9. hist_years：最早账户开户日期至今的年数（取整）
+
+【注意】找不到的字段填0，不要猜测，严格按报告数据填写。
+
+只返回JSON不含任何其他文字：{"monthly_debt":<整数>,"card_limit":<整数>,"card_used":<整数>,"q3":<整数>,"q6":<整数>,"q12":<整数>,"overdue_cur":<整数>,"overdue_max":<整数>,"loan_count":<整数>,"card_count":<整数>,"hist_years":<整数>}`
             }
           ]
         }]
@@ -3998,26 +4048,34 @@ async function runInlineDiag() {
   });
 
   // 构建AI消息内容：如果有上传的征信/流水文件，一并传入
-  const diagPrompt = `你是拥有10年以上经验的中国银行信贷风险评估专家，精通人行征信报告解读和各银行审批逻辑。
+  const diagPrompt = `你是拥有15年以上经验的中国银行信贷风险评估专家，精通人行征信报告解读、各银行内部审批逻辑和信用修复方案。
 
-【客户征信数据（用户填写）】
+【客户征信数据】
 月收入：${income}元 | 月总还款：${debt}元 | 负债率：${debtRatio}%
 信用卡总额度：${cardLimit}元 | 已用额度：${cardUsed}元 | 使用率：${cardUtil}%
 贷款查询次数：近3月${q3}次 / 近6月${q6}次 / 近12月${q12}次
 逾期情况：当前逾期${odCur}笔 | 历史最长逾期${odMax}天
 账户结构：贷款账户${loans}个 / 信用卡${cards}张 | 信用历史${histYr}年以上
 
-${Object.keys(_uploadedFilesData).length > 0 ? '【已上传文件】：' + Object.keys(_uploadedFilesData).join('、') + '（请结合以上附件内容综合评估，以附件实际数据为准）' : ''}
+${Object.keys(_uploadedFilesData).length > 0 ? '【已上传文件】：' + Object.keys(_uploadedFilesData).join('、') + '（请结合附件实际数据综合评估，以附件数据为准）' : ''}
 
-【评分规则】（请严格按此评估）
-负债率：≤30%=90-100分, 31-50%=70-89分, 51-70%=45-69分, >70%=0-44分
-查询次数(近3月)：≤2次=90-100, 3-4次=70-89, 5-6次=40-69, ≥7次=0-39
-逾期记录：零逾期=90-100, 历史1-7天=65-89, 当前逾期=直接拒贷0-20分
-信用卡使用率：≤30%=90-100, 31-60%=65-89, 61-80%=40-64, >80%=0-39
-综合评分 = 负债35%+查询20%+逾期25%+信用卡10%+账户5%+历史5%
+【评分规则】（严格按此计算，给出每维度扣分原因）
+负债率（权重35%）：≤30%=95分, 31-40%=82分, 41-50%=68分, 51-60%=52分, 61-70%=35分, >70%=15分
+查询次数近3月（权重20%）：0次=100分, 1-2次=88分, 3-4次=72分, 5-6次=48分, ≥7次=20分
+逾期记录（权重25%）：零逾期=100分, 历史逾期已还清(≤7天)=78分, 历史逾期(8-30天)=55分, 历史逾期(>30天)=30分, 当前逾期=10分
+信用卡使用率（权重10%）：≤30%=95分, 31-50%=75分, 51-70%=50分, >70%=25分
+账户结构（权重5%）：2-5个贷款+2-4张信用卡=90分, 账户过多或过少各扣10-30分
+信用历史（权重5%）：≥5年=90分, 3-5年=75分, 1-3年=55分, <1年=30分
+综合评分 = 各维度得分×对应权重求和
 
-严格返回JSON，不含任何其他文字和markdown代码块：
-{"score":<0-100整数>,"grade":<"优质"|"良好"|"一般"|"待改善">,"loanGrade":<"A级"|"B级"|"C级"|"D级">,"summary":<2句综合点评，指出最大优势和最大风险，80字内>,"dims":{"debt":{"score":<0-100>,"status":<"良好"|"偏高"|"过高"|"危险">,"detail":<指出具体数值和影响，35字内>},"query":{"score":<0-100>,"status":<"正常"|"偏多"|"过多">,"detail":<35字内>},"overdue":{"score":<0-100>,"status":<"无逾期"|"轻微"|"较严重"|"严重">,"detail":<35字内>},"cardUtil":{"score":<0-100>,"status":<"健康"|"偏高"|"过高">,"detail":<35字内>},"accounts":{"score":<0-100>,"status":<"合理"|"偏多"|"偏少">,"detail":<35字内>},"history":{"score":<0-100>,"status":<"优质"|"良好"|"较短"|"很短">,"detail":<35字内>}},"advice":[{"priority":<"high"|"med"|"low">,"text":<给出可操作的具体建议，50字内>},{"priority":<"high"|"med"|"low">,"text":<50字内>},{"priority":<"high"|"med"|"low">,"text":<50字内>}]}`;
+【银行审批标准参考】
+- 国有大行/工农中建交：综合分≥78，负债率≤50%，近3月查询≤3次，无当前逾期
+- 全国股份制银行（招浦兴民光大等）：综合分≥68，负债率≤60%，近6月查询≤6次
+- 城商行/农商行：综合分≥55，负债率≤65%，有逾期需已结清6个月以上
+- 互联网银行（网商/微众/百信）：综合分≥45，负债率≤70%，主要看流水和行为数据
+
+严格返回JSON不含任何其他文字和markdown代码块：
+{"score":<0-100整数>,"grade":<"优质"|"良好"|"一般"|"待改善">,"loanGrade":<"A级"|"B级"|"C级"|"D级">,"summary":<2句综合点评，指出最大优势和最大风险，不超过90字>,"dims":{"debt":{"score":<0-100>,"status":<"良好"|"偏高"|"过高"|"危险">,"detail":<指出具体数值、银行审核影响及扣分原因，40字内>},"query":{"score":<0-100>,"status":<"正常"|"偏多"|"过多">,"detail":<40字内，说明对银行审核的具体影响>},"overdue":{"score":<0-100>,"status":<"无逾期"|"轻微"|"较严重"|"严重">,"detail":<40字内，说明逾期记录的留存时间和影响>},"cardUtil":{"score":<0-100>,"status":<"健康"|"偏高"|"过高">,"detail":<40字内，说明对信贷审批的影响>},"accounts":{"score":<0-100>,"status":<"合理"|"偏多"|"偏少">,"detail":<40字内>},"history":{"score":<0-100>,"status":<"优质"|"良好"|"较短"|"很短">,"detail":<40字内>}},"advice":[{"priority":"high","text":<最紧迫的改善行动，包含具体操作步骤和预期时间，60字内>},{"priority":"high","text":<第二紧迫行动，60字内>},{"priority":"med","text":<中期改善建议，60字内>}],"bank_fit":{"now":<当前可申请的银行类型，如"城商行/互联网银行"，20字内>,"after_improve":<改善后可申请的银行类型，20字内>,"improve_months":<改善所需月数整数>}}`;
 
   // 构建消息内容，附带上传的文件
   const msgContent = [];
@@ -4039,7 +4097,7 @@ ${Object.keys(_uploadedFilesData).length > 0 ? '【已上传文件】：' + Obje
       method:'POST',
       headers:{'Content-Type':'application/json'},
       signal: ctrl.signal,
-      body: JSON.stringify({ model:'claude-3-5-sonnet-20241022', max_tokens:1500, messages:[{role:'user', content: msgContent.length > 1 ? msgContent : diagPrompt}] })
+      body: JSON.stringify({ model:'claude-3-5-sonnet-20241022', max_tokens:2000, messages:[{role:'user', content: msgContent.length > 1 ? msgContent : diagPrompt}] })
     });
     clearTimeout(tout);
     const rText = await resp.text();
@@ -4285,40 +4343,56 @@ function renderMatchResult(r) {
 
   // 分两种情况渲染
   if(!r.products || r.products.length === 0) {
-    // ── 无匹配产品：展示原因 + 人工介入 ──
+    // ── 无匹配产品：展示原因 + 醒目人工顾问卡片 ──
     document.getElementById('mrCount').textContent = '0';
-    document.getElementById('mrSub').textContent = r.summary;
+    document.getElementById('mrSub').textContent = r.summary || '当前资质暂无匹配产品';
     document.getElementById('mrTitle') && (document.getElementById('mrTitle').textContent = '暂无匹配产品');
 
     const reasons = r.rejectReasons || [];
     const tips    = r.improveTips   || [];
 
     document.getElementById('mrProducts').innerHTML = `
-      <div style="background:#fff8f8;border:1.5px solid #fca5a5;border-radius:12px;padding:20px;width:100%;box-sizing:border-box">
-        <div style="font-size:15px;font-weight:700;color:#b91c1c;margin-bottom:12px">⚠️ 当前资质未能匹配到产品</div>
+      <div style="background:#fff8f8;border:1.5px solid #fca5a5;border-radius:12px;padding:20px;width:100%;box-sizing:border-box;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:700;color:#b91c1c;margin-bottom:12px">⚠️ 当前资质未能匹配到银行产品</div>
         ${reasons.length ? `
           <div style="margin-bottom:14px">
-            <div style="font-size:12px;font-weight:600;color:#991b1b;margin-bottom:8px">📋 主要原因</div>
-            ${reasons.map(r => `<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid #fecaca;font-size:13px;color:#7f1d1d">
-              <span style="color:#dc2626;margin-top:1px">✗</span><span>${r}</span>
+            <div style="font-size:12px;font-weight:600;color:#991b1b;margin-bottom:8px">📋 未能匹配的主要原因</div>
+            ${reasons.map(rr => `<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid #fecaca;font-size:13px;color:#7f1d1d">
+              <span style="color:#dc2626;flex-shrink:0;margin-top:1px">✗</span><span>${rr}</span>
             </div>`).join('')}
           </div>` : ''}
         ${tips.length ? `
-          <div style="background:#f0fdf4;border-radius:8px;padding:12px;margin-top:4px">
-            <div style="font-size:12px;font-weight:600;color:#166534;margin-bottom:8px">💡 改善建议</div>
-            ${tips.map((t,i) => `<div style="font-size:13px;color:#15803d;padding:4px 0;display:flex;gap:8px">
-              <span style="font-weight:700">${i+1}.</span><span>${t}</span>
+          <div style="background:#f0fdf4;border-radius:8px;padding:14px;margin-top:4px">
+            <div style="font-size:12px;font-weight:600;color:#166534;margin-bottom:8px">💡 改善建议（按优先级）</div>
+            ${tips.map((t,i) => `<div style="font-size:13px;color:#15803d;padding:5px 0;display:flex;gap:8px;border-bottom:${i<tips.length-1?'1px solid #bbf7d0':'none'}">
+              <span style="font-weight:700;flex-shrink:0">${i+1}.</span><span>${t}</span>
             </div>`).join('')}
           </div>` : ''}
+      </div>
+      <div style="background:linear-gradient(135deg,#1e3a5f 0%,#2d5a8e 100%);border-radius:14px;padding:24px;width:100%;box-sizing:border-box;color:#fff;text-align:center">
+        <div style="font-size:28px;margin-bottom:10px">🧑‍💼</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px">您的情况较为复杂</div>
+        <div style="font-size:13px;opacity:.85;line-height:1.7;margin-bottom:18px">系统未能自动匹配到合适产品<br>建议由专业顾问进行一对一深度分析<br>寻找适合您的特殊通道或信用修复方案</div>
+        <button onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})" style="background:#f59e0b;color:#1e3a5f;border:none;border-radius:8px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;width:100%;max-width:280px;font-family:inherit">
+          联系人工顾问 · 免费一对一分析
+        </button>
+        <div style="font-size:11px;opacity:.6;margin-top:10px">顾问会根据您的实际情况制定专属方案</div>
       </div>`;
 
-    // 显示人工介入（强调版）
-    document.getElementById('manualInterventionBox').style.border = '2px solid #dc2626';
-    document.getElementById('manualInterventionBox').style.background = '#fff8f8';
-    document.getElementById('manualInterventionBox').querySelector('div').textContent = '🙋 申请人工顾问介入';
-    document.getElementById('manualInterventionBtn').style.background = '#dc2626';
-    document.getElementById('manualInterventionBtn').style.color = '#fff';
-    document.getElementById('manualInterventionBtn').textContent = '📋 申请人工顾问介入 · 寻找特殊通道';
+    // 同步更新 manualInterventionBox（如页面上有该模块）
+    const mib = document.getElementById('manualInterventionBox');
+    if(mib) {
+      mib.style.border = '2px solid #dc2626';
+      mib.style.background = '#fff8f8';
+      const mibTitle = mib.querySelector('div');
+      if(mibTitle) mibTitle.textContent = '您的情况较为复杂，建议由专业顾问一对一分析';
+    }
+    const mibBtn = document.getElementById('manualInterventionBtn');
+    if(mibBtn) {
+      mibBtn.style.background = '#dc2626';
+      mibBtn.style.color = '#fff';
+      mibBtn.textContent = '联系人工顾问 · 寻找特殊通道';
+    }
   } else {
     // ── 有匹配产品：正常渲染 ──
     const countEl = document.getElementById('mrCount');
@@ -4343,7 +4417,11 @@ function renderMatchResult(r) {
           <div class="mrp-rate">${p.rate}</div>
           <div class="mrp-prob ${probCls[p.prob]||'prob-med'}">通过率 ${p.probPct}%</div>
         </div>
-      </div>`).join('');
+      </div>`).join('') + `
+      <div style="margin-top:8px;text-align:center;padding:14px;border:1px dashed #cbd5e1;border-radius:10px;background:#f8fafc">
+        <span style="font-size:13px;color:#64748b">对匹配结果有疑问，或想了解更多方案？</span>
+        <a href="#contact" onclick="event.preventDefault();document.getElementById('contact').scrollIntoView({behavior:'smooth'})" style="font-size:13px;color:#1e3a5f;font-weight:600;text-decoration:none;margin-left:8px;white-space:nowrap">需要人工顾问协助 &rarr;</a>
+      </div>`;
   }
 
   // Score badge（两种情况都显示）
