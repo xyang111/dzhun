@@ -1758,6 +1758,7 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
       <button class="bf-btn active" onclick="filterBank('all',this)">全部产品</button>
       <button class="bf-btn" onclick="filterBank('national',this)">国有六大行</button>
       <button class="bf-btn" onclick="filterBank('joint',this)">股份制银行</button>
+      <button class="bf-btn" onclick="filterBank('local',this)">厦门本地</button>
       <button class="bf-btn" onclick="filterBank('low',this)">低利率优先</button>
     </div>
     <div class="products-grid reveal" id="productsGrid">
@@ -3035,16 +3036,27 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
 <script>
 // ── Bank data ──
 const BANKS = [
-  {abbr:'招行',name:'招商银行',product:'闪电贷',desc:'额度5-30万 · 随借随还 · 审批1天内',rate:'3.45',badge:'hot',type:'joint',score:98,top:true,bg:'#c8102e',fg:'#fff'},
-  {abbr:'工行',name:'工商银行',product:'融e借',desc:'额度5-50万 · 国企/公务员优先 · 次日到账',rate:'3.35',badge:'rec',type:'national',score:96,top:true,bg:'#d4000e',fg:'#ffe066'},
-  {abbr:'中行',name:'中国银行',product:'随心智贷',desc:'额度3-20万 · 流水充足可加额 · 灵活还款',rate:'3.15',badge:'new',type:'national',score:86,bg:'#c8102e',fg:'#fff'},
-  {abbr:'厦门',name:'厦门银行',product:'e秒贷',desc:'额度2-10万 · 纯信用 · 秒批秒到',rate:'3.08',badge:'new',type:'joint',score:72,bg:'#003da5',fg:'#fff'},
-  {abbr:'浦发',name:'浦发银行',product:'浦闪贷',desc:'额度2-20万 · 工薪族专属产品',rate:'3.20',badge:'',type:'joint',score:76,bg:'#0055a5',fg:'#fff'},
-  {abbr:'建行',name:'建设银行',product:'快贷',desc:'额度3-20万 · 线上申请 · T+1放款',rate:'3.50',badge:'',type:'national',score:92,bg:'#0066b2',fg:'#fff'},
-  {abbr:'农行',name:'农业银行',product:'网捷贷',desc:'额度2-30万 · 社保/公积金在缴优先',rate:'3.28',badge:'',type:'national',score:89,bg:'#006837',fg:'#fff'},
-  {abbr:'交行',name:'交通银行',product:'惠民贷',desc:'额度5-30万 · 工薪族专属 · 月供低',rate:'3.40',badge:'',type:'national',score:84,bg:'#003087',fg:'#fff'},
-  {abbr:'兴业',name:'兴业银行',product:'兴闪贷',desc:'额度3-15万 · 公积金在缴优先',rate:'3.55',badge:'',type:'joint',score:80,bg:'#004b9b',fg:'#fff'},
-  {abbr:'邮储',name:'邮储银行',product:'邮享贷',desc:'额度1-10万 · 准入宽松 · 征信要求低',rate:'3.60',badge:'',type:'national',score:68,bg:'#006b3c',fg:'#ffe066'},
+  // ── 国有六大行 ──
+  {abbr:'招行',name:'招商银行',product:'闪电贷',desc:'额度5-50万 · 随借随还 · 秒级审批',rate:'3.0',badge:'hot',type:'joint',score:98,top:true,bg:'#c8102e',fg:'#fff'},
+  {abbr:'工行',name:'工商银行',product:'融e借',desc:'额度5-100万 · 公积金/代发工资优先 · 次日到账',rate:'3.35',badge:'rec',type:'national',score:96,top:true,bg:'#d4000e',fg:'#ffe066'},
+  {abbr:'建行',name:'建设银行',product:'建易贷',desc:'公积金白名单单位专属 · 额度最高100万 · 利率2字头',rate:'2.85',badge:'new',type:'national',score:93,bg:'#0066b2',fg:'#fff'},
+  {abbr:'中行',name:'中国银行',product:'随心智贷',desc:'额度3-50万 · 流水充足可加额 · 灵活还款',rate:'3.15',badge:'',type:'national',score:88,bg:'#c8102e',fg:'#fff'},
+  {abbr:'农行',name:'农业银行',product:'网捷贷',desc:'额度2-30万 · 社保/公积金在缴优先',rate:'3.28',badge:'',type:'national',score:87,bg:'#006837',fg:'#fff'},
+  {abbr:'交行',name:'交通银行',product:'惠民贷',desc:'额度5-30万 · 工薪族专属 · 接受个体户',rate:'3.40',badge:'',type:'national',score:84,bg:'#003087',fg:'#fff'},
+  {abbr:'邮储',name:'邮储银行',product:'邮享贷',desc:'额度1-10万 · 准入宽松 · 社保3月即可',rate:'3.60',badge:'',type:'national',score:70,bg:'#006b3c',fg:'#ffe066'},
+  // ── 全国股份制银行 ──
+  {abbr:'浦发',name:'浦发银行',product:'浦闪贷',desc:'额度2-50万 · 工薪族专属产品',rate:'3.20',badge:'',type:'joint',score:78,bg:'#0055a5',fg:'#fff'},
+  {abbr:'兴业',name:'兴业银行',product:'兴闪贷',desc:'额度3-20万 · 征信有瑕疵可选 · 公积金优先',rate:'3.55',badge:'',type:'joint',score:80,bg:'#004b9b',fg:'#fff'},
+  {abbr:'平安',name:'平安银行',product:'橙e贷',desc:'额度5-100万 · 受薪人士专属 · 随借随还',rate:'3.0',badge:'',type:'joint',score:82,bg:'#f36f21',fg:'#fff'},
+  {abbr:'中信',name:'中信银行',product:'信秒贷',desc:'额度最高30万 · 信用卡客户优先 · 按日计息',rate:'4.35',badge:'',type:'joint',score:74,bg:'#cf0a2c',fg:'#fff'},
+  {abbr:'光大',name:'光大银行',product:'光大贷',desc:'额度最高20万 · 社保/公积金在缴 · 征信宽松',rate:'3.65',badge:'',type:'joint',score:72,bg:'#c8102e',fg:'#fff'},
+  // ── 厦门本地银行 ──
+  {abbr:'厦门',name:'厦门银行',product:'e秒贷',desc:'额度5-30万 · 厦门本地银行 · 纯信用秒批',rate:'5.88',badge:'new',type:'local',score:72,bg:'#003da5',fg:'#fff'},
+  {abbr:'厦农',name:'厦门农商银行',product:'菁英贷',desc:'额度5-20万 · 本地化服务 · 社保公积金优先',rate:'4.50',badge:'',type:'local',score:65,bg:'#2e7d32',fg:'#fff'},
+  {abbr:'厦国',name:'厦门国际银行',product:'税享贷',desc:'小微企业主/个体户专属 · 额度最高300万',rate:'5.50',badge:'',type:'local',score:68,bg:'#1565c0',fg:'#fff'},
+  // ── 消费金融公司 ──
+  {abbr:'招联',name:'招联消费金融',product:'好期贷',desc:'额度最高30万 · 征信有瑕疵可申请 · 最快1分钟到账',rate:'6.9',badge:'',type:'consumer',score:55,bg:'#e91e63',fg:'#fff'},
+  {abbr:'马上',name:'马上消费金融',product:'安逸花',desc:'额度最高20万 · 门槛最低 · 持牌正规机构',rate:'7.2',badge:'',type:'consumer',score:48,bg:'#ff5722',fg:'#fff'},
 ];
 
 const BADGE_MAP = {hot:'<span class="bc-badge badge-hot">🔥 热门</span>',new:'<span class="bc-badge badge-new">★ 新品</span>',rec:'<span class="bc-badge badge-rec">👍 推荐</span>'};
@@ -3073,6 +3085,7 @@ function filterBank(type, btn) {
   let list = [...BANKS];
   if(type==='national') list=list.filter(b=>b.type==='national');
   else if(type==='joint') list=list.filter(b=>b.type==='joint');
+  else if(type==='local') list=list.filter(b=>b.type==='local'||b.type==='consumer');
   else if(type==='low') list=[...BANKS].sort((a,b)=>parseFloat(a.rate)-parseFloat(b.rate));
   renderBanks(list);
 }
@@ -4252,17 +4265,24 @@ async function runProductMatch() {
   }
   // 兜底：使用内置产品库
   if(!productLibText) {
-    productLibText = `招商银行-闪电贷：利率3.24%起 | 准入：无当前逾期+近3月查询≤6次+负债率≤70%+月收入≥5000 | 最高30万
-工商银行-融e借：利率3.35%起 | 准入：工行代发工资OR公积金≥12月+无当前逾期 | 最高80万
-中国银行-随心智贷：利率3.15%起 | 准入：无当前逾期+负债率≤65%+月收入≥6000 | 最高50万 | 有房或中行卡加分
-建设银行-快贷：利率3.45%起 | 准入：建行账户+无当前逾期+信用历史≥1年 | 最高30万
-浦发银行-浦闪贷：利率3.20%起 | 准入：月收入≥8000+无当前逾期+近3月查询≤5次 | 最高50万
-农业银行-网捷贷：利率3.28%起 | 准入：农行账户+公务员/国企优先+无严重逾期 | 最高20万
-交通银行-惠民贷：利率3.40%起 | 准入：社保OR公积金≥6月+负债率≤70%+无当前逾期 | 最高30万 | 接受个体工商户
-兴业银行-兴闪贷：利率3.55%起 | 准入：历史逾期≤30天可通过+近6月查询≤8次 | 最高20万 | 征信有瑕疵首选
-邮储银行-邮享贷：利率3.60%起 | 准入：社保≥3月+无当前逾期 | 最高10万 | 门槛最低保底
-平安银行-平安贷：利率3.78%起 | 准入：月收入≥5000+无当前逾期+接受个体工商户 | 最高50万
-光大银行-光大贷：利率3.65%起 | 准入：社保OR公积金+负债率≤75%+近3月查询≤7次 | 最高20万`;
+    productLibText = `招商银行-闪电贷：利率3.0%起 | 准入：月收入≥5000+无当前逾期+近3月查询≤6次+负债率≤70% | 最高50万 | 加分：招行AUM≥2万/信用卡达标/有房产
+工商银行-融e借：利率3.35%起 | 准入：工行代发工资≥1年OR公积金连续缴纳≥2年+无当前逾期+负债≤年收入3倍+近2月查询≤6次 | 最高100万（30万以上需网点）| 加分：公务员/国企/白名单单位额度翻倍
+建设银行-建易贷：利率2.85%起 | 准入：公积金白名单单位在职员工+入职满1年+公积金连续缴纳≥12次+信用卡机构数<6家+网贷笔数<3笔 | 最高100万 | 仅限事业单位/国企/医院/学校等白名单单位
+建设银行-快贷：利率3.45%起 | 准入：建行账户+社保或公积金+无当前逾期+信用历史≥1年+月收入≥5000 | 最高30万
+中国银行-随心智贷：利率3.15%起 | 准入：无当前逾期+负债率≤65%+月收入≥6000+近3月查询≤5次 | 最高50万 | 加分：有全款房产或中行按揭
+农业银行-网捷贷：利率3.28%起 | 准入：农行账户+社保OR公积金在缴+无严重逾期+月收入≥4000 | 最高30万 | 加分：公务员/国企/有农行代发工资
+交通银行-惠民贷：利率3.40%起 | 准入：社保OR公积金≥6月+负债率≤70%+无当前逾期+月收入≥5000 | 最高30万 | 接受个体工商户
+邮储银行-邮享贷：利率3.60%起 | 准入：社保≥3月+无当前逾期+月收入≥3000 | 最高10万 | 门槛最低保底，适合收入较低人群
+浦发银行-浦闪贷：利率3.20%起 | 准入：月收入≥8000+无当前逾期+近3月查询≤5次+负债率≤70% | 最高50万
+兴业银行-兴闪贷：利率3.55%起 | 准入：历史逾期≤30天已还清可通过+近6月查询≤8次+月收入≥5000 | 最高20万 | 征信轻微瑕疵首选
+平安银行-橙e贷：利率3.0%起 | 准入：受薪人士(个体户不适用)+年龄25-55岁+月收入≥8000+无当前逾期+近3月查询≤6次 | 最高100万 | 受薪高收入优先
+中信银行-信秒贷：利率4.35%起 | 准入：满足一项即可(本行代发工资/AUM客户/信用卡客户/按揭/公积金)+无当前逾期+近6月查询≤9次+信用卡使用率≤80% | 最高30万
+光大银行-光大贷：利率3.65%起 | 准入：社保OR公积金在缴+负债率≤75%+近3月查询≤7次+月收入≥5000 | 最高20万
+厦门银行-e秒贷：利率5.88%起 | 准入：22-55岁+无当前逾期(历史逾期不超过10次)+近3月查询≤8次+非白户+未结清贷款≤5家+社保/公积金≥6月+月收入稳定 | 最高30万 | 厦门本地银行，公务员/国企/上市公司员工利率更低
+厦门农商银行-菁英贷：利率4.5%起 | 准入：厦门本地居民+社保或公积金在缴≥6月+无当前逾期+月收入≥5000+征信无连续逾期 | 最高20万 | 厦门本地居民优先，城乡居民均可申请
+厦门国际银行-税享贷：利率5.5%起 | 准入：小微企业主/个体工商户+近3年无重大涉诉+有纳税记录+经营满1年 | 最高300万 | 个体工商户/小微企业主专属经营贷
+招联消费金融-好期贷：利率6.9%起 | 准入：年龄18-55岁+有稳定收入+征信有记录+历史逾期已还清可申请 | 最高30万 | 征信有瑕疵人群首选，审批宽松
+马上消费金融-安逸花：利率7.2%起 | 准入：年龄18-55岁+有收入来源+无当前逾期即可 | 最高20万 | 门槛最低保底选项，适合资质较弱人群`;
   }
   const hasCar   = _assetState.car || false;
   const hasBiz   = _assetState.biz || false;
@@ -4324,16 +4344,38 @@ ${productLibText}
 function localProductMatch({income,debtRatio,q3,odCur,work,histYr,score}) {
   const s = score || 60;
   const products = [];
-  if(odCur===0 && q3<=4 && income>=8000) products.push({bank:'浦发银行',product:'浦闪贷',rate:'3.20%',emoji:'🏦',prob:'高',probPct:88,amount:'10-50万',tags:['无逾期优先','审批快','纯信用'],reason:'无逾期+收入达标，浦闪贷条件完全符合'});
-  if(odCur===0 && debtRatio<=60) products.push({bank:'中国银行',product:'随心智贷',rate:'3.15%',emoji:'🏛',prob:'高',probPct:85,amount:'5-30万',tags:['利率最低','国有大行','稳定'],reason:'利率最低，负债率合理，强烈推荐'});
-  if(q3<=6 && odCur===0) products.push({bank:'招商银行',product:'闪电贷',rate:'3.45%',emoji:'💳',prob:q3<=3?'高':'中',probPct:q3<=3?82:65,amount:'3-30万',tags:['秒级审批','全线上','灵活'],reason:'招行闪电贷审批快，适合急用款'});
-  if(income>=10000) products.push({bank:'工商银行',product:'融e借',rate:'3.35%',emoji:'🏦',prob:'中',probPct:72,amount:'1-80万',tags:['大额可选','国有银行','公积金加分'],reason:'工行客户或公积金用户通过率更高'});
-  // 以下两款始终保底出现
-  products.push({bank:'兴业银行',product:'兴闪贷',rate:'3.55%',emoji:'💰',prob:'中',probPct:68,amount:'1-20万',tags:['条件宽松','快速放款'],reason:'对查询次数要求相对宽松'});
-  products.push({bank:'邮储银行',product:'邮享贷',rate:'3.60%',emoji:'📮',prob:'中',probPct:70,amount:'1-10万',tags:['门槛低','社保3月','稳妥'],reason:'门槛低，适合作为保底备选方案'});
-  // 去重，确保至少3条
-  const deduped = products.filter((p,i,a)=>a.findIndex(x=>x.bank===p.bank)===i).slice(0,6);
-  return {summary:`基于您的资质，共匹配${deduped.length}款产品，建议优先申请利率较低的产品`,count:deduped.length,products:deduped};
+  // 高资质产品（低利率，严门槛）
+  if(odCur===0 && q3<=3 && income>=8000 && debtRatio<=50)
+    products.push({bank:'招商银行',product:'闪电贷',rate:'3.0%',emoji:'💳',prob:'高',probPct:88,amount:'5-50万',tags:['秒级审批','全线上','利率低'],reason:'无逾期+查询少+收入达标，闪电贷优先推荐'});
+  if(odCur===0 && debtRatio<=60 && income>=6000)
+    products.push({bank:'中国银行',product:'随心智贷',rate:'3.15%',emoji:'🏛',prob:'高',probPct:85,amount:'5-50万',tags:['利率低','国有大行','灵活还款'],reason:'负债率合理，中行利率最低，强烈推荐'});
+  if(odCur===0 && q3<=5 && income>=8000)
+    products.push({bank:'浦发银行',product:'浦闪贷',rate:'3.20%',emoji:'🏦',prob:'高',probPct:84,amount:'5-50万',tags:['审批快','纯信用','工薪优先'],reason:'无逾期+收入达标，浦闪贷条件完全符合'});
+  if(income>=5000 && odCur===0 && q3<=6)
+    products.push({bank:'招商银行',product:'闪电贷',rate:'3.0%',emoji:'💳',prob:q3<=3?'高':'中',probPct:q3<=3?82:65,amount:'3-50万',tags:['秒级审批','全线上','灵活'],reason:'招行闪电贷审批快，适合急用款'});
+  if(income>=10000)
+    products.push({bank:'工商银行',product:'融e借',rate:'3.35%',emoji:'🏦',prob:'中',probPct:72,amount:'5-100万',tags:['大额可选','国有银行','公积金加分'],reason:'工行客户或公积金用户通过率更高'});
+  if(odCur===0 && income>=5000)
+    products.push({bank:'平安银行',product:'橙e贷',rate:'3.0%',emoji:'🧡',prob:'中',probPct:70,amount:'5-100万',tags:['受薪专属','大额可选','随借随还'],reason:'受薪人士首选，额度高，随借随还灵活'});
+  // 中等资质产品
+  if(odCur===0)
+    products.push({bank:'兴业银行',product:'兴闪贷',rate:'3.55%',emoji:'💰',prob:'中',probPct:68,amount:'3-20万',tags:['条件宽松','轻微瑕疵可选'],reason:'对查询次数和负债率要求相对宽松'});
+  if(odCur===0)
+    products.push({bank:'中信银行',product:'信秒贷',rate:'4.35%',emoji:'🏛',prob:'中',probPct:65,amount:'1-30万',tags:['信用卡客户','按日计息','审批快'],reason:'有中信信用卡或按揭客户通过率较高'});
+  // 保底产品（始终出现）
+  if(odCur===0)
+    products.push({bank:'邮储银行',product:'邮享贷',rate:'3.60%',emoji:'📮',prob:'中',probPct:70,amount:'1-10万',tags:['门槛低','社保3月','稳妥保底'],reason:'门槛最低，适合作为保底备选方案'});
+  // 厦门本地产品
+  if(odCur===0 && q3<=8 && income>=5000)
+    products.push({bank:'厦门银行',product:'e秒贷',rate:'5.88%',emoji:'🏙',prob:'中',probPct:65,amount:'5-30万',tags:['厦门本地','纯信用','秒批'],reason:'厦门本地银行，审批流程快，本地人首选'});
+  if(odCur<=1 && income>=3000)
+    products.push({bank:'招联消费金融',product:'好期贷',rate:'6.9%起',emoji:'📱',prob:odCur===0?'中':'低',probPct:odCur===0?60:45,amount:'1-30万',tags:['征信宽松','持牌机构','1分钟到账'],reason:'准入宽松，征信有瑕疵可申请，适合保底'});
+  // 去重，通过率高优先，最多6条
+  const deduped = products
+    .filter((p,i,a)=>a.findIndex(x=>x.bank===p.bank && x.product===p.product)===i)
+    .sort((a,b)=>b.probPct-a.probPct)
+    .slice(0,6);
+  return {summary:`基于您的资质，共匹配${deduped.length}款产品，建议优先申请通过率最高的产品`,count:deduped.length,products:deduped};
 }
 
 function renderMatchResult(r) {
