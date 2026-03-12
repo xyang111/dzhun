@@ -3220,11 +3220,14 @@ async function dpOcrExtract(base64, mediaType, fileName) {
     clearTimeout(timeout);
     clearInterval(mt);
 
-    if(!resp.ok) throw new Error('HTTP '+resp.status);
-    const data = await resp.json();
+    const respText = await resp.text();
+    if(!respText || !respText.trim()) throw new Error('服务器返回空响应，请压缩PDF后重试（建议<4MB）');
+    if(!resp.ok) throw new Error(`HTTP ${resp.status}: ${respText.slice(0,120)}`);
+    let data;
+    try { data = JSON.parse(respText); } catch(je) { throw new Error('服务器响应格式异常，请重试'); }
     if(data.error) throw new Error(data.error.message||'API错误');
 
-    let raw = data.content.map(b=>b.text||'').join('').replace(/```json[^`]*```|```/g,'').trim();
+    let raw = (data.content||[]).map(b=>b.text||'').join('').replace(/```json[^`]*```|```/g,'').trim();
     // 如果JSON被截断，尝试找到最后一个完整对象并补全数组
     let extracted;
     try {
@@ -3568,7 +3571,16 @@ function fakeUpload(el){
 
       // 如果上传的是征信报告，自动解析填充字段
       if(label === '征信报告' && (mediaType.includes('pdf') || mediaType.includes('image'))) {
-        autoFillFromCredit(base64, mediaType);
+        if(f.size > 8 * 1024 * 1024) {
+          const hint = document.createElement('div');
+          hint.id = 'autoFillHint';
+          hint.style.cssText = 'background:#fff8e0;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400e;margin:10px 0';
+          hint.innerHTML = '⚠️ 文件过大（>' + (f.size/1024/1024).toFixed(1) + 'MB），请将PDF压缩至8MB以内再上传，或手动填写下方征信数据';
+          const target = document.getElementById('fsp4');
+          if(target) { document.getElementById('autoFillHint')?.remove(); target.insertBefore(hint, target.firstChild); }
+        } else {
+          autoFillFromCredit(base64, mediaType);
+        }
       }
       updateProgress();
     };
@@ -3633,16 +3645,27 @@ async function autoFillFromCredit(base64, mediaType) {
     });
     clearTimeout(timeout);
 
-    if(!resp.ok) {
-      const errText = await resp.text();
-      throw new Error(`HTTP ${resp.status}: ${errText.slice(0,100)}`);
-    }
+    const respText = await resp.text();
+    if(!respText || !respText.trim()) throw new Error('服务器返回空响应，文件可能过大，请压缩PDF后重试（建议<4MB）');
+    if(!resp.ok) throw new Error(`HTTP ${resp.status}: ${respText.slice(0,120)}`);
 
-    const data = await resp.json();
+    let data;
+    try { data = JSON.parse(respText); } catch(je) { throw new Error('服务器响应格式异常，请稍后重试'); }
     if(data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
-    const raw = data.content.map(b=>b.text||'').join('').replace(/```json[^`]*```|```/g,'').trim();
-    const d = JSON.parse(raw);
+    const aiText = (data.content||[]).map(b=>b.text||'').join('').replace(/```json[^`]*```|```/g,'').trim();
+    if(!aiText) throw new Error('AI未返回数据，请重试');
+    let d;
+    try { d = JSON.parse(aiText); } catch(je) {
+      // 尝试截取到最后一个完整字段
+      const lastComma = aiText.lastIndexOf(',');
+      const lastBrace = aiText.lastIndexOf('}');
+      const cutAt = lastBrace > lastComma ? lastBrace : lastComma;
+      if(cutAt > 0) {
+        try { d = JSON.parse(aiText.substring(0, cutAt) + (aiText[cutAt]==='}' ? '' : '}}')); }
+        catch(e2) { throw new Error('识别结果格式错误，请重试'); }
+      } else { throw new Error('识别结果格式错误，请重试'); }
+    }
 
     // 自动填充字段
     const setVal = (id, val) => { const el = document.getElementById(id); if(el && val) el.value = val; };
@@ -3709,10 +3732,13 @@ async function callAI(messages, max_tokens = 1500) {
     body: JSON.stringify({ model: 'claude-opus-4-6', messages, max_tokens }),
   });
   clearTimeout(timeout);
-  if (!resp.ok) throw new Error('API请求失败: ' + resp.status);
-  const data = await resp.json();
+  const respText = await resp.text();
+  if(!respText || !respText.trim()) throw new Error('服务器返回空响应，请重试');
+  if(!resp.ok) throw new Error(`API请求失败: ${resp.status} ${respText.slice(0,120)}`);
+  let data;
+  try { data = JSON.parse(respText); } catch(je) { throw new Error('服务器响应格式异常'); }
   if (data.error) throw new Error(data.error.message || 'API错误');
-  return data.content.map(b => b.text || '').join('').replace(/```json[^`]*```|```/g, '').trim();
+  return (data.content||[]).map(b => b.text || '').join('').replace(/```json[^`]*```|```/g, '').trim();
 }
 
 const _uploadedFiles = {};
@@ -4633,6 +4659,10 @@ function ccHandleDrop(e) {
 
 function ccHandleFile(f) {
   if(!f) return;
+  if(f.size > 8 * 1024 * 1024) {
+    alert('文件过大（' + (f.size/1024/1024).toFixed(1) + 'MB），请将PDF压缩至8MB以内再上传');
+    return;
+  }
   ccFile = f;
   // Show file info
   document.getElementById('cfiName').textContent = f.name;
