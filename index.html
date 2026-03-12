@@ -3199,35 +3199,19 @@ async function dpOcrExtract(base64, mediaType, fileName) {
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
+    const timeout = setTimeout(() => controller.abort(), 120000);
 
     const resp = await fetch(PROXY_URL, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       signal: controller.signal,
       body: JSON.stringify({
-        max_tokens: 4000,
+        max_tokens: 2000,
         messages: [{
           role: 'user',
           content: [
             fileBlock,
-            {type: 'text', text: `请仔细阅读这份人行征信报告，提取所有贷款账户和信用卡账户信息。
-
-对每一笔贷款/信用卡，提取以下字段（找不到填null）：
-- name: 贷款机构名称+产品类型（如"招商银行-个人消费贷款"）
-- type: 类型，只能是以下之一：bank（银行贷款）/ credit（信用卡）/ online（网贷）/ other（其他）
-- principal: 剩余未还本金（数字，元）
-- rate: 年利率（数字，百分比，如找到"月利率0.5%"则换算为年化6.0）
-- monthly: 每月还款额（数字，元）
-- months: 剩余期数（数字，月）
-- limit: 信用卡授信额度（数字，元，仅信用卡有）
-- used: 信用卡已用额度（数字，元，仅信用卡有）
-
-注意：
-1. 信用卡的"已用额度"就是剩余本金principal
-2. 年利率：银行消费贷一般3%-6%，信用卡一般18%（年化），网贷7%-24%
-3. 如果征信上没有利率，rate填null，让客户手动填
-4. 只返回JSON数组，不含其他文字：[{"name":"...","type":"bank","principal":50000,"rate":4.35,"monthly":1500,"months":24,"limit":null,"used":null},...]`}
+            {type: 'text', text: '从这份人行征信报告提取所有贷款和信用卡账户。每条提取：name(机构名+产品类型), type(bank/credit/online/other), principal(剩余本金数字), rate(年利率%数字没有填null), monthly(月还款数字没有填null), months(剩余期数数字)。信用卡用已用额度作principal，利率没标注填null。只返回JSON数组不含其他文字：[{"name":"招商银行-消费贷","type":"bank","principal":50000,"rate":4.35,"monthly":1500,"months":24}]'}
           ]
         }]
       })
