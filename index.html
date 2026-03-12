@@ -3609,7 +3609,7 @@ async function autoFillFromCredit(base64, mediaType) {
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(()=>controller.abort(), 60000); // 60秒超时
+    const timeout = setTimeout(()=>controller.abort(), 120000); // 120秒超时
 
     const resp = await fetch(PROXY_URL, {
       method: 'POST',
@@ -3672,7 +3672,7 @@ async function autoFillFromCredit(base64, mediaType) {
     document.getElementById('fsp4')?.scrollIntoView({behavior:'smooth', block:'center'});
 
   } catch(e) {
-    const msg = e.name === 'AbortError' ? '请求超时（60秒），文件可能太大，请压缩后重试' : ('读取失败：' + e.message);
+    const msg = e.name === 'AbortError' ? '请求超时，请重试（文件较大时需要更长时间）' : ('读取失败：' + e.message);
     hint.innerHTML = '⚠️ ' + msg + '<br><small style="opacity:.7">可手动填写下方征信数据后点击「开始AI诊断」</small>';
     hint.style.background = '#fff8e0'; hint.style.borderColor = '#f59e0b'; hint.style.color = '#92400e';
   }
