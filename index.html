@@ -3206,7 +3206,7 @@ async function dpOcrExtract(base64, mediaType, fileName) {
       headers: {'Content-Type': 'application/json'},
       signal: controller.signal,
       body: JSON.stringify({
-        model: 'claude-opus-4-6',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 2000,
         messages: [{
           role: 'user',
@@ -3226,6 +3226,7 @@ async function dpOcrExtract(base64, mediaType, fileName) {
     let data;
     try { data = JSON.parse(respText); } catch(je) { throw new Error('服务器响应格式异常，请重试'); }
     if(data.error) throw new Error(data.error.message||'API错误');
+    if(data.message && !data.content) throw new Error(data.message);
 
     let raw = (data.content||[]).map(b=>b.text||'').join('').replace(/```json[^`]*```|```/g,'').trim();
     // 如果JSON被截断，尝试找到最后一个完整对象并补全数组
@@ -3629,7 +3630,7 @@ async function autoFillFromCredit(base64, mediaType) {
       headers: {'Content-Type':'application/json'},
       signal: controller.signal,
       body: JSON.stringify({
-        model: 'claude-opus-4-6',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 800,
         messages:[{
           role:'user',
@@ -3652,9 +3653,10 @@ async function autoFillFromCredit(base64, mediaType) {
     let data;
     try { data = JSON.parse(respText); } catch(je) { throw new Error('服务器响应格式异常，请稍后重试'); }
     if(data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    if(data.message && !data.content) throw new Error(data.message);
 
     const aiText = (data.content||[]).map(b=>b.text||'').join('').replace(/```json[^`]*```|```/g,'').trim();
-    if(!aiText) throw new Error('AI未返回数据，请重试');
+    if(!aiText) throw new Error('AI未返回内容（stop_reason:' + (data.stop_reason||'unknown') + '），请重试');
     let d;
     try { d = JSON.parse(aiText); } catch(je) {
       // 尝试截取到最后一个完整字段
@@ -3729,7 +3731,7 @@ async function callAI(messages, max_tokens = 1500) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     signal: controller.signal,
-    body: JSON.stringify({ model: 'claude-opus-4-6', messages, max_tokens }),
+    body: JSON.stringify({ model: 'claude-3-5-sonnet-20241022', messages, max_tokens }),
   });
   clearTimeout(timeout);
   const respText = await resp.text();
@@ -4043,7 +4045,7 @@ ${Object.keys(_uploadedFilesData).length > 0 ? '【已上传文件】：' + Obje
     const resp = await fetch(PROXY_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ model:'claude-opus-4-6', max_tokens:1500, messages:[{role:'user', content: msgContent.length > 1 ? msgContent : diagPrompt}] })
+      body: JSON.stringify({ model:'claude-3-5-sonnet-20241022', max_tokens:1500, messages:[{role:'user', content: msgContent.length > 1 ? msgContent : diagPrompt}] })
     });
     const data = await resp.json();
     if(data.error) throw new Error(data.error.message);
@@ -4490,7 +4492,7 @@ async function _ccAnalysePDF() {
     headers: { 'Content-Type': 'application/json' },
     signal: controller.signal,
     body: JSON.stringify({
-      model: 'claude-opus-4-6',
+      model: 'claude-3-5-sonnet-20241022',
       max_tokens: 2000,
       messages: [{
         role: 'user',
