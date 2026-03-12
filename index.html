@@ -3377,7 +3377,8 @@ monthly_plan给前12个月。所有建议必须针对具体职业，不能是通
   try {
     const raw=await callAI([{role:'user',content:prompt}],2000);
     clearInterval(mt);
-    const r=JSON.parse(raw);
+    const r=extractJson(raw);
+    if(!r) throw new Error('JSON解析失败');
     dpRenderReport(r,parseInt(income),totalDebt,totalMonthly,debtRatio);
   } catch(e) {
     clearInterval(mt);
@@ -3843,16 +3844,6 @@ async function requestManualIntervention() {
   document.getElementById('manualInterventionSuccess').style.display='block';
 }
 
-async function submitToFormspree(extraData = {}) {
-  try {
-    await fetch(FORMSPREE_URL, {
-      method:'POST',
-      headers:{'Accept':'application/json','Content-Type':'application/json'},
-      body: JSON.stringify({...collectFormData(),...extraData}),
-    });
-  } catch(e){ console.warn('提交失败',e); }
-}
-
 async function submitPartner() {
   const name  = document.getElementById('b-name')?.value.trim();
   const phone = document.getElementById('b-phone')?.value.trim();
@@ -4042,15 +4033,23 @@ ${Object.keys(_uploadedFilesData).length > 0 ? '【已上传文件】：' + Obje
 
   let result;
   try {
+    const ctrl = new AbortController();
+    const tout = setTimeout(() => ctrl.abort(), 120000);
     const resp = await fetch(PROXY_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
+      signal: ctrl.signal,
       body: JSON.stringify({ model:'claude-3-5-sonnet-20241022', max_tokens:1500, messages:[{role:'user', content: msgContent.length > 1 ? msgContent : diagPrompt}] })
     });
-    const data = await resp.json();
-    if(data.error) throw new Error(data.error.message);
-    const raw = data.content.map(b=>b.text||'').join('').replace(/```json[\s\S]*?```|```/g,'').trim();
-    result = JSON.parse(raw);
+    clearTimeout(tout);
+    const rText = await resp.text();
+    if(!rText||!rText.trim()) throw new Error('empty');
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    let data; try { data = JSON.parse(rText); } catch(e){ throw new Error('parse'); }
+    if(data.error) throw new Error(data.error.message||'API错误');
+    const raw = (data.content||[]).map(b=>b.text||'').join('');
+    result = extractJson(raw) || null;
+    if(!result) throw new Error('no json');
   } catch(e) {
     result = localDiag({debtRatio,cardUtil,q3,odCur,odMax,totalAcct,histYr,income,debt,cards,loans});
   }
@@ -4207,8 +4206,9 @@ async function runProductMatch() {
 平安银行-平安贷：利率3.78%起 | 准入：月收入≥5000+无当前逾期+接受个体工商户 | 最高50万
 光大银行-光大贷：利率3.65%起 | 准入：社保OR公积金+负债率≤75%+近3月查询≤7次 | 最高20万`;
   }
-  const hasCar   = document.getElementById('cardCar')?.classList.contains('selected') || false;
-  const hasBiz   = document.getElementById('cardBiz')?.classList.contains('selected') || false;
+  const hasCar   = _assetState.car || false;
+  const hasBiz   = _assetState.biz || false;
+  const hasHouse = _assetState.house || false;
   const houseStatus = document.getElementById('houseStatus')?.value || '';
   const bizReal     = document.getElementById('bizReal')?.value || '';
   const assetDesc = [
@@ -4244,7 +4244,8 @@ ${productLibText}
   let result;
   try {
     const raw = await callAI([{role:'user',content:prompt}], 1800);
-    result = JSON.parse(raw);
+    result = extractJson(raw);
+    if(!result) throw new Error('JSON解析失败');
   } catch(e) {
     result = localProductMatch({income,debtRatio,q3,odCur,work,histYr,score});
   }
@@ -4450,7 +4451,7 @@ async function runCCDiag() {
   document.getElementById('ccReading').style.display = 'block';
 
   // Animate thinking steps
-  const stepIds = ['ccts1','ccts2','ccts3','ccts4','ccts5'];
+  const stepIds = ['ccs1','ccs2','ccs3','ccs4','ccs5'];
   stepIds.forEach((id, i) => {
     setTimeout(() => {
       if (i > 0) {
@@ -4475,7 +4476,8 @@ async function runCCDiag() {
   // Mark last step done
   setTimeout(() => {
     const last = document.getElementById('ccts5');
-    if(last) { last.classList.remove('active'); last.classList.add('done'); }
+    const last5 = document.getElementById('ccs5');
+    if(last5) { last5.classList.remove('active'); last5.classList.add('done'); }
     document.getElementById('ccReading').style.display = 'none';
     _ccRenderReport(result);
     btn.disabled = false;
