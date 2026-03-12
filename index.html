@@ -1569,6 +1569,7 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
     <a href="#credit-check">🔬 征信诊断</a>
     <a href="#apply">立即申请</a>
     <a href="#partner">同行合作</a>
+    <a href="#debt-plan">🧭 负债上岸</a>
     <a href="#contact">联系我们</a>
     <a class="nav-cta" href="javascript:void(0)" onclick="goApply('c')">立即测额度</a>
   </div>
@@ -1582,6 +1583,7 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
   <a href="#credit-check" onclick="closeMenu()">🔬 征信诊断</a>
   <a href="#apply" onclick="closeMenu()">✍️ 立即申请</a>
   <a href="#partner" onclick="closeMenu()">🤝 同行合作</a>
+  <a href="#debt-plan" onclick="closeMenu()">🧭 负债上岸</a>
   <a href="#contact" onclick="closeMenu()">📞 联系我们</a>
   <a href="javascript:void(0)" onclick="closeMenu();goApply('c')">立即测额度 →</a>
 </div>
@@ -1619,11 +1621,11 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
       <p>负债 · 查询 · 逾期<br>AI分析资质 · 给出改善建议</p>
       <button class="portal-btn pb-outline" style="border-color:var(--gold);color:var(--gold)" onclick="document.getElementById('credit-check').scrollIntoView({behavior:'smooth'})">开始诊断 →</button>
     </div>
-    <div class="portal-card" onclick="goApply('b')">
-      <span class="portal-icon">🤝</span>
-      <h3>同行合作</h3>
-      <p>助贷从业者 · 机构<br>批量筛产品 · 提效率</p>
-      <button class="portal-btn pb-outline">查看合作方案 →</button>
+    <div class="portal-card" onclick="document.getElementById('debt-plan').scrollIntoView({behavior:'smooth'})">
+      <span class="portal-icon">🧭</span>
+      <h3>负债上岸</h3>
+      <p>多笔贷款 · 还款压力大<br>AI制定上岸计划 · 算清每笔利息</p>
+      <button class="portal-btn pb-outline" style="border-color:#3fb950;color:#3fb950">开始规划 →</button>
     </div>
   </div>
   <div class="hero-scroll"><span>向下探索</span><div class="scroll-dot"></div></div>
@@ -1983,6 +1985,285 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
 
       </div><!-- /cc-result-col -->
     </div><!-- /cc-layout -->
+  </div>
+</section>
+
+
+<!-- ═══ DEBT PLAN ═══ -->
+<section style="background:var(--off-white);padding:80px 5vw" id="debt-plan">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label reveal">🧭 负债上岸</div>
+      <div class="section-title reveal">AI帮你算清每一笔债</div>
+      <div class="section-sub reveal">录入所有贷款，AI计算总利息、最优还款顺序，制定科学上岸计划<br>给出提升收入、降低开支、以低换高的真实可行建议</div>
+    </div>
+
+    <!-- 步骤导航 -->
+    <div style="display:flex;gap:0;background:#fff;border:1px solid var(--gray-light);border-radius:12px;padding:4px;max-width:600px;margin:0 auto 32px" class="reveal">
+      <div class="dp-tab active" id="dp-tab1" onclick="dpGoStep(1)" style="flex:1;text-align:center;padding:10px 8px;font-size:13px;color:var(--gray-mid);border-radius:8px;cursor:pointer;transition:all .2s;font-weight:600">① 录入负债</div>
+      <div class="dp-tab" id="dp-tab2" onclick="dpGoStep(2)" style="flex:1;text-align:center;padding:10px 8px;font-size:13px;color:var(--gray-mid);border-radius:8px;cursor:pointer;transition:all .2s;font-weight:600">② 基本情况</div>
+      <div class="dp-tab" id="dp-tab3" style="flex:1;text-align:center;padding:10px 8px;font-size:13px;color:var(--gray-mid);border-radius:8px;cursor:pointer;transition:all .2s;font-weight:600">③ 上岸计划</div>
+    </div>
+
+    <div style="max-width:860px;margin:0 auto">
+
+      <!-- Step 1: 录入负债 -->
+      <div id="dp-step1" class="reveal">
+
+        <!-- 征信上传OCR -->
+        <div style="background:#fff;border:1px solid var(--gray-light);border-radius:16px;padding:28px;margin-bottom:20px">
+          <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:6px;display:flex;align-items:center;gap:10px">
+            <span style="background:var(--gold-pale);border-radius:8px;padding:6px 10px">📄</span> 上传征信自动识别
+          </div>
+          <div style="font-size:12px;color:var(--gray-mid);margin-bottom:20px;line-height:1.8">支持人行征信报告（详版/简版）PDF或截图，AI自动提取所有贷款和信用卡信息<br>提取后只需补充<span style="color:var(--gold);font-weight:600">利率和月供</span>两个字段即可开始分析</div>
+
+          <!-- 上传区域 -->
+          <div id="dp-ocr-zone" onclick="document.getElementById('dp-credit-file').click()"
+            style="border:2px dashed var(--gray-light);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;background:var(--off-white)"
+            ondragover="event.preventDefault();this.style.borderColor='var(--gold)'"
+            ondragleave="this.style.borderColor='var(--gray-light)'"
+            ondrop="event.preventDefault();this.style.borderColor='var(--gray-light)';dpHandleFile(event.dataTransfer.files[0])">
+            <div style="font-size:32px;margin-bottom:10px">📂</div>
+            <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:4px">点击或拖拽上传征信报告</div>
+            <div style="font-size:12px;color:var(--gray-mid)">支持 PDF / JPG / PNG，文件大小不超过10MB</div>
+            <input type="file" id="dp-credit-file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="dpHandleFile(this.files[0])">
+          </div>
+
+          <!-- OCR进度 -->
+          <div id="dp-ocr-loading" style="display:none;text-align:center;padding:24px">
+            <div style="width:36px;height:36px;border:3px solid var(--gray-light);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px"></div>
+            <div id="dp-ocr-msg" style="font-size:13px;color:var(--gray-mid)">AI正在识别征信报告中的贷款信息…</div>
+          </div>
+
+          <!-- OCR结果提示 -->
+          <div id="dp-ocr-result" style="display:none;margin-top:14px;background:#e6f4ed;border:1px solid #4ade80;border-radius:10px;padding:12px 16px;font-size:13px;color:#2a7a55"></div>
+
+          <div style="display:flex;align-items:center;gap:12px;margin-top:16px">
+            <div style="flex:1;height:1px;background:var(--gray-light)"></div>
+            <div style="font-size:12px;color:var(--gray-mid)">或者手动添加</div>
+            <div style="flex:1;height:1px;background:var(--gray-light)"></div>
+          </div>
+        </div>
+
+        <!-- 贷款列表 -->
+        <div style="background:#fff;border:1px solid var(--gray-light);border-radius:16px;padding:28px;margin-bottom:20px">
+          <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:20px;display:flex;align-items:center;gap:10px">
+            <span style="background:var(--gold-pale);border-radius:8px;padding:6px 10px">📋</span> 我的所有负债
+            <span id="dp-ocr-badge" style="display:none;font-size:11px;background:var(--green-light);color:var(--green);padding:3px 10px;border-radius:20px;font-weight:600">✓ 征信已识别</span>
+          </div>
+
+          <div id="dp-loan-list"></div>
+          <div id="dp-empty" style="text-align:center;padding:28px;color:var(--gray-mid);font-size:13px">还没有添加任何贷款，上传征信自动识别，或从下方手动添加</div>
+
+          <!-- 添加表单 -->
+          <div style="background:var(--off-white);border:1px dashed var(--gold);border-radius:12px;padding:20px;margin-top:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:16px">＋ 手动添加一笔贷款</div>
+            <div class="form-grid" style="margin-bottom:14px">
+              <div class="form-group">
+                <label style="font-size:12px;color:var(--navy);font-weight:600;display:block;margin-bottom:6px">贷款名称</label>
+                <input class="form-input" id="dp-ln-name" placeholder="如：招行信用卡、借呗">
+              </div>
+              <div class="form-group">
+                <label style="font-size:12px;color:var(--navy);font-weight:600;display:block;margin-bottom:6px">贷款类型</label>
+                <select class="form-input" id="dp-ln-type">
+                  <option value="bank">银行贷款/信用卡</option>
+                  <option value="online">网贷（借呗/白条等）</option>
+                  <option value="credit">消费金融</option>
+                  <option value="friend">亲友借款</option>
+                  <option value="other">其他</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label style="font-size:12px;color:var(--navy);font-weight:600;display:block;margin-bottom:6px">剩余本金（元）</label>
+                <input class="form-input" type="number" id="dp-ln-principal" placeholder="如：50000">
+              </div>
+              <div class="form-group">
+                <label style="font-size:12px;color:var(--navy);font-weight:600;display:block;margin-bottom:6px">年利率（%）</label>
+                <input class="form-input" type="number" id="dp-ln-rate" placeholder="如：18（信用卡填18）" step="0.01">
+              </div>
+              <div class="form-group">
+                <label style="font-size:12px;color:var(--navy);font-weight:600;display:block;margin-bottom:6px">每月还款（元）</label>
+                <input class="form-input" type="number" id="dp-ln-monthly" placeholder="如：1500">
+              </div>
+              <div class="form-group">
+                <label style="font-size:12px;color:var(--navy);font-weight:600;display:block;margin-bottom:6px">剩余期数（月）</label>
+                <input class="form-input" type="number" id="dp-ln-months" placeholder="不确定填0">
+              </div>
+            </div>
+            <button onclick="dpAddLoan()" style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">✓ 确认添加</button>
+          </div>
+        </div>
+
+        <!-- 汇总 -->
+        <div id="dp-summary-card" style="display:none;background:#fff;border:1px solid var(--gray-light);border-radius:16px;padding:24px;margin-bottom:20px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:center">
+            <div><div style="font-size:24px;font-weight:900;color:#c0392b" id="dp-sum-total">¥0</div><div style="font-size:12px;color:var(--gray-mid);margin-top:4px">总负债</div></div>
+            <div><div style="font-size:24px;font-weight:900;color:var(--gold)" id="dp-sum-monthly">¥0</div><div style="font-size:12px;color:var(--gray-mid);margin-top:4px">每月最低还款</div></div>
+            <div><div style="font-size:24px;font-weight:900;color:var(--navy)" id="dp-sum-count">0笔</div><div style="font-size:12px;color:var(--gray-mid);margin-top:4px">贷款笔数</div></div>
+          </div>
+        </div>
+
+        <div style="text-align:center">
+          <button id="dp-step1-next" onclick="dpGoStep(2)" disabled style="background:var(--navy);color:#fff;border:none;border-radius:10px;padding:14px 36px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;opacity:.4;transition:all .2s">下一步：填写基本情况 →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: 基本情况 -->
+      <div id="dp-step2" style="display:none">
+        <div style="background:#fff;border:1px solid var(--gray-light);border-radius:16px;padding:28px;margin-bottom:20px">
+          <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:20px;display:flex;align-items:center;gap:10px">
+            <span style="background:var(--gold-pale);border-radius:8px;padding:6px 10px">👤</span> 你的基本情况
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label style="font-size:12px;color:var(--navy);font-weight:600;display:block;margin-bottom:6px">月收入（税后，元）<span style="color:red">*</span></label>
+              <input class="form-input" type="number" id="dp-income" placeholder="如：8000">
+            </div>
+            <div class="form-group">
+              <label style="font-size:12px;color:var(--navy);font-weight:600;display:block;margin-bottom:6px">职业类型<span style="color:red">*</span></label>
+              <select class="form-input" id="dp-job">
+                <option value="">请选择</option>
+                <option value="gov">公务员/事业单位</option>
+                <option value="state">国企员工</option>
+                <option value="private">私企/外企员工</option>
+                <option value="self">个体工商户/自营</option>
+                <option value="freelance">自由职业/兼职</option>
+                <option value="other">其他</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="font-size:12px;color:var(--navy);font-weight:600;display:block;margin-bottom:6px">每月固定支出（元）</label>
+              <input class="form-input" type="number" id="dp-expense" placeholder="房租+生活费等">
+            </div>
+            <div class="form-group">
+              <label style="font-size:12px;color:var(--navy);font-weight:600;display:block;margin-bottom:6px">每月可额外多还（元）</label>
+              <input class="form-input" type="number" id="dp-extra" placeholder="收入-支出-最低还款后剩余">
+            </div>
+            <div class="form-group full">
+              <label style="font-size:12px;color:var(--navy);font-weight:600;display:block;margin-bottom:6px">你最担心的问题</label>
+              <select class="form-input" id="dp-worry">
+                <option value="interest">利息太高，越还越多</option>
+                <option value="cashflow">每月还款压力大，快撑不住</option>
+                <option value="credit">担心影响征信</option>
+                <option value="time">不知道还要还多久</option>
+                <option value="all">以上都有</option>
+              </select>
+            </div>
+            <div class="form-group full">
+              <label style="font-size:12px;color:var(--navy);font-weight:600;display:block;margin-bottom:6px">补充说明（选填）</label>
+              <input class="form-input" id="dp-note" placeholder="如：有一笔快逾期/想先还某笔/有额外收入等">
+            </div>
+          </div>
+        </div>
+
+        <!-- 策略选择 -->
+        <div style="background:#fff;border:1px solid var(--gray-light);border-radius:16px;padding:28px;margin-bottom:20px">
+          <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;gap:10px">
+            <span style="background:var(--gold-pale);border-radius:8px;padding:6px 10px">🎯</span> 选择还款策略
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div id="dp-s-avalanche" onclick="dpSelectStrategy('avalanche')" style="border:2px solid var(--navy);border-radius:12px;padding:18px;cursor:pointer;transition:all .25s;background:var(--off-white)">
+              <div style="font-weight:700;margin-bottom:6px">❄️ 雪崩法（推荐）</div>
+              <div style="font-size:12px;color:var(--gray-mid);line-height:1.6;margin-bottom:10px">优先还利率最高的贷款，总利息最少，数学上最优</div>
+              <div style="font-size:11px;color:var(--green);font-weight:600">✓ 省息最多</div>
+            </div>
+            <div id="dp-s-snowball" onclick="dpSelectStrategy('snowball')" style="border:2px solid var(--gray-light);border-radius:12px;padding:18px;cursor:pointer;transition:all .25s">
+              <div style="font-weight:700;margin-bottom:6px">⛄ 雪球法</div>
+              <div style="font-size:12px;color:var(--gray-mid);line-height:1.6;margin-bottom:10px">优先还金额最小的贷款，还清一笔有成就感，更容易坚持</div>
+              <div style="font-size:11px;color:var(--gold);font-weight:600">✓ 动力更强</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <button onclick="dpGoStep(1)" style="background:#fff;color:var(--navy);border:1px solid var(--gray-light);border-radius:10px;padding:13px 24px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">← 返回修改</button>
+          <button onclick="dpStartAnalysis()" style="background:var(--gold);color:var(--navy);border:none;border-radius:10px;padding:13px 32px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;flex:1">🤖 开始AI分析，生成上岸计划 →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: 报告 -->
+      <div id="dp-step3" style="display:none">
+
+        <!-- Loading -->
+        <div id="dp-loading" style="text-align:center;padding:60px 20px">
+          <div style="width:48px;height:48px;border:3px solid var(--gray-light);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px"></div>
+          <div id="dp-loading-text" style="font-size:14px;color:var(--gray-mid);line-height:2">AI正在分析你的负债情况…<br><span style="font-size:12px;opacity:.6">通常需要15-30秒</span></div>
+        </div>
+
+        <!-- 报告 -->
+        <div id="dp-report" style="display:none">
+
+          <!-- 总览 -->
+          <div style="background:#fff;border:1px solid var(--gray-light);border-radius:16px;padding:24px;margin-bottom:20px">
+            <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;gap:10px">
+              <span style="background:var(--gold-pale);border-radius:8px;padding:6px 10px">📊</span> 负债总览
+            </div>
+            <div id="dp-r-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:center"></div>
+          </div>
+
+          <!-- AI诊断 -->
+          <div style="background:#fff;border:1px solid var(--gray-light);border-radius:16px;padding:24px;margin-bottom:20px">
+            <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;gap:10px">
+              <span style="background:var(--gold-pale);border-radius:8px;padding:6px 10px">🤖</span> AI诊断
+            </div>
+            <div style="font-size:13px;color:var(--navy);font-weight:600;margin-bottom:8px;letter-spacing:.5px">整体评估</div>
+            <div id="dp-r-overall" style="font-size:14px;line-height:2;color:var(--text-mid);margin-bottom:20px"></div>
+            <div style="font-size:13px;color:var(--navy);font-weight:600;margin-bottom:8px;letter-spacing:.5px">⚠️ 需要注意</div>
+            <div id="dp-r-danger" style="font-size:14px;line-height:2;color:#c0392b"></div>
+          </div>
+
+          <!-- 还款顺序 -->
+          <div style="background:#fff;border:1px solid var(--gray-light);border-radius:16px;padding:24px;margin-bottom:20px">
+            <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;gap:10px">
+              <span style="background:var(--gold-pale);border-radius:8px;padding:6px 10px">📅</span> 推荐还款顺序
+            </div>
+            <div id="dp-r-strategy" style="font-size:13px;color:var(--gray-mid);margin-bottom:14px;line-height:1.8"></div>
+            <div id="dp-r-order"></div>
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--gray-light)">
+              <div style="font-size:13px;color:var(--navy);font-weight:600;margin-bottom:8px">⏱ 上岸时间预测</div>
+              <div id="dp-r-timeline" style="font-size:14px;line-height:2;color:var(--text-mid)"></div>
+            </div>
+          </div>
+
+          <!-- 实际建议 -->
+          <div style="background:#fff;border:1px solid var(--gray-light);border-radius:16px;padding:24px;margin-bottom:20px">
+            <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;gap:10px">
+              <span style="background:var(--gold-pale);border-radius:8px;padding:6px 10px">💡</span> 实际可行建议
+            </div>
+            <div id="dp-r-advice" style="display:grid;grid-template-columns:1fr 1fr;gap:14px"></div>
+          </div>
+
+          <!-- 月度计划 -->
+          <div style="background:#fff;border:1px solid var(--gray-light);border-radius:16px;padding:24px;margin-bottom:20px">
+            <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;gap:10px">
+              <span style="background:var(--gold-pale);border-radius:8px;padding:6px 10px">📋</span> 未来12个月还款计划
+            </div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead>
+                  <tr style="background:var(--off-white)">
+                    <th style="padding:10px 12px;text-align:left;font-size:11px;color:var(--gold);letter-spacing:1px;border-bottom:1px solid var(--gray-light)">月份</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:11px;color:var(--gold);letter-spacing:1px;border-bottom:1px solid var(--gray-light)">还款动作</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:11px;color:var(--gold);letter-spacing:1px;border-bottom:1px solid var(--gray-light)">本月金额</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:11px;color:var(--gold);letter-spacing:1px;border-bottom:1px solid var(--gray-light)">剩余负债</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:11px;color:var(--gold);letter-spacing:1px;border-bottom:1px solid var(--gray-light)">备注</th>
+                  </tr>
+                </thead>
+                <tbody id="dp-r-table"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 底部按钮 -->
+          <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:8px">
+            <button onclick="dpGoStep(1)" style="background:#fff;color:var(--navy);border:1px solid var(--gray-light);border-radius:10px;padding:13px 24px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">重新录入</button>
+            <button onclick="goApply('c')" style="background:var(--gold);color:var(--navy);border:none;border-radius:10px;padding:13px 32px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">申请低息贷款置换 →</button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
   </div>
 </section>
 
@@ -2854,6 +3135,323 @@ window.addEventListener('scroll',()=>{
 // ── Mobile menu ──
 function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('open')}
 function closeMenu(){document.getElementById('mobileMenu').classList.remove('open')}
+
+// ══ 负债上岸规划模块 ══
+let dpLoans=[], dpStrategy='avalanche';
+
+function dpGoStep(n){
+  if(n===2&&dpLoans.length===0){alert('请先添加至少一笔贷款');return;}
+  [1,2,3].forEach(i=>{
+    const s=document.getElementById('dp-step'+i);
+    if(s)s.style.display=i===n?'block':'none';
+    const t=document.getElementById('dp-tab'+i);
+    if(t){t.style.background=i===n?'var(--navy)':'';t.style.color=i===n?'#fff':'var(--gray-mid)';}
+  });
+  document.getElementById('debt-plan').scrollIntoView({behavior:'smooth'});
+}
+
+function dpAddLoan(){
+  const name=document.getElementById('dp-ln-name').value.trim()||'未命名';
+  const type=document.getElementById('dp-ln-type').value;
+  const principal=parseFloat(document.getElementById('dp-ln-principal').value)||0;
+  const rate=parseFloat(document.getElementById('dp-ln-rate').value)||0;
+  const monthly=parseFloat(document.getElementById('dp-ln-monthly').value)||0;
+  const months=parseInt(document.getElementById('dp-ln-months').value)||0;
+  if(!principal||!rate||!monthly){alert('请填写剩余本金、年利率和每月还款额');return;}
+  dpLoans.push({id:Date.now(),name,type,principal,rate,monthly,months});
+  dpRenderLoans();
+  ['dp-ln-name','dp-ln-principal','dp-ln-rate','dp-ln-monthly','dp-ln-months'].forEach(id=>document.getElementById(id).value='');
+}
+
+function dpDeleteLoan(id){dpLoans=dpLoans.filter(l=>l.id!==id);dpRenderLoans();}
+
+// ══ 征信OCR识别 ══
+function dpHandleFile(file) {
+  if(!file) return;
+  const zone = document.getElementById('dp-ocr-zone');
+  zone.style.borderColor = 'var(--green)';
+  zone.innerHTML = `<div style="font-size:24px;margin-bottom:8px">✅</div><div style="font-size:13px;color:var(--green);font-weight:600">${file.name}</div><div style="font-size:12px;color:var(--gray-mid);margin-top:4px">正在识别…</div>`;
+  document.getElementById('dp-ocr-loading').style.display = 'block';
+  document.getElementById('dp-ocr-result').style.display = 'none';
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = e.target.result.split(',')[1];
+    const mediaType = file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
+    await dpOcrExtract(base64, mediaType, file.name);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function dpOcrExtract(base64, mediaType, fileName) {
+  const msgs = ['AI正在识别征信报告中的贷款信息…', '提取贷款账户和信用卡数据…', '整理负债明细…'];
+  let mi = 0;
+  const mt = setInterval(() => {
+    mi = (mi+1) % msgs.length;
+    const el = document.getElementById('dp-ocr-msg');
+    if(el) el.textContent = msgs[mi];
+  }, 2500);
+
+  const isPdf = mediaType.includes('pdf');
+  const fileBlock = isPdf
+    ? {type:'document', source:{type:'base64', media_type:'application/pdf', data:base64}}
+    : {type:'image', source:{type:'base64', media_type:mediaType, data:base64}};
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+
+    const resp = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      signal: controller.signal,
+      body: JSON.stringify({
+        max_tokens: 4000,
+        messages: [{
+          role: 'user',
+          content: [
+            fileBlock,
+            {type: 'text', text: `请仔细阅读这份人行征信报告，提取所有贷款账户和信用卡账户信息。
+
+对每一笔贷款/信用卡，提取以下字段（找不到填null）：
+- name: 贷款机构名称+产品类型（如"招商银行-个人消费贷款"）
+- type: 类型，只能是以下之一：bank（银行贷款）/ credit（信用卡）/ online（网贷）/ other（其他）
+- principal: 剩余未还本金（数字，元）
+- rate: 年利率（数字，百分比，如找到"月利率0.5%"则换算为年化6.0）
+- monthly: 每月还款额（数字，元）
+- months: 剩余期数（数字，月）
+- limit: 信用卡授信额度（数字，元，仅信用卡有）
+- used: 信用卡已用额度（数字，元，仅信用卡有）
+
+注意：
+1. 信用卡的"已用额度"就是剩余本金principal
+2. 年利率：银行消费贷一般3%-6%，信用卡一般18%（年化），网贷7%-24%
+3. 如果征信上没有利率，rate填null，让客户手动填
+4. 只返回JSON数组，不含其他文字：[{"name":"...","type":"bank","principal":50000,"rate":4.35,"monthly":1500,"months":24,"limit":null,"used":null},...]`}
+          ]
+        }]
+      })
+    });
+    clearTimeout(timeout);
+    clearInterval(mt);
+
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const data = await resp.json();
+    if(data.error) throw new Error(data.error.message||'API错误');
+
+    let raw = data.content.map(b=>b.text||'').join('').replace(/```json[^`]*```|```/g,'').trim();
+    // 如果JSON被截断，尝试找到最后一个完整对象并补全数组
+    let extracted;
+    try {
+      extracted = JSON.parse(raw);
+    } catch(jsonErr) {
+      // 尝试截取到最后一个完整的 } 并补全
+      const lastBrace = raw.lastIndexOf('}');
+      if(lastBrace > 0) {
+        const fixedRaw = raw.substring(0, lastBrace+1) + ']';
+        const startBracket = fixedRaw.indexOf('[');
+        try {
+          extracted = JSON.parse(startBracket>=0 ? fixedRaw.substring(startBracket) : '['+fixedRaw);
+        } catch(e2) {
+          throw new Error('JSON解析失败，请重试或手动添加贷款');
+        }
+      } else {
+        throw new Error('识别内容为空，请确认上传的是人行征信报告');
+      }
+    }
+
+    if(!Array.isArray(extracted) || extracted.length===0) {
+      throw new Error('未能从征信中识别到贷款信息，请确认上传的是人行征信报告');
+    }
+
+    // 添加到贷款列表
+    let addCount = 0;
+    extracted.forEach(item => {
+      if(!item.name) return;
+      const principal = item.type==='credit' ? (item.used||0) : (item.principal||0);
+      dpLoans.push({
+        id: Date.now() + Math.random(),
+        name: item.name,
+        type: item.type || 'bank',
+        principal: principal,
+        rate: item.rate || 0,
+        monthly: item.monthly || 0,
+        months: item.months || 0,
+        fromOcr: true
+      });
+      addCount++;
+    });
+
+    dpRenderLoans();
+
+    // 显示结果
+    document.getElementById('dp-ocr-loading').style.display = 'none';
+    const resultEl = document.getElementById('dp-ocr-result');
+    const needFill = dpLoans.filter(l => !l.rate || !l.monthly).length;
+    resultEl.innerHTML = `✅ 成功识别 <strong>${addCount} 笔</strong>贷款/信用卡${needFill>0 ? `，其中 <strong style="color:#b8860b">${needFill} 笔</strong>需要补充利率或月供` : '，所有字段已填充完整'}`;
+    resultEl.style.display = 'block';
+
+    // 显示badge
+    const badge = document.getElementById('dp-ocr-badge');
+    if(badge) badge.style.display = 'inline-block';
+
+    // 更新上传区域显示
+    const zone = document.getElementById('dp-ocr-zone');
+    zone.innerHTML = `<div style="font-size:20px;margin-bottom:6px">✅</div><div style="font-size:13px;color:var(--green);font-weight:600">识别完成，共${addCount}笔</div><div style="font-size:12px;color:var(--gray-mid);margin-top:4px;cursor:pointer" onclick="document.getElementById('dp-credit-file').click()">重新上传</div>`;
+
+  } catch(e) {
+    clearInterval(mt);
+    document.getElementById('dp-ocr-loading').style.display = 'none';
+    const resultEl = document.getElementById('dp-ocr-result');
+    const msg = e.name==='AbortError' ? '识别超时，请压缩文件后重试' : '识别失败：'+e.message;
+    resultEl.innerHTML = `⚠️ ${msg}，请手动添加贷款`;
+    resultEl.style.background = '#fff8e0';
+    resultEl.style.borderColor = '#f59e0b';
+    resultEl.style.color = '#92400e';
+    resultEl.style.display = 'block';
+    const zone = document.getElementById('dp-ocr-zone');
+    zone.style.borderColor = 'var(--gray-light)';
+    zone.innerHTML = `<div style="font-size:32px;margin-bottom:10px">📂</div><div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:4px">点击重新上传</div><div style="font-size:12px;color:var(--gray-mid)">支持 PDF / JPG / PNG</div>`;
+  }
+}
+
+// 内联更新贷款字段
+function dpUpdateLoan(id, field, value) {
+  const loan = dpLoans.find(l => l.id === id);
+  if(!loan) return;
+  loan[field] = parseFloat(value) || 0;
+  // 更新汇总但不重新渲染列表（避免输入框失焦）
+  const total = dpLoans.reduce((s,l)=>s+l.principal,0);
+  const monthly = dpLoans.reduce((s,l)=>s+l.monthly,0);
+  const count = dpLoans.length;
+  document.getElementById('dp-sum-total').textContent = '¥'+total.toLocaleString();
+  document.getElementById('dp-sum-monthly').textContent = '¥'+monthly.toLocaleString();
+  document.getElementById('dp-sum-count').textContent = count+'笔';
+}
+
+function dpRenderLoans(){
+  const list=document.getElementById('dp-loan-list');
+  const empty=document.getElementById('dp-empty');
+  const summary=document.getElementById('dp-summary-card');
+  const btn=document.getElementById('dp-step1-next');
+  const typeLabel={bank:'银行',online:'网贷',credit:'消费金融',friend:'亲友',other:'其他'};
+  const typeColor={bank:'#1a5a8a',online:'#c0392b',credit:'#b8860b',friend:'#2a7a55',other:'#666'};
+  if(dpLoans.length===0){list.innerHTML='';empty.style.display='block';summary.style.display='none';btn.disabled=true;btn.style.opacity='.4';return;}
+  empty.style.display='none';summary.style.display='block';btn.disabled=false;btn.style.opacity='1';
+  list.innerHTML=dpLoans.map(l=>{
+    const needRate=!l.rate||l.rate===0;
+    const needMonthly=!l.monthly||l.monthly===0;
+    const hasWarning=needRate||needMonthly;
+    return `<div style="background:${hasWarning?'#fffbf0':'var(--off-white)'};border:1px solid ${hasWarning?'var(--gold)':'var(--gray-light)'};border-radius:10px;padding:14px 16px;margin-bottom:10px">
+      <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr auto;gap:10px;align-items:center;margin-bottom:${hasWarning?'12px':'0'}">
+        <div><div style="font-weight:700;font-size:13px">${l.name}</div><span style="font-size:11px;font-weight:600;color:${typeColor[l.type]};background:${typeColor[l.type]}18;padding:2px 8px;border-radius:4px">${typeLabel[l.type]}</span></div>
+        <div><div style="font-size:11px;color:var(--gray-mid)">剩余本金</div><div style="font-weight:700;color:#c0392b;font-size:13px">¥${l.principal?l.principal.toLocaleString():'—'}</div></div>
+        <div><div style="font-size:11px;color:var(--gray-mid)">年利率</div><div style="font-weight:700;color:var(--gold);font-size:13px">${l.rate?l.rate+'%':'<span style=color:#c0392b>待填写</span>'}</div></div>
+        <div><div style="font-size:11px;color:var(--gray-mid)">月还款</div><div style="font-weight:700;font-size:13px">${l.monthly?'¥'+l.monthly.toLocaleString():'<span style=color:#c0392b>待填写</span>'}</div></div>
+        <button onclick="dpDeleteLoan(${l.id})" style="background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.2);color:#c0392b;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:13px;flex-shrink:0">✕</button>
+      </div>
+      ${hasWarning?`<div style="display:flex;gap:10px;align-items:center;background:#fff;border-radius:8px;padding:10px 12px;border:1px solid var(--gray-light)">
+        <span style="font-size:12px;color:var(--gray-mid);white-space:nowrap">⚠️ 补充必填项：</span>
+        ${needRate?`<div style="display:flex;align-items:center;gap:6px;flex:1"><label style="font-size:12px;color:var(--navy);white-space:nowrap">年利率%</label><input type="number" step="0.01" placeholder="如：18" value="${l.rate||''}" onchange="dpUpdateLoan(${l.id},'rate',this.value)" style="border:1px solid var(--gold);border-radius:6px;padding:5px 8px;font-size:13px;width:80px;outline:none;font-family:inherit"></div>`:''}
+        ${needMonthly?`<div style="display:flex;align-items:center;gap:6px;flex:1"><label style="font-size:12px;color:var(--navy);white-space:nowrap">月还款元</label><input type="number" placeholder="如：1500" value="${l.monthly||''}" onchange="dpUpdateLoan(${l.id},'monthly',this.value)" style="border:1px solid var(--gold);border-radius:6px;padding:5px 8px;font-size:13px;width:100px;outline:none;font-family:inherit"></div>`:''}
+      </div>`:''}
+    </div>`;
+  }).join('');
+  const total=dpLoans.reduce((s,l)=>s+l.principal,0);
+  const monthly=dpLoans.reduce((s,l)=>s+l.monthly,0);
+  document.getElementById('dp-sum-total').textContent='¥'+total.toLocaleString();
+  document.getElementById('dp-sum-monthly').textContent='¥'+monthly.toLocaleString();
+  document.getElementById('dp-sum-count').textContent=dpLoans.length+'笔';
+}
+
+function dpSelectStrategy(s){
+  dpStrategy=s;
+  const av=document.getElementById('dp-s-avalanche');
+  const sb=document.getElementById('dp-s-snowball');
+  av.style.borderColor=s==='avalanche'?'var(--navy)':'var(--gray-light)';
+  av.style.background=s==='avalanche'?'var(--off-white)':'#fff';
+  sb.style.borderColor=s==='snowball'?'var(--navy)':'var(--gray-light)';
+  sb.style.background=s==='snowball'?'var(--off-white)':'#fff';
+}
+
+async function dpStartAnalysis(){
+  const income=document.getElementById('dp-income').value;
+  const job=document.getElementById('dp-job').value;
+  if(!income||!job){alert('请填写月收入和职业类型');return;}
+  dpGoStep(3);
+  document.getElementById('dp-loading').style.display='block';
+  document.getElementById('dp-report').style.display='none';
+  const jobMap={gov:'公务员/事业单位',state:'国企员工',private:'私企/外企员工',self:'个体工商户',freelance:'自由职业',other:'其他'};
+  const worryMap={interest:'利息太高越还越多',cashflow:'每月还款压力大',credit:'担心影响征信',time:'不知道还要多久',all:'以上都有'};
+  const totalDebt=dpLoans.reduce((s,l)=>s+l.principal,0);
+  const totalMonthly=dpLoans.reduce((s,l)=>s+l.monthly,0);
+  const debtRatio=Math.round(totalMonthly/parseInt(income)*100);
+  const loanDesc=dpLoans.map((l,i)=>`${i+1}. ${l.name}：剩余¥${l.principal.toLocaleString()}，年利率${l.rate}%，月还¥${l.monthly.toLocaleString()}${l.months?'，剩余'+l.months+'期':''}`).join('\n');
+  const msgs=['AI正在分析你的负债结构…','计算每笔贷款的真实利息…','制定最优还款顺序…','生成上岸计划…'];
+  let mi=0;
+  const mt=setInterval(()=>{mi=(mi+1)%msgs.length;const el=document.getElementById('dp-loading-text');if(el)el.innerHTML=msgs[mi]+'<br><span style="font-size:12px;opacity:.6">通常需要15-30秒</span>';},3000);
+  const prompt=`你是专业个人债务规划师，帮普通工薪族上岸。用务实语气，不说废话套话。
+
+【客户情况】月收入：${income}元 | 职业：${jobMap[job]||job} | 月支出：${document.getElementById('dp-expense').value||'未填'}元 | 可额外还款：${document.getElementById('dp-extra').value||'未填'}元 | 最担心：${worryMap[document.getElementById('dp-worry').value]||''} | 备注：${document.getElementById('dp-note').value||'无'}
+
+【负债清单（${dpLoans.length}笔）】
+${loanDesc}
+
+【汇总】总负债¥${totalDebt.toLocaleString()} | 月最低还款¥${totalMonthly.toLocaleString()} | 月收入负债率${debtRatio}% | 策略：${dpStrategy==='avalanche'?'雪崩法（优先还高利率）':'雪球法（优先还小额）'}
+
+严格返回JSON不含其他文字：{"overall":"整体评估2-3句直接说清楚","danger":"危险信号每条⚠️开头换行分隔","strategy_rec":"推荐哪种策略及原因","order":[{"rank":1,"name":"贷款名","reason":"原因","payoff_months":数字}],"timeline":"上岸时间预测，几个月/年还完，总利息多少","advice_income":"提升收入2-3条换行，针对该职业给真实建议","advice_expense":"降低开支2-3条换行，实际可操作","advice_refinance":"是否建议以低换高及怎么操作","advice_emergency":"本月撑不住怎么办的紧急处理","monthly_plan":[{"month":"第1个月","action":"还款动作","amount":数字,"remaining":数字,"note":"备注"}]}
+monthly_plan给前12个月。所有建议必须针对具体职业，不能是通用废话。`;
+  try {
+    const raw=await callAI([{role:'user',content:prompt}],2000);
+    clearInterval(mt);
+    const r=JSON.parse(raw);
+    dpRenderReport(r,parseInt(income),totalDebt,totalMonthly,debtRatio);
+  } catch(e) {
+    clearInterval(mt);
+    document.getElementById('dp-loading').style.display='none';
+    document.getElementById('dp-report').innerHTML=`<div style="text-align:center;padding:40px;color:#c0392b">分析失败：${e.message}<br><br><button onclick="dpStartAnalysis()" style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-family:inherit">重试</button></div>`;
+    document.getElementById('dp-report').style.display='block';
+  }
+}
+
+function dpRenderReport(r,income,totalDebt,totalMonthly,debtRatio){
+  document.getElementById('dp-loading').style.display='none';
+  document.getElementById('dp-report').style.display='block';
+  const riskColor=debtRatio>70?'#c0392b':debtRatio>50?'var(--gold)':'var(--green)';
+  document.getElementById('dp-r-summary').innerHTML=`
+    <div><div style="font-size:22px;font-weight:900;color:#c0392b">¥${totalDebt.toLocaleString()}</div><div style="font-size:12px;color:var(--gray-mid);margin-top:4px">总负债</div></div>
+    <div><div style="font-size:22px;font-weight:900;color:${riskColor}">${debtRatio}%</div><div style="font-size:12px;color:var(--gray-mid);margin-top:4px">月收入负债率${debtRatio>70?' ⚠️':''}</div></div>
+    <div><div style="font-size:22px;font-weight:900;color:var(--gold)">¥${totalMonthly.toLocaleString()}</div><div style="font-size:12px;color:var(--gray-mid);margin-top:4px">每月最低还款</div></div>`;
+  document.getElementById('dp-r-overall').textContent=r.overall||'';
+  document.getElementById('dp-r-danger').innerHTML=(r.danger||'').replace(/\n/g,'<br>');
+  document.getElementById('dp-r-strategy').textContent=r.strategy_rec||'';
+  document.getElementById('dp-r-order').innerHTML=(r.order||[]).map(o=>`
+    <div style="background:var(--off-white);border:1px solid var(--gray-light);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--gold);color:var(--navy);font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${o.rank}</div>
+      <div style="flex:1"><div style="font-weight:700;margin-bottom:3px">${o.name}</div><div style="font-size:12px;color:var(--gray-mid)">${o.reason}</div></div>
+      <div style="text-align:right;flex-shrink:0"><div style="font-size:11px;color:var(--gray-mid)">预计还清</div><div style="font-weight:700;color:var(--green)">${o.payoff_months}个月</div></div>
+    </div>`).join('');
+  document.getElementById('dp-r-timeline').textContent=r.timeline||'';
+  document.getElementById('dp-r-advice').innerHTML=[
+    {icon:'💼',title:'提升收入',content:r.advice_income},
+    {icon:'✂️',title:'降低开支',content:r.advice_expense},
+    {icon:'🔄',title:'以低换高',content:r.advice_refinance},
+    {icon:'🆘',title:'紧急情况',content:r.advice_emergency}
+  ].map(a=>`
+    <div style="background:var(--off-white);border:1px solid var(--gray-light);border-radius:12px;padding:18px">
+      <div style="font-size:22px;margin-bottom:8px">${a.icon}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px">${a.title}</div>
+      <div style="font-size:12px;color:var(--text-mid);line-height:1.8">${(a.content||'').replace(/\n/g,'<br>')}</div>
+    </div>`).join('');
+  document.getElementById('dp-r-table').innerHTML=(r.monthly_plan||[]).map((p,i)=>`
+    <tr style="${i===0?'background:#e6f4ed;':''}">
+      <td style="padding:10px 12px;font-size:13px;border-bottom:1px solid var(--gray-light)">${p.month}</td>
+      <td style="padding:10px 12px;font-size:13px;border-bottom:1px solid var(--gray-light)">${p.action}</td>
+      <td style="padding:10px 12px;font-size:13px;color:var(--gold);font-weight:600;border-bottom:1px solid var(--gray-light)">¥${(p.amount||0).toLocaleString()}</td>
+      <td style="padding:10px 12px;font-size:13px;color:#c0392b;border-bottom:1px solid var(--gray-light)">¥${(p.remaining||0).toLocaleString()}</td>
+      <td style="padding:10px 12px;font-size:12px;color:var(--gray-mid);border-bottom:1px solid var(--gray-light)">${p.note||''}</td>
+    </tr>`).join('');
+}
 
 // ── Reveal on scroll ──
 const ro=new IntersectionObserver(entries=>{
