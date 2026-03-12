@@ -3206,6 +3206,7 @@ async function dpOcrExtract(base64, mediaType, fileName) {
       headers: {'Content-Type': 'application/json'},
       signal: controller.signal,
       body: JSON.stringify({
+        model: 'claude-opus-4-6',
         max_tokens: 2000,
         messages: [{
           role: 'user',
@@ -3616,7 +3617,8 @@ async function autoFillFromCredit(base64, mediaType) {
       headers: {'Content-Type':'application/json'},
       signal: controller.signal,
       body: JSON.stringify({
-        max_tokens: 600,
+        model: 'claude-opus-4-6',
+        max_tokens: 800,
         messages:[{
           role:'user',
           content:[
@@ -3698,11 +3700,15 @@ const FORMSPREE_URL = 'https://formspree.io/f/mpqypayz';
 
 // 统一API调用函数
 async function callAI(messages, max_tokens = 1500) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120000);
   const resp = await fetch(PROXY_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, max_tokens }),
+    signal: controller.signal,
+    body: JSON.stringify({ model: 'claude-opus-4-6', messages, max_tokens }),
   });
+  clearTimeout(timeout);
   if (!resp.ok) throw new Error('API请求失败: ' + resp.status);
   const data = await resp.json();
   if (data.error) throw new Error(data.error.message || 'API错误');
@@ -4011,7 +4017,7 @@ ${Object.keys(_uploadedFilesData).length > 0 ? '【已上传文件】：' + Obje
     const resp = await fetch(PROXY_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ max_tokens:1500, messages:[{role:'user', content: msgContent.length > 1 ? msgContent : diagPrompt}] })
+      body: JSON.stringify({ model:'claude-opus-4-6', max_tokens:1500, messages:[{role:'user', content: msgContent.length > 1 ? msgContent : diagPrompt}] })
     });
     const data = await resp.json();
     if(data.error) throw new Error(data.error.message);
@@ -4451,10 +4457,14 @@ async function runCCDiag() {
 
 // ── PDF analysis via Claude API ──
 async function _ccAnalysePDF() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120000);
   const resp = await fetch(PROXY_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    signal: controller.signal,
     body: JSON.stringify({
+      model: 'claude-opus-4-6',
       max_tokens: 2000,
       messages: [{
         role: 'user',
@@ -4465,6 +4475,8 @@ async function _ccAnalysePDF() {
       }]
     })
   });
+  clearTimeout(timeout);
+  if(!resp.ok) { const e = await resp.text(); throw new Error(`HTTP ${resp.status}: ${e.slice(0,120)}`); }
   const data = await resp.json();
   if(data.error) throw new Error(data.error.message || 'PDF分析失败');
   let raw = data.content.map(b=>b.text||'').join('').replace(/```json[\s\S]*?```|```/g,'').trim();
@@ -4677,7 +4689,7 @@ async function ccStartAnalysis() {
     }, i*2800);
   });
 
-  const isPdf = ccFile.type.includes('pdf');
+  const isPdf = ccFile.type.includes('pdf') || ccFile.name.toLowerCase().endsWith('.pdf');
   const mediaType = isPdf ? 'application/pdf' : (ccFile.type || 'image/jpeg');
 
   const userContent = [
@@ -4732,7 +4744,7 @@ async function ccStartAnalysis() {
 
   let result;
   try {
-    const raw = await callAI([{ role:'user', content: userContent }], 1500);
+    const raw = await callAI([{ role:'user', content: userContent }], 2000);
     result = JSON.parse(raw);
   } catch(e) {
     result = ccDemoReport();
