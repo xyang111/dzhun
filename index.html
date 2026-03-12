@@ -2015,7 +2015,7 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
           <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:6px;display:flex;align-items:center;gap:10px">
             <span style="background:var(--gold-pale);border-radius:8px;padding:6px 10px">📄</span> 上传征信自动识别
           </div>
-          <div style="font-size:12px;color:var(--gray-mid);margin-bottom:20px;line-height:1.8">支持人行征信报告（详版/简版）PDF或截图，AI自动提取所有贷款和信用卡信息<br>提取后只需补充<span style="color:var(--gold);font-weight:600">利率和月供</span>两个字段即可开始分析</div>
+          <div style="font-size:12px;color:var(--gray-mid);margin-bottom:20px;line-height:1.8">请上传人行征信报告 <strong style="color:#c0392b">详版</strong> PDF或截图，AI自动提取所有贷款和信用卡信息<br>提取后只需补充<span style="color:var(--gold);font-weight:600">利率和月供</span>两个字段即可开始分析<br><span style="font-size:11px;color:var(--gray-mid)">⚠️ 简版征信无贷款明细，无法识别，请务必使用详版</span></div>
 
           <!-- 上传区域 -->
           <div id="dp-ocr-zone" onclick="document.getElementById('dp-credit-file').click()"
@@ -2024,8 +2024,8 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
             ondragleave="this.style.borderColor='var(--gray-light)'"
             ondrop="event.preventDefault();this.style.borderColor='var(--gray-light)';dpHandleFile(event.dataTransfer.files[0])">
             <div style="font-size:32px;margin-bottom:10px">📂</div>
-            <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:4px">点击或拖拽上传征信报告</div>
-            <div style="font-size:12px;color:var(--gray-mid)">支持 PDF / JPG / PNG，文件大小不超过10MB</div>
+            <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:4px">点击或拖拽上传征信报告（<span style="color:#c0392b">详版</span>）</div>
+            <div style="font-size:12px;color:var(--gray-mid)">支持 PDF / JPG / PNG · 无文件大小限制</div>
             <input type="file" id="dp-credit-file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="dpHandleFile(this.files[0])">
           </div>
 
