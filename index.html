@@ -4836,12 +4836,12 @@ async function runCCDiag() {
       result = await _ccAnalyseManual();
     }
   } catch(err) {
+    console.error('[CC诊断] AI分析失败，降级本地评估:', err);
     result = _ccLocalFallback();
   }
 
   // Mark last step done
   setTimeout(() => {
-    const last = document.getElementById('ccts5');
     const last5 = document.getElementById('ccs5');
     if(last5) { last5.classList.remove('active'); last5.classList.add('done'); }
     document.getElementById('ccReading').style.display = 'none';
@@ -5108,7 +5108,9 @@ async function _ccAnalyseManual() {
 严格返回JSON不含markdown：{"score":<0-100>,"grade":<"优质"|"良好"|"一般"|"待改善">,"loanGrade":<"A级"|"B级"|"C级"|"D级">,"overall":<"资质优良"|"资质良好"|"资质一般"|"资质较差">,"biggestRisk":<15字内>,"riskFlags":[<风险预警数组>],"summary":<120字内专业点评>,"dims":{"debt":{"score":<0-100>,"status":<"良好"|"偏高"|"过高"|"危险">,"value":"${dr}%","detail":<40字>},"query":{"score":<0-100>,"status":<"正常"|"偏多"|"过多">,"value":"近3月${q3}次","detail":<40字>},"overdue":{"score":<0-100>,"status":<"无逾期"|"轻微"|"较严重"|"严重">,"value":"${odCur}笔","detail":<40字>},"cardUtil":{"score":<0-100>,"status":<"健康"|"偏高"|"过高"|"疑似套现">,"value":"${cu}%","detail":<40字>},"accounts":{"score":<0-100>,"status":<"合理"|"偏多"|"偏少">,"value":"银行${bankLoans}笔/网贷${netLoans}笔","detail":<40字>},"history":{"score":<0-100>,"status":<"优质"|"良好"|"较短"|"很短">,"value":"${histYr}年+","detail":<40字>}},"advice":[{"priority":"high","title":<10字内>,"text":<60字内含时间节点>},{"priority":"high","title":<10字内>,"text":<60字内>},{"priority":"med","title":<10字内>,"text":<60字内>}],"bank_fit":{"now":<当前可申请银行25字内>,"after_improve":<改善后可申请25字内>,"improve_months":<整数>}}`;
 
   const raw = await callAI([{role:'user',content:prompt}], 1500);
-  return JSON.parse(raw);
+  const result = extractJson(raw);
+  if(!result) throw new Error('分析结果解析失败，请重试');
+  return result;
 }
 // ── Local fallback ──
 function _ccLocalFallback() {
@@ -5296,9 +5298,9 @@ function _ccRenderReport(r) {
   // ── 区块九：银行匹配 ──
   const bfBlock=document.getElementById('ccBankFitBlock');
   if(bfBlock&&r.bank_fit){
-    document.getElementById('ccBfNow').textContent=r.bank_fit.now||'--';
-    document.getElementById('ccBfAfter').textContent=r.bank_fit.after_improve||'--';
-    document.getElementById('ccBfMonths').textContent=r.bank_fit.improve_months!=null?r.bank_fit.improve_months+'个月':'--';
+    const bfNow=document.getElementById('ccBfNow'); if(bfNow) bfNow.textContent=r.bank_fit.now||'--';
+    const bfAfter=document.getElementById('ccBfAfter'); if(bfAfter) bfAfter.textContent=r.bank_fit.after_improve||'--';
+    const bfMon=document.getElementById('ccBfMonths'); if(bfMon) bfMon.textContent=r.bank_fit.improve_months!=null?r.bank_fit.improve_months+'个月':'--';
     bfBlock.style.display='block';
   }
 
@@ -5345,6 +5347,7 @@ function ccHandleFile(f) {
   // Read as base64
   const reader = new FileReader();
   reader.onload = e => { ccFileData = e.target.result.split(',')[1]; };
+  reader.onerror = () => { alert('文件读取失败，请重试'); ccClearFile(); };
   reader.readAsDataURL(f);
 }
 
@@ -5481,79 +5484,39 @@ function ccDemoReport() {
 }
 
 function ccRenderReport(r) {
-  // Score animation
-  const scoreEl = document.getElementById('ccScore');
-  let n=0;
-  const t = setInterval(()=>{ n=Math.min(n+2,r.score); scoreEl.textContent=n; if(n>=r.score)clearInterval(t); },25);
-  scoreEl.style.color = r.score>=80?'#4ade80':r.score>=65?'#ffd166':r.score>=50?'#fbbf24':'#f87171';
-
-  const gradeEl = document.getElementById('ccGrade');
-  gradeEl.textContent = r.grade;
-  gradeEl.className = 'ccsh-grade '+{优质:'grade-excellent',良好:'grade-good',一般:'grade-medium',待改善:'grade-poor'}[r.grade];
-  document.getElementById('ccLoanGrade').textContent = r.loanGrade;
-  document.getElementById('ccSummary').textContent = r.summary;
-
-  // Extracted data table
-  const ex = r.extracted || {};
-  const rows = [
-    ['月收入', ex.monthly_income ? ex.monthly_income.toLocaleString()+'元' : '未识别', null],
-    ['月还款额', ex.monthly_debt ? ex.monthly_debt.toLocaleString()+'元' : '未识别', null],
-    ['负债率', ex.debt_ratio!=null ? ex.debt_ratio+'%' : '未识别', ex.debt_ratio<=50?'green':ex.debt_ratio<=70?'yellow':'red'],
-    ['信用卡总额度', ex.card_limit ? ex.card_limit.toLocaleString()+'元' : '未识别', null],
-    ['信用卡使用率', ex.card_util!=null ? ex.card_util+'%' : '未识别', ex.card_util<=30?'green':ex.card_util<=60?'yellow':'red'],
-    ['近3月查询', ex.query_3m!=null ? ex.query_3m+'次' : '未识别', ex.query_3m<=2?'green':ex.query_3m<=4?'yellow':'red'],
-    ['近6月查询', ex.query_6m!=null ? ex.query_6m+'次' : '未识别', null],
-    ['当前逾期', ex.overdue_current!=null ? (ex.overdue_current===0?'无':''+ex.overdue_current+'笔') : '未识别', ex.overdue_current===0?'green':'red'],
-    ['历史最长逾期', ex.overdue_max_days!=null ? (ex.overdue_max_days===0?'无':ex.overdue_max_days+'天') : '未识别', ex.overdue_max_days===0?'green':ex.overdue_max_days<=30?'yellow':'red'],
-    ['账户总数', (ex.loan_count!=null&&ex.card_count!=null) ? (ex.loan_count+ex.card_count)+'个' : '未识别', null],
-    ['信用历史', ex.credit_history_years!=null ? ex.credit_history_years+'年以上' : '未识别', ex.credit_history_years>=3?'green':'yellow'],
-  ];
-  const badgeColors = {green:'tag-green',yellow:'tag-orange',red:'ds-red'};
-  document.getElementById('ccDataRows').innerHTML = rows.map(([label,val,color])=>`
-    <div class="cdt-row">
-      <span class="cdt-label">${label}</span>
-      <span class="cdt-value">${val}</span>
-      <span>${color?`<span class="mrp-tag cdt-badge ${badgeColors[color]||''}">${val}</span>`:''}</span>
-    </div>`).join('');
-
-  // 6 dims
-  const statusCls = {良好:'ds-green',健康:'ds-green',正常:'ds-green',无逾期:'ds-green',优质:'ds-green',合理:'ds-green',偏高:'ds-yellow',偏多:'ds-yellow',偏少:'ds-yellow',较短:'ds-yellow',轻微:'ds-yellow',过高:'ds-red',较严重:'ds-red',严重:'ds-red',危险:'ds-red',很短:'ds-red'};
-  const ex2 = r.extracted||{};
-  const dimMap = [
-    {pre:'cc1',key:'debt',  val:(ex2.debt_ratio!=null?ex2.debt_ratio+'%':'--'), pct:Math.min(ex2.debt_ratio||0,100), fill:((ex2.debt_ratio||0)<=50?'fill-green':(ex2.debt_ratio||0)<=70?'fill-yellow':'fill-red')},
-    {pre:'cc2',key:'query', val:(ex2.query_3m!=null?ex2.query_3m+' 次':'--'), pct:Math.min((ex2.query_3m||0)*13,100), fill:((ex2.query_3m||0)<=2?'fill-green':(ex2.query_3m||0)<=4?'fill-yellow':'fill-red')},
-    {pre:'cc3',key:'overdue',val:(ex2.overdue_current!=null?(ex2.overdue_current===0?'无逾期':ex2.overdue_current+' 笔'):'--'), pct:ex2.overdue_current===0&&ex2.overdue_max_days===0?4:Math.min((ex2.overdue_current||0)*30+(ex2.overdue_max_days||0),100), fill:(ex2.overdue_current===0?'fill-green':'fill-red')},
-    {pre:'cc4',key:'cardUtil',val:(ex2.card_util!=null?ex2.card_util+'%':'--'), pct:ex2.card_util||0, fill:((ex2.card_util||0)<=30?'fill-green':(ex2.card_util||0)<=60?'fill-yellow':'fill-red')},
-    {pre:'cc5',key:'accounts',val:((ex2.loan_count!=null&&ex2.card_count!=null)?(ex2.loan_count+ex2.card_count)+' 个':'--'), pct:Math.min(((ex2.loan_count||0)+(ex2.card_count||0))*11,100), fill:'fill-blue'},
-    {pre:'cc6',key:'history',val:(ex2.credit_history_years!=null?ex2.credit_history_years+'+ 年':'--'), pct:Math.min((ex2.credit_history_years||0)*10,100), fill:((ex2.credit_history_years||0)>=5?'fill-green':(ex2.credit_history_years||0)>=2?'fill-blue':'fill-yellow')},
-  ];
-  dimMap.forEach(d=>{
-    const dim = r.dims[d.key];
-    document.getElementById(d.pre+'-s').textContent = dim.status;
-    document.getElementById(d.pre+'-s').className = 'cdc-status '+(statusCls[dim.status]||'ds-yellow');
-    document.getElementById(d.pre+'-v').textContent = d.val;
-    document.getElementById(d.pre+'-n').textContent = dim.detail;
-    const bar = document.getElementById(d.pre+'-b');
-    bar.className = 'cdc-bar-fill '+d.fill;
-    setTimeout(()=>{ bar.style.width = d.pct+'%'; }, 300);
-  });
-
-  // Advice
-  const priIcon={high:'🔴',med:'🟡',low:'🟢'};
-  const priCls={high:'adv-high',med:'adv-med',low:'adv-low'};
-  document.getElementById('ccAdvice').innerHTML = r.advice.map(a=>`
-    <div class="cc-advice-card ${priCls[a.priority]||''}">
-      <span class="cac-icon">${priIcon[a.priority]||'💡'}</span>
-      <div class="cac-body">
-        <div class="cac-title">${a.title||''}</div>
-        ${a.text}
-      </div>
-    </div>`).join('');
-
-  // Show report
-  document.getElementById('ccReport').style.display = 'flex';
-  document.getElementById('ccReport').scrollIntoView({behavior:'smooth',block:'start'});
-  // 征信诊断结果存储，等产品匹配完成后统一提交
+  // 统一使用新版十区块渲染函数
+  // ccStartAnalysis 返回的 r.extracted 为旧格式平铺字段，_ccRenderReport 通过 r._extracted 获取明细
+  // 此处做兼容适配：将旧 r.extracted 转为新 r._extracted 结构（尽力映射，明细表留空）
+  if(!r._extracted) {
+    const ex = r.extracted || {};
+    r._extracted = {
+      summary: {
+        loan_count: ex.loan_count||0,
+        card_count: ex.card_count||0,
+        total_loan_balance: null,
+        total_card_limit: ex.card_limit||null,
+        total_card_used: ex.card_used||null,
+        monthly_debt_est: ex.monthly_debt||null,
+        has_overdue: (ex.overdue_current||0)>0,
+        hist_years: ex.credit_history_years||0
+      },
+      loans: [],
+      cards: [],
+      query_stats: {},
+      overdue_history: [],
+      query_records: []
+    };
+    // 补充 dims 的 value 字段（旧格式 dims 无 value）
+    if(r.dims) {
+      if(r.dims.debt)     r.dims.debt.value     = ex.debt_ratio!=null ? ex.debt_ratio+'%' : '--';
+      if(r.dims.query)    r.dims.query.value    = ex.query_3m!=null   ? '近3月'+ex.query_3m+'次' : '--';
+      if(r.dims.overdue)  r.dims.overdue.value  = ex.overdue_current!=null ? (ex.overdue_current===0?'无逾期':ex.overdue_current+'笔') : '--';
+      if(r.dims.cardUtil) r.dims.cardUtil.value = ex.card_util!=null  ? ex.card_util+'%' : '--';
+      if(r.dims.accounts) r.dims.accounts.value = (ex.loan_count!=null&&ex.card_count!=null) ? '银行'+(ex.loan_count||0)+'笔/卡'+(ex.card_count||0)+'张' : '--';
+      if(r.dims.history)  r.dims.history.value  = ex.credit_history_years!=null ? ex.credit_history_years+'年' : '--';
+    }
+  }
+  _ccRenderReport(r);
   window._ccDiagDone = true;
 }
 
@@ -5725,6 +5688,7 @@ const EMAILJS_PUBLIC_KEY  = '5HEPVL9ll1d4KQSHK';
 function ccSendEmail() {
   const email = document.getElementById('cc-email-input')?.value?.trim();
   const msgEl = document.getElementById('cc-email-msg');
+  if(!msgEl) return;
   if(!email || !email.includes('@')) {
     msgEl.style.display = 'block';
     msgEl.style.color = '#dc2626';
@@ -5791,7 +5755,7 @@ ${bankFit}
     msgEl.textContent = '✅ 报告已发送至您的邮箱';
   }).catch(err => {
     msgEl.style.color = '#dc2626';
-    msgEl.textContent = '发送失败：' + (err.text || err.message || JSON.stringify(err));
+    msgEl.textContent = '发送失败：' + (err.message || String(err));
   });
 }
 </script>
