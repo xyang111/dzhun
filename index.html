@@ -1967,19 +1967,19 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
 
           <!-- 区块五：贷款明细表格 -->
           <div id="ccLoansDetailBlock" style="display:none">
-            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">🏦 贷款明细</div>
-            <div style="overflow-x:auto">
-              <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">🏦 贷款明细（未结清）</div>
+            <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+              <table style="min-width:560px;width:100%;border-collapse:collapse;font-size:12px">
                 <thead>
                   <tr style="background:rgba(10,22,40,0.07)">
-                    <th style="padding:7px 8px;text-align:left;font-weight:600;color:var(--navy)">#</th>
-                    <th style="padding:7px 8px;text-align:left;font-weight:600;color:var(--navy)">管理机构</th>
-                    <th style="padding:7px 8px;text-align:center;font-weight:600;color:var(--navy)">类型</th>
-                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy)">授信额度</th>
-                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy)">当前余额</th>
-                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy)">月还款</th>
-                    <th style="padding:7px 8px;text-align:center;font-weight:600;color:var(--navy)">起止日期</th>
-                    <th style="padding:7px 8px;text-align:center;font-weight:600;color:var(--navy)">状态</th>
+                    <th style="padding:7px 8px;text-align:left;font-weight:600;color:var(--navy);white-space:nowrap">#</th>
+                    <th style="padding:7px 8px;text-align:left;font-weight:600;color:var(--navy);min-width:110px">管理机构</th>
+                    <th style="padding:7px 8px;text-align:center;font-weight:600;color:var(--navy);white-space:nowrap">类型</th>
+                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy);white-space:nowrap">授信额度</th>
+                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy);white-space:nowrap">当前余额</th>
+                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy);white-space:nowrap">月还款</th>
+                    <th style="padding:7px 8px;text-align:center;font-weight:600;color:var(--navy);white-space:nowrap">起止日期</th>
+                    <th style="padding:7px 8px;text-align:center;font-weight:600;color:var(--navy);white-space:nowrap">状态</th>
                   </tr>
                 </thead>
                 <tbody id="ccLoansDetailRows"></tbody>
@@ -1990,18 +1990,18 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
 
           <!-- 区块六：信用卡明细表格 -->
           <div id="ccCardsDetailBlock" style="display:none">
-            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">💳 信用卡明细</div>
-            <div style="overflow-x:auto">
-              <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">💳 信用卡明细（未结清）</div>
+            <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+              <table style="min-width:480px;width:100%;border-collapse:collapse;font-size:12px">
                 <thead>
                   <tr style="background:rgba(10,22,40,0.07)">
-                    <th style="padding:7px 8px;text-align:left;font-weight:600;color:var(--navy)">#</th>
-                    <th style="padding:7px 8px;text-align:left;font-weight:600;color:var(--navy)">发卡机构</th>
-                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy)">授信额度</th>
-                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy)">已用额度</th>
-                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy)">大额分期</th>
-                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy)">使用率</th>
-                    <th style="padding:7px 8px;text-align:center;font-weight:600;color:var(--navy)">状态</th>
+                    <th style="padding:7px 8px;text-align:left;font-weight:600;color:var(--navy);white-space:nowrap">#</th>
+                    <th style="padding:7px 8px;text-align:left;font-weight:600;color:var(--navy);min-width:110px">发卡机构</th>
+                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy);white-space:nowrap">授信额度</th>
+                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy);white-space:nowrap">已用额度</th>
+                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy);white-space:nowrap">大额分期</th>
+                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy);white-space:nowrap">使用率</th>
+                    <th style="padding:7px 8px;text-align:center;font-weight:600;color:var(--navy);white-space:nowrap">状态</th>
                   </tr>
                 </thead>
                 <tbody id="ccCardsDetailRows"></tbody>
@@ -4867,44 +4867,64 @@ async function _ccAnalysePDF() {
         role: 'user',
         content: [
           { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: _ccPdfBase64 } },
-          { type: 'text', text: `你是专业的征信报告抄写员。你的唯一任务是把这份人行征信PDF里所有能看到的数据原样抄写出来，不做任何评价和分析。
+          { type: 'text', text: `你是专业的征信报告数据提取员。任务：从这份人行征信报告中提取关键数据，不做任何评价和分析。
 
-请按以下结构提取，所有字段名用英文，金额统一转换为元整数（万元×10000），看不清的字段填null。
+这份征信可能是扫描图片格式，请尽力识别图片中的文字内容，重点关注每个账户信息块的表格数据。
+
+【账户筛选规则——严格执行】
+只提取账户状态为"正常"或"逾期"的未结清账户。
+状态为"结清"、"销户"、"已结清"的账户一律跳过，不得出现在loans或cards数组中。
+
+【提取优先级——当页数过多无法全部识别时】
+第一优先：循环贷账户（未结清）和信用卡账户（未结清）
+第二优先：非循环贷未结清账户
+完全跳过：已结清、销户账户
+
+【机构名称简化规则】
+保留核心机构名，去掉"股份有限公司""有限责任公司"等后缀和省市级分支机构后缀。
+示例："中国建设银行股份有限公司泉州分行"→"建设银行泉州分行"，"中国工商银行股份有限公司厦门分行"→"工商银行厦门分行"。
+消费金融、小贷公司保留全称（如"南银法巴消费金融有限公司"保留不简化）。
+
+【金额提取规则】
+所有金额统一转换为元整数（万元×10000）。看不清的字段填null。
+循环贷账户（循环贷款户一、循环贷款户二等）：提取"授信额度"作为limit，提取账户信息里的"余额"字段作为balance。
+非循环贷账户：提取"借款金额"或"授信额度"作为limit，提取当前状态栏或最新还款记录中的"余额"作为balance，提取"月还款额"或"应还款额"作为monthly。
+信用卡账户：提取"授信额度"作为limit，提取"已用额度"或"已使用额度"作为used。
 
 只返回JSON，不含任何分析文字和markdown：
 
 {
   "summary": {
-    "loan_count": <贷款账户总数整数>,
-    "card_count": <信用卡账户总数整数>,
-    "total_loan_limit": <贷款总授信额度元整数或null>,
-    "total_loan_balance": <贷款总余额元整数或null>,
-    "total_card_limit": <信用卡总授信额度元整数或null>,
-    "total_card_used": <信用卡总已用额度元整数或null>,
-    "monthly_debt_est": <所有未结清贷款月还款额合计估算元整数>,
+    "loan_count": <未结清贷款账户数整数>,
+    "card_count": <未结清信用卡账户数整数>,
+    "total_loan_limit": <未结清贷款总授信额度元整数或null>,
+    "total_loan_balance": <未结清贷款总余额元整数或null>,
+    "total_card_limit": <未结清信用卡总授信额度元整数或null>,
+    "total_card_used": <未结清信用卡总已用额度元整数或null>,
+    "monthly_debt_est": <所有未结清贷款月还款额合计元整数>,
     "has_overdue": <true|false>,
     "hist_years": <最早账户至今年数整数>
   },
   "loans": [
     {
-      "institution": <管理机构名称字符串>,
+      "institution": <简化后的管理机构名称字符串>,
       "product_type": <"银行贷款"|"消费金融"|"小贷"|"其他">,
-      "limit": <授信额度元整数或null>,
+      "limit": <授信额度或借款金额元整数或null>,
       "balance": <当前余额元整数或null>,
       "monthly": <月还款额元整数或null>,
       "start_date": <开立日期如"2021-03"或null>,
-      "end_date": <到期日期或null>,
-      "status": <"正常"|"逾期"|"已结清"|"呆账">
+      "end_date": <到期日期如"2027-06"或null>,
+      "status": <"正常"|"逾期"|"呆账">
     }
   ],
   "cards": [
     {
-      "institution": <发卡机构字符串>,
+      "institution": <发卡机构简化名字符串>,
       "limit": <授信额度元整数或null>,
       "used": <已用额度元整数或null>,
-      "installment": <大额分期金额元整数或null>,
+      "installment": <大额分期余额元整数或null>,
       "util_pct": <使用率百分比整数或null>,
-      "status": <"正常"|"逾期"|"已结清">
+      "status": <"正常"|"逾期">
     }
   ],
   "query_stats": {
@@ -5219,14 +5239,14 @@ function _ccRenderReport(r) {
     const typeColor={银行贷款:'#1e40af',消费金融:'#d97706',小贷:'#dc2626',其他:'#555555'};
     const stColor={正常:'#16a34a',逾期:'#dc2626',已结清:'#888',呆账:'#dc2626'};
     lRows.innerHTML=loans.map((l,i)=>`<tr style="border-bottom:1px solid rgba(0,0,0,0.05)${l.status==='逾期'||l.status==='呆账'?';background:rgba(220,38,38,0.04)':''}">
-      <td style="padding:6px 8px;color:#888">${i+1}</td>
-      <td style="padding:6px 8px">${l.institution||'--'}</td>
-      <td style="padding:6px 8px;text-align:center"><span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:${typeColor[l.product_type]||'#555555'}22;color:${typeColor[l.product_type]||'#555555'}">${l.product_type||'--'}</span></td>
-      <td style="padding:6px 8px;text-align:right">${l.limit!=null?'¥'+Math.round(l.limit/10000)+'万':'--'}</td>
-      <td style="padding:6px 8px;text-align:right">${l.balance!=null?'¥'+Math.round(l.balance/10000)+'万':'--'}</td>
-      <td style="padding:6px 8px;text-align:right">${l.monthly!=null?'¥'+Math.round(l.monthly).toLocaleString():'--'}</td>
-      <td style="padding:6px 8px;text-align:center;font-size:11px;color:#888">${[l.start_date,l.end_date].filter(Boolean).join('~')||'--'}</td>
-      <td style="padding:6px 8px;text-align:center;font-weight:600;color:${stColor[l.status]||'#555'}">${l.status||'--'}</td>
+      <td style="padding:6px 8px;color:#888;white-space:nowrap">${i+1}</td>
+      <td style="padding:6px 8px;min-width:110px">${l.institution||'--'}</td>
+      <td style="padding:6px 8px;text-align:center;white-space:nowrap"><span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:${typeColor[l.product_type]||'#555555'}22;color:${typeColor[l.product_type]||'#555555'}">${l.product_type||'--'}</span></td>
+      <td style="padding:6px 8px;text-align:right;white-space:nowrap">${l.limit!=null?'¥'+Math.round(l.limit/10000)+'万':'--'}</td>
+      <td style="padding:6px 8px;text-align:right;white-space:nowrap">${l.balance!=null?'¥'+Math.round(l.balance/10000)+'万':'--'}</td>
+      <td style="padding:6px 8px;text-align:right;white-space:nowrap">${l.monthly!=null?'¥'+Math.round(l.monthly).toLocaleString():'--'}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px;color:#888;white-space:nowrap">${[l.start_date,l.end_date].filter(Boolean).join('~')||'--'}</td>
+      <td style="padding:6px 8px;text-align:center;font-weight:600;color:${stColor[l.status]||'#555'};white-space:nowrap">${l.status||'--'}</td>
     </tr>`).join('');
     const tot_bal=loans.reduce((a,l)=>a+(l.balance||0),0);
     const tot_mon=loans.reduce((a,l)=>a+(l.monthly||0),0);
@@ -5245,13 +5265,13 @@ function _ccRenderReport(r) {
       const overLimit=util!=null&&util>100;
       const highUtil=util!=null&&util>70;
       return `<tr style="border-bottom:1px solid rgba(0,0,0,0.05)${overLimit?';background:rgba(220,38,38,0.06)':''}">
-        <td style="padding:6px 8px;color:#888">${i+1}</td>
-        <td style="padding:6px 8px">${c.institution||'--'}</td>
-        <td style="padding:6px 8px;text-align:right">${c.limit!=null?'¥'+Math.round(c.limit/10000)+'万':'--'}</td>
-        <td style="padding:6px 8px;text-align:right">${c.used!=null?'¥'+Math.round(c.used/10000)+'万':'--'}</td>
-        <td style="padding:6px 8px;text-align:right">${c.installment!=null?'¥'+Math.round(c.installment/10000)+'万':'--'}</td>
-        <td style="padding:6px 8px;text-align:right;font-weight:600;color:${overLimit?'#dc2626':highUtil?'#d97706':'#16a34a'}">${util!=null?util+'%':'--'}</td>
-        <td style="padding:6px 8px;text-align:center;font-weight:600;color:${stColor[c.status]||'#555'}">${c.status||'--'}</td>
+        <td style="padding:6px 8px;color:#888;white-space:nowrap">${i+1}</td>
+        <td style="padding:6px 8px;min-width:110px">${c.institution||'--'}</td>
+        <td style="padding:6px 8px;text-align:right;white-space:nowrap">${c.limit!=null?'¥'+Math.round(c.limit/10000)+'万':'--'}</td>
+        <td style="padding:6px 8px;text-align:right;white-space:nowrap">${c.used!=null?'¥'+Math.round(c.used/10000)+'万':'--'}</td>
+        <td style="padding:6px 8px;text-align:right;white-space:nowrap">${c.installment!=null?'¥'+Math.round(c.installment/10000)+'万':'--'}</td>
+        <td style="padding:6px 8px;text-align:right;font-weight:600;white-space:nowrap;color:${overLimit?'#dc2626':highUtil?'#d97706':'#16a34a'}">${util!=null?util+'%':'--'}</td>
+        <td style="padding:6px 8px;text-align:center;font-weight:600;white-space:nowrap;color:${stColor[c.status]||'#555'}">${c.status||'--'}</td>
       </tr>`;
     }).join('');
     const tot_lmt=cards.reduce((a,c)=>a+(c.limit||0),0);
