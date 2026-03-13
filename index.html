@@ -3946,14 +3946,14 @@ function extractJson(text) {
 }
 
 // 统一API调用函数
-async function callAI(messages, max_tokens = 1500) {
+async function callAI(messages, max_tokens = 2000) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120000);
   const resp = await fetch(PROXY_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     signal: controller.signal,
-    body: JSON.stringify({ model: 'claude-3-5-sonnet-20241022', messages, max_tokens }),
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', messages, max_tokens }),
   });
   clearTimeout(timeout);
   const respText = await resp.text();
@@ -4862,7 +4862,7 @@ async function _ccAnalysePDF() {
     signal: ctrl1.signal,
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
+      max_tokens: 4096,
       messages: [{
         role: 'user',
         content: [
@@ -5030,7 +5030,7 @@ ${dataDesc}
 
 严格返回JSON不含markdown：{"score":<0-100>,"grade":<"优质"|"良好"|"一般"|"待改善">,"loanGrade":<"A级"|"B级"|"C级"|"D级">,"biggestRisk":<15字内最大风险点>,"riskFlags":[<风险预警字符串数组，触发标注⚠️或🔴>],"summary":<120字内专业点评，高危信号必须提及>,"dims":{"debt":{"score":<0-100>,"status":<"良好"|"偏高"|"过高"|"危险">,"value":<如"负债率约45%">,"detail":<40字>},"query":{"score":<0-100>,"status":<"正常"|"偏多"|"过多">,"value":<如"近3月${q3Total}次">,"detail":<40字>},"overdue":{"score":<0-100>,"status":<"无逾期"|"轻微"|"较严重"|"严重">,"value":<如"0笔">,"detail":<40字>},"cardUtil":{"score":<0-100>,"status":<"健康"|"偏高"|"过高"|"疑似套现">,"value":<如"${cardUtil}%">,"detail":<40字>},"accounts":{"score":<0-100>,"status":<"合理"|"偏多"|"偏少">,"value":<如"银行${bankLoans}笔/网贷${netLoans}笔">,"detail":<40字>},"history":{"score":<0-100>,"status":<"优质"|"良好"|"较短"|"很短">,"value":<如"${s.hist_years||0}年">,"detail":<40字>}},"advice":[{"priority":"high","title":<10字内>,"text":<60字内含时间节点>},{"priority":"high","title":<10字内>,"text":<60字内>},{"priority":"med","title":<10字内>,"text":<60字内>}],"bank_fit":{"now":<当前可申请银行25字内>,"after_improve":<改善后可申请25字内>,"improve_months":<整数>}}`;
 
-  const raw2 = await callAI([{role:'user', content: analysisPrompt}], 2000);
+  const raw2 = await callAI([{role:'user', content: analysisPrompt}], 3000);
   const result = extractJson(raw2);
   if(!result) throw new Error('第二步：分析结果解析失败，请重试');
 
