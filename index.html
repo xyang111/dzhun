@@ -3871,6 +3871,9 @@ async function autoFillFromCredit(base64, mediaType) {
 
 【注意】找不到的字段填0，不要猜测，严格按报告数据填写。
 
+【合作产品参考（仅用于理解客户资质，不影响返回格式）】
+${getBankProductsForPrompt()}
+
 只返回JSON不含任何其他文字：{"monthly_debt":<整数>,"card_limit":<整数>,"card_used":<整数>,"q1":<整数>,"q3":<整数>,"q6":<整数>,"q12":<整数>,"overdue_cur":<整数>,"overdue_max":<整数>,"bank_loan_count":<整数>,"net_loan_count":<整数>,"card_count":<整数>,"hist_years":<整数>,"q7d":<近7天贷款审批+信用卡审批次数整数>}`
             }
           ]
@@ -3947,6 +3950,49 @@ function updateProgress(){
 // ══ 代理地址：部署Cloudflare Worker后替换此处 ══
 const PROXY_URL = 'https://api.dzhun.com.cn';
 const FORMSPREE_URL = 'https://formspree.io/f/mpqypayz';
+
+// ══ 默认产品库（与 admin.html DEFAULT_PRODUCTS 保持同步）══
+const DEFAULT_BANK_PRODUCTS = [
+  {"id":1001,"bank":"工商银行","product":"融e借","rate":"3.0%-4.35%","amount":"最高100万","minIncome":5000,"maxQuery":8,"maxDebt":70,"overdue":"zero","cities":"厦门,全国","conditions":"工行代发工资客户优先，或公积金缴纳≥12个月。工作单位要求严格，优先国企/事业单位/上市公司/500强/外企/白名单单位。无当前逾期，2年内无连三累六。线上APP直接申请。","bonus":"国企/事业单位通过率极高；工行代发工资额度更高；白名单单位可拉高额度","emoji":"🏦","status":"active"},
+  {"id":1002,"bank":"农业银行","product":"网捷贷","rate":"2.85%-4.5%","amount":"线上最高30万","minIncome":3000,"maxQuery":10,"maxDebt":75,"overdue":"zero","cities":"厦门,全国","conditions":"农行账户持有者，满足以下任一：①农行房贷 ②公积金缴纳≥2年 ③社保缴纳≥2年 ④农行代发工资 ⑤有农行储蓄卡。2年内无连三累六，3月内机构查询≤10次。支持随借随还，按日计息。","bonus":"公务员/国企优先审批；有农行房贷额度翻倍；公积金2年以上利率更优","emoji":"🌾","status":"active"},
+  {"id":1003,"bank":"中国银行","product":"随心智贷/中银E贷","rate":"3.1%-5.22%","amount":"最高50万","minIncome":6000,"maxQuery":8,"maxDebt":65,"overdue":"zero","cities":"厦门,全国","conditions":"无当前逾期，负债率≤65%，月收入≥6000元。中行代发工资或持有中行信用卡优先，厦门线下进件对查询和网贷要求相对宽松，可线下沟通申请。适合公积金人员。","bonus":"名下有全款房产通过率+20%；中行代发工资利率更低；厦门线下进件条件更灵活","emoji":"🏛","status":"active"},
+  {"id":1004,"bank":"建设银行","product":"建易贷/快贷","rate":"2.85%-4.8%","amount":"最高100万","minIncome":4000,"maxQuery":8,"maxDebt":70,"overdue":"zero","cities":"厦门,全国","conditions":"需与建行有业务往来（房贷/理财/公积金），建行账户持有者。无当前逾期，信用历史≥1年，2年内无连三累六，3月内机构查询≤6-8次。建行代发工资或公积金客户优先。","bonus":"建行代发工资客户额度大幅提升；龙卡信用卡持有者加分；有房贷客户额度最高","emoji":"🏗","status":"active"},
+  {"id":1005,"bank":"交通银行","product":"惠民贷","rate":"2.8%-5.88%","amount":"最高100万","minIncome":4000,"maxQuery":8,"maxDebt":70,"overdue":"zero","cities":"厦门,全国","conditions":"社保或公积金缴纳≥6个月，负债率≤70%，无当前逾期。主要面向交行打卡工资客户，接受个体工商户。期限最长7年，支持先息后本和等额本息。针对新市民/毕业生最高30万利率3.85%起，优质客户最高80万。","bonus":"个体工商户专属通道；社保年限越长额度越高；厦门本地公积金客户优先","emoji":"🚗","status":"active"},
+  {"id":1006,"bank":"邮储银行","product":"邮享贷","rate":"3.0%-7.2%","amount":"最高100万","minIncome":2000,"maxQuery":10,"maxDebt":80,"overdue":"zero","cities":"厦门,全国","conditions":"社保缴纳≥3个月，无当前逾期。面向国企/事业单位公积金客户重点推广，门槛最低，适合保底备选方案。期限最长5年，支持先息后本。","bonus":"门槛最低首选；国企/事业单位公积金客户专属优惠利率；农村户籍客户也可申请","emoji":"📮","status":"active"},
+  {"id":1007,"bank":"招商银行","product":"闪电贷","rate":"2.68%-18%","amount":"最高50万","minIncome":5000,"maxQuery":6,"maxDebt":70,"overdue":"zero","cities":"厦门,全国","conditions":"无当前逾期，近3月查询≤6次，负债率≤70%，月收入≥5000元。系统自动评估：公积金基数、社保、征信记录、负债率多维度综合评分。查询次数要求较严格。","bonus":"国企/事业单位通过率+15%；公积金基数高利率更低；招行代发工资额度翻倍","emoji":"💳","status":"active"},
+  {"id":1008,"bank":"浦发银行","product":"浦闪贷","rate":"2.9%-6%","amount":"最高100万","minIncome":8000,"maxQuery":5,"maxDebt":70,"overdue":"zero","cities":"厦门,全国","conditions":"月收入≥8000元，无当前逾期，近3月查询≤5次，负债率≤70%。T+0放款，主要针对国企/央企/白领人群。期限最长5年，支持先息后本。","bonus":"国企/央企员工通过率最高；白领优质客群专享；公积金高基数显著提额","emoji":"🌟","status":"active"},
+  {"id":1009,"bank":"兴业银行","product":"兴闪贷","rate":"3.0%-7.2%","amount":"最高100万","minIncome":3000,"maxQuery":8,"maxDebt":75,"overdue":"mild","cities":"厦门,全国","conditions":"满足以下任一：①按揭房还款≥24个月 ②事业单位/公务员 ③兴业银行代发工资≥2年 ④兴业银行VIP/优质客户。历史逾期≤30天且已结清可申请，近6月查询≤8次。征信容忍度高，线下版可沟通，轻视负债和查询。","bonus":"征信有瑕疵首选；线下版条件更宽松；逾期已结清仍可尝试","emoji":"💰","status":"active"},
+  {"id":1010,"bank":"平安银行","product":"白领贷/平安贷","rate":"3.0%-7.99%","amount":"最高100万","minIncome":5000,"maxQuery":10,"maxDebt":75,"overdue":"zero","cities":"厦门,全国","conditions":"公积金缴纳≥1年且基数≥1000，或在白名单单位。月收入≥5000元，无当前逾期，接受个体工商户。2年内无连三累六，3月内查询≤10次。随借随还。","bonus":"个体工商户友好；白名单单位直接通过；平安保险/证券客户额度更高","emoji":"🛡","status":"active"},
+  {"id":1011,"bank":"中信银行","product":"信秒贷","rate":"3.28%-16.68%","amount":"最高50万（线上30万）","minIncome":4000,"maxQuery":10,"maxDebt":75,"overdue":"mild","cities":"厦门,全国","conditions":"满足以下任一：①中信代发工资≥6月 ②公积金≥2年（优质单位12月即可） ③他行按揭还满2年 ④中信AUM≥500元 ⑤本科以上学历+资产。当前不能有逾期，近6月查询<10次，单次逾期≤30天，2年内逾期≤3次。","bonus":"条件多选一，通过率较高；有按揭房客户直接符合；优质单位门槛更低","emoji":"🏢","status":"active"},
+  {"id":1012,"bank":"光大银行","product":"光速贷","rate":"2.9%-6%","amount":"最高30万","minIncome":4000,"maxQuery":7,"maxDebt":75,"overdue":"zero","cities":"厦门,全国","conditions":"社保或公积金证明，负债率≤75%，近3月查询≤7次，无当前逾期。负债率要求比其他银行宽松，期限最长3年，支持先息后本。","bonus":"负债率要求最宽松（≤75%）；光大信用卡持有者加分；适合负债稍高的客户","emoji":"☀️","status":"active"},
+  {"id":1013,"bank":"民生银行","product":"民易贷","rate":"3.0%-7.2%","amount":"最高100万","minIncome":8000,"maxQuery":8,"maxDebt":70,"overdue":"zero","cities":"厦门,全国","conditions":"白名单单位员工，在职满6个月，年个税≥10万（月收入约8000+）。无当前逾期，2年内无连三累六。白名单单位通过率很高，最长3年，随借随还。","bonus":"白名单单位几乎秒批；年个税高额度显著提升；国企/大型私企优先","emoji":"🏙","status":"active"},
+  {"id":1014,"bank":"华夏银行","product":"易达金","rate":"3.28%-6%","amount":"最高30-50万","minIncome":4000,"maxQuery":10,"maxDebt":80,"overdue":"mild","cities":"厦门,全国","conditions":"对私企员工、负债稍高、查询多的客户比较友好，属于捡漏产品。三年授信每年过桥，部分5年等额。征信有瑕疵或查询偏多时可优先考虑。","bonus":"私企员工友好；查询偏多仍可考虑；负债稍高也可尝试；征信捡漏首选","emoji":"🌈","status":"active"},
+  {"id":1015,"bank":"广发银行","product":"E秒贷","rate":"3.38%-7.2%","amount":"最高30万","minIncome":4000,"maxQuery":8,"maxDebt":70,"overdue":"zero","cities":"厦门,全国","conditions":"年利率3.8%起，支持先息后本/等额本息/随借随还，最长3年，无当前逾期。厦门本地有分支机构，线下进件方便。","bonus":"厦门本地有网点；随借随还灵活；适合有消费场景的工薪客户","emoji":"🔶","status":"active"},
+  {"id":1016,"bank":"厦门银行","product":"E秒贷","rate":"5.38%-7.2%","amount":"最高60万","minIncome":4000,"maxQuery":8,"maxDebt":70,"overdue":"zero","cities":"厦门,福州,泉州,漳州","conditions":"年龄22-60周岁。需满足：①名下有大额信用卡且还款记录良好 ②名下有半年以上按揭房记录 ③社保或公积金基数≥1000且连续≥6月 ④本行代发工资。征信要求：无当前逾期，近1周新增审批查询<3次，近3月查询<8次，未结清贷款机构≤5家，白户禁入。适合征信极干净客户。","bonus":"优质单位（公务员/事业单位/国企/世界500强/上市公司）可拉白名单提额至60万；普通单位最高30万","emoji":"🏝","status":"active"},
+  {"id":1017,"bank":"厦门农商银行","product":"信用消费贷","rate":"4.0%-6.5%","amount":"最高50万","minIncome":3000,"maxQuery":8,"maxDebt":75,"overdue":"zero","cities":"厦门","conditions":"厦门本地银行，线下进件为主。公积金人员首选，特别是优良单位上班的，无论额度还是利息政策都很好。半年查询≤6次，负债不超过个税5倍或公积金基数60倍（取高值）。适合负债不高、正在养查询的客户。","bonus":"厦门本地银行通过率高；公积金优质单位额度利率最优；线下沟通空间大","emoji":"🌺","status":"active"},
+  {"id":1018,"bank":"厦门国际银行","product":"小微E贷（信用版）","rate":"5.5%-8%","amount":"最高200万","minIncome":5000,"maxQuery":10,"maxDebt":75,"overdue":"mild","cities":"厦门","conditions":"年龄20-63周岁，营业执照满2年的个体工商户/小微企业主。纯信用无抵押，IPC技术线上审批。有营业执照+经营流水即可申请，无需抵质押物。","bonus":"个体工商户专属；营业执照2年以上轻松申请；厦门本地专属产品","emoji":"🌊","status":"active"},
+  {"id":1019,"bank":"招联消费金融","product":"好期贷","rate":"7.2%-24%","amount":"最高20万","minIncome":2000,"maxQuery":15,"maxDebt":85,"overdue":"mild","cities":"厦门,全国","conditions":"持牌消费金融机构，门槛较低，纯线上申请，身份证+手机号即可尝试，秒级审批。适合银行产品无法通过的客户保底选择。年化利率偏高，建议银行无法批的客户使用。","bonus":"银行全拒后保底选择；门槛最低；秒批到账；适合急需资金客户","emoji":"📱","status":"active"},
+  {"id":1020,"bank":"马上消费金融","product":"安逸花","rate":"7.2%-24%","amount":"最高20万","minIncome":1500,"maxQuery":15,"maxDebt":85,"overdue":"mild","cities":"厦门,全国","conditions":"持牌消费金融，服务新市民/蓝领工人/进城务工人员等传统金融难以覆盖群体。纯线上申请，最快秒批，额度循环使用。66%贷款单笔低于3000元，适合小额急需资金客户。","bonus":"新市民/蓝领专属；白户也可建立信用记录；小额灵活最适合","emoji":"🎯","status":"active"},
+  {"id":1021,"bank":"兴业消费金融","product":"兴业消费贷","rate":"7.2%-18%","amount":"最高20万","minIncome":3000,"maxQuery":12,"maxDebt":80,"overdue":"mild","cities":"厦门,全国","conditions":"持牌消费金融，兴业银行旗下。适合征信有轻微瑕疵但银行产品暂时无法通过的客户，线上纯信用申请，审批较快。","bonus":"兴业银行客户优先；征信轻微瑕疵可申请；审批快当天到账","emoji":"💫","status":"active"}
+];
+
+// ══ 产品库注入 AI prompt 的辅助函数 ══
+function getBankProductsForPrompt() {
+  let products = DEFAULT_BANK_PRODUCTS;
+  try {
+    const saved = localStorage.getItem('dazhun_products');
+    if (saved) products = JSON.parse(saved);
+  } catch(e) {}
+  const active = products.filter(p => p.status === 'active');
+  const overdueMap = { zero:'零逾期', mild:'轻微逾期可接受', any:'宽松' };
+  return active.map(p =>
+    `【${p.emoji||'🏦'}${p.bank} · ${p.product}】` +
+    `利率:${p.rate} | 最高额度:${p.amount} | 最低月收入≥${p.minIncome||3000}元 | ` +
+    `近3月查询≤${p.maxQuery||10}次 | 负债率≤${p.maxDebt||80}% | ` +
+    `逾期要求:${overdueMap[p.overdue]||p.overdue} | ` +
+    `准入条件:${p.conditions} | 加分项:${p.bonus||'无'}`
+  ).join('\n');
+}
 
 // 从AI文本中提取JSON（兼容模型在JSON前后附加说明文字的情况）
 function extractJson(text) {
@@ -4329,8 +4375,19 @@ ${Object.keys(_uploadedFilesData).length > 0 ? '【已上传文件】：' + Obje
 - C级(55-69)：城商行/农商行，利率7%-12%
 - D级(<55)：互联网银行/消费金融，利率12%-24%，或建议先修复征信
 
+【合作产品库——请严格按此匹配，不得编造产品】
+${getBankProductsForPrompt()}
+
+【产品匹配规则】
+- 当前逾期>0：只推荐overdue为"轻微逾期可接受"或"宽松"的产品
+- 近3月查询次数超过产品maxQuery：该产品不推荐
+- 负债率超过产品maxDebt：该产品不推荐
+- 月收入低于产品minIncome：该产品不推荐
+- bank_fit.now：列出当前满足所有准入条件的产品名称（格式：银行名·产品名）
+- bank_fit.after_improve：列出改善后（3-6个月）能通过的产品名称
+
 严格返回JSON不含任何其他文字和markdown代码块：
-{"score":<0-100整数>,"grade":<"优质"|"良好"|"一般"|"待改善">,"loanGrade":<"A级"|"B级"|"C级"|"D级">,"riskFlags":[<触发的风险预警字符串数组，无则为空数组>],"summary":<2句综合点评，指出最大优势和最大风险，如有风险预警必须提及，90字内>,"dims":{"debt":{"score":<0-100>,"status":<"良好"|"偏高"|"过高"|"危险">,"detail":<40字内>},"query":{"score":<0-100>,"status":<"正常"|"偏多"|"过多">,"detail":<40字内>},"overdue":{"score":<0-100>,"status":<"无逾期"|"轻微"|"较严重"|"严重">,"detail":<40字内>},"cardUtil":{"score":<0-100>,"status":<"健康"|"偏高"|"过高"|"疑似套现">,"detail":<40字内>},"accounts":{"score":<0-100>,"status":<"合理"|"偏多"|"偏少">,"detail":<40字内>},"history":{"score":<0-100>,"status":<"优质"|"良好"|"较短"|"很短">,"detail":<40字内>}},"advice":[{"priority":"high","title":<10字内>,"text":<60字内，含具体操作和时间节点>},{"priority":"high","title":<10字内>,"text":<60字内>},{"priority":"med","title":<10字内>,"text":<60字内>}],"bank_fit":{"now":<当前可申请银行类型，20字内>,"after_improve":<改善后可申请，20字内>,"improve_months":<整数>}}`;
+{"score":<0-100整数>,"grade":<"优质"|"良好"|"一般"|"待改善">,"loanGrade":<"A级"|"B级"|"C级"|"D级">,"riskFlags":[<触发的风险预警字符串数组，无则为空数组>],"summary":<2句综合点评，指出最大优势和最大风险，如有风险预警必须提及，90字内>,"dims":{"debt":{"score":<0-100>,"status":<"良好"|"偏高"|"过高"|"危险">,"detail":<40字内>},"query":{"score":<0-100>,"status":<"正常"|"偏多"|"过多">,"detail":<40字内>},"overdue":{"score":<0-100>,"status":<"无逾期"|"轻微"|"较严重"|"严重">,"detail":<40字内>},"cardUtil":{"score":<0-100>,"status":<"健康"|"偏高"|"过高"|"疑似套现">,"detail":<40字内>},"accounts":{"score":<0-100>,"status":<"合理"|"偏多"|"偏少">,"detail":<40字内>},"history":{"score":<0-100>,"status":<"优质"|"良好"|"较短"|"很短">,"detail":<40字内>}},"advice":[{"priority":"high","title":<10字内>,"text":<60字内，含具体操作和时间节点>},{"priority":"high","title":<10字内>,"text":<60字内>},{"priority":"med","title":<10字内>,"text":<60字内>}],"bank_fit":{"now":<当前可申请产品列表，用顿号分隔>,"after_improve":<改善后可申请产品列表>,"improve_months":<整数>}}`;
 
   // 构建消息内容，附带上传的文件
   const msgContent = [];
@@ -5121,7 +5178,19 @@ ${dataDesc}
 招商银行厦门：信用卡使用率≤70%，月收入≥8000元
 平安银行厦门：接受轻微历史逾期（已结清6个月+），负债率≤65%
 
-严格返回JSON不含markdown：{"score":<0-100>,"grade":<"优质"|"良好"|"一般"|"待改善">,"loanGrade":<"A级"|"B级"|"C级"|"D级">,"biggestRisk":<15字内最大风险点>,"riskFlags":[<风险预警字符串数组，触发标注⚠️或🔴>],"summary":<120字内专业点评，高危信号必须提及>,"dims":{"debt":{"score":<0-100>,"status":<"良好"|"偏高"|"过高"|"危险">,"value":<如"负债率约45%">,"detail":<40字>},"query":{"score":<0-100>,"status":<"正常"|"偏多"|"过多">,"value":<如"近3月${q3Total}次">,"detail":<40字>},"overdue":{"score":<0-100>,"status":<"无逾期"|"轻微"|"较严重"|"严重">,"value":<如"0笔">,"detail":<40字>},"cardUtil":{"score":<0-100>,"status":<"健康"|"偏高"|"过高"|"疑似套现">,"value":<如"${cardUtil}%">,"detail":<40字>},"accounts":{"score":<0-100>,"status":<"合理"|"偏多"|"偏少">,"value":<如"银行${bankLoans}笔/网贷${netLoans}笔">,"detail":<40字>},"history":{"score":<0-100>,"status":<"优质"|"良好"|"较短"|"很短">,"value":<如"${s.hist_years||0}年">,"detail":<40字>}},"advice":[{"priority":"high","title":<10字内>,"text":<60字内含时间节点>},{"priority":"high","title":<10字内>,"text":<60字内>},{"priority":"med","title":<10字内>,"text":<60字内>}],"bank_fit":{"now":<当前可申请银行25字内>,"after_improve":<改善后可申请25字内>,"improve_months":<整数>}}`;
+【合作产品库——请严格按此匹配，不得编造产品】
+${getBankProductsForPrompt()}
+
+【产品匹配规则】
+- 当前逾期>0：只推荐overdue为"轻微逾期可接受"或"宽松"的产品
+- 近3月查询次数超过产品maxQuery：该产品不推荐
+- 负债率超过产品maxDebt：该产品不推荐
+- 月收入低于产品minIncome：该产品不推荐
+- bank_fit.now：列出当前满足所有准入条件的产品名称（格式：银行名·产品名）
+- bank_fit.after_improve：列出改善后（3-6个月）能通过的产品名称
+- bank_fit.improve_months：预估改善所需最少月数
+
+严格返回JSON不含markdown：{"score":<0-100>,"grade":<"优质"|"良好"|"一般"|"待改善">,"loanGrade":<"A级"|"B级"|"C级"|"D级">,"biggestRisk":<15字内最大风险点>,"riskFlags":[<风险预警字符串数组，触发标注⚠️或🔴>],"summary":<120字内专业点评，高危信号必须提及>,"dims":{"debt":{"score":<0-100>,"status":<"良好"|"偏高"|"过高"|"危险">,"value":<如"负债率约45%">,"detail":<40字>},"query":{"score":<0-100>,"status":<"正常"|"偏多"|"过多">,"value":<如"近3月${q3Total}次">,"detail":<40字>},"overdue":{"score":<0-100>,"status":<"无逾期"|"轻微"|"较严重"|"严重">,"value":<如"0笔">,"detail":<40字>},"cardUtil":{"score":<0-100>,"status":<"健康"|"偏高"|"过高"|"疑似套现">,"value":<如"${cardUtil}%">,"detail":<40字>},"accounts":{"score":<0-100>,"status":<"合理"|"偏多"|"偏少">,"value":<如"银行${bankLoans}笔/网贷${netLoans}笔">,"detail":<40字>},"history":{"score":<0-100>,"status":<"优质"|"良好"|"较短"|"很短">,"value":<如"${s.hist_years||0}年">,"detail":<40字>}},"advice":[{"priority":"high","title":<10字内>,"text":<60字内含时间节点>},{"priority":"high","title":<10字内>,"text":<60字内>},{"priority":"med","title":<10字内>,"text":<60字内>}],"bank_fit":{"now":<当前可申请产品列表，用顿号分隔>,"after_improve":<改善后可申请产品列表>,"improve_months":<整数>}}`;
 
   const raw2 = await callAI([{role:'user', content: analysisPrompt}], 3000);
   const result = extractJson(raw2);

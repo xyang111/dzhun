@@ -602,6 +602,10 @@
   <div class="modal" style="max-width:720px">
     <div class="modal-title">📤 导出 AI 提示词</div>
     <div class="section-sub">复制下方内容，粘贴到 HTML 文件中 <code style="color:var(--gold)">【银行产品准入标准</code> 部分替换即可</div>
+    <div style="background:rgba(200,169,110,0.12);border:1px solid rgba(200,169,110,0.4);border-radius:8px;padding:10px 14px;font-size:12px;color:#c8a96e;margin-bottom:12px;line-height:1.6">
+      ✅ <strong>产品库已自动同步</strong>——主站 AI 分析将使用最新产品数据（需同域名访问）。<br>
+      保存产品后，dzhun.com.cn 的三个分析模块（征信诊断/PDF分析/简版填表）会自动读取 <code>localStorage('dazhun_products')</code> 中的最新数据，无需手动复制。
+    </div>
     <div class="preview-box" id="exportPreview"></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="document.getElementById('exportModal').classList.remove('open')">关闭</button>
