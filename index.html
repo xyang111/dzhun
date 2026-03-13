@@ -1469,6 +1469,8 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
   cursor:pointer;font-family:'Noto Sans SC',sans-serif;
 }
 </style>
+<!-- EmailJS SDK：在 emailjs.com 注册后替换下方三个常量 -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -1977,6 +1979,36 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
             <div class="cc-advice-grid" id="ccAdvice"></div>
           </div>
 
+          <!-- 账户明细表 -->
+          <div id="cc-loans-table" style="display:none;margin-top:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;display:flex;align-items:center;gap:6px">🏦 识别到的账户明细</div>
+            <div style="overflow-x:auto">
+              <table id="cc-loans-tbody" style="width:100%;border-collapse:collapse;font-size:12px">
+                <thead>
+                  <tr style="background:rgba(10,22,40,0.06);color:var(--navy)">
+                    <th style="padding:7px 10px;text-align:left;font-weight:600">机构名称</th>
+                    <th style="padding:7px 10px;text-align:left;font-weight:600">类型</th>
+                    <th style="padding:7px 10px;text-align:right;font-weight:600">金额/额度</th>
+                    <th style="padding:7px 10px;text-align:right;font-weight:600">余额/已用</th>
+                    <th style="padding:7px 10px;text-align:right;font-weight:600">月还款</th>
+                    <th style="padding:7px 10px;text-align:center;font-weight:600">状态</th>
+                  </tr>
+                </thead>
+                <tbody id="cc-loans-rows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 邮件发送 -->
+          <div style="margin-top:16px;background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.3);border-radius:12px;padding:14px 16px">
+            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px">📧 将报告发送至邮箱</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="email" id="cc-email-input" placeholder="请输入您的邮箱" style="flex:1;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none">
+              <button onclick="ccSendEmail()" style="padding:9px 18px;background:var(--gold);color:var(--navy);border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">发送报告</button>
+            </div>
+            <div id="cc-email-msg" style="margin-top:8px;font-size:12px;display:none"></div>
+          </div>
+
           <!-- CTA -->
           <div class="cc-report-cta">
             <div class="ccrc-text">诊断完成 · 根据您的资质，<strong>立即查看可申请的银行产品</strong></div>
@@ -2361,6 +2393,17 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
                 <option value="">请选择</option>
                 <option>未婚</option><option>已婚</option>
                 <option>离异</option><option>丧偶</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>学历</label>
+              <select id="f-edu">
+                <option value="">请选择</option>
+                <option>全日制本科及以上</option>
+                <option>全日制大专</option>
+                <option>函授/自考本科</option>
+                <option>函授/自考大专</option>
+                <option>高中及以下</option>
               </select>
             </div>
             <div class="form-group">
@@ -3247,7 +3290,38 @@ async function dpOcrExtract(base64, mediaType, fileName) {
           role: 'user',
           content: [
             fileBlock,
-            {type: 'text', text: '从这份人行征信报告提取所有贷款和信用卡账户。每条提取：name(机构名+产品类型), type(bank/credit/online/other), principal(剩余本金数字), rate(年利率%数字没有填null), monthly(月还款数字没有填null), months(剩余期数数字)。信用卡用已用额度作principal，利率没标注填null。只返回JSON数组不含其他文字：[{"name":"招商银行-消费贷","type":"bank","principal":50000,"rate":4.35,"monthly":1500,"months":24}]'}
+            {type: 'text', text: `你是银行信贷审核员，精通人行征信报告格式。请仔细识别并提取报告中所有账户信息。
+
+【账户类型判断规则】
+- bank：纯银行发放的贷款（含房贷、车贷、消费贷、经营贷）
+- credit：信用卡账户
+- online：机构名含"小贷/消费金融/网络/科技/互联网/分期"的网贷
+- other：其他
+
+【贷款类账户提取】（每笔单独一条）
+- name: 机构名 + 产品类型（如"招商银行-消费贷"）
+- type: bank / online / other
+- principal: 当前剩余本金/余额，单位元整数（万元需×10000），看不清填null
+- limit: null（贷款无授信额度）
+- used: null
+- rate: 年利率百分比数字（如4.35），看不清填null
+- monthly: 月还款额元整数，看不清填null
+- months: 剩余期数整数，看不清填null
+- status: "正常"/"逾期"/"已结清"，看不清填"正常"
+
+【信用卡类账户提取】（每张单独一条）
+- name: 发卡行 + 卡产品名（如"招商银行-金卡"）
+- type: credit
+- principal: null
+- limit: 授信额度元整数（万元需×10000），看不清填null
+- used: 已用额度元整数，看不清填null
+- rate: null
+- monthly: null
+- months: null
+- status: "正常"/"逾期"/"已结清"
+
+所有金额统一转换为元，看不清的字段填null不要猜测。
+只返回JSON数组不含任何其他文字和markdown：[{"name":"招商银行-消费贷","type":"bank","principal":50000,"limit":null,"used":null,"rate":4.35,"monthly":1500,"months":24,"status":"正常"}]`}
           ]
         }]
       })
@@ -3627,11 +3701,11 @@ function fakeUpload(el){
 
       // 如果上传的是征信报告，自动解析填充字段
       if(label === '征信报告' && (mediaType.includes('pdf') || mediaType.includes('image'))) {
-        if(f.size > 8 * 1024 * 1024) {
+        if(f.size > 20 * 1024 * 1024) {
           const hint = document.createElement('div');
           hint.id = 'autoFillHint';
           hint.style.cssText = 'background:#fff8e0;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400e;margin:10px 0';
-          hint.innerHTML = '⚠️ 文件过大（>' + (f.size/1024/1024).toFixed(1) + 'MB），请将PDF压缩至8MB以内再上传，或手动填写下方征信数据';
+          hint.innerHTML = '⚠️ 文件过大（>' + (f.size/1024/1024).toFixed(1) + 'MB），请将PDF压缩至20MB以内再上传，或手动填写下方征信数据';
           const target = document.getElementById('fsp4');
           if(target) { document.getElementById('autoFillHint')?.remove(); target.insertBefore(hint, target.firstChild); }
         } else {
@@ -3693,22 +3767,28 @@ async function autoFillFromCredit(base64, mediaType) {
             fileBlock,
             {
               type:'text',
-              text:`你是资深银行信贷审核员，精通人行征信报告格式。请仔细阅读这份征信报告，按以下规则精确提取数据：
+              text:`你是资深银行信贷审核员，精通人行征信报告格式（包括详版和简版）。请仔细阅读这份征信报告，按以下规则精确提取数据：
 
 【提取规则】
-1. monthly_debt：所有贷款账户"本月应还款"或"月还款额"之和（房贷+车贷+信用贷款+消费贷等），单位：元整数
-2. card_limit：所有信用卡账户"授信额度"之和，单位：元整数
-3. card_used：所有信用卡账户"已用额度"或"余额"之和，单位：元整数
-4. q3/q6/q12："贷款审批"+"贷款交易"+"信用卡审批"三类查询在近3月/6月/12月的总次数
-5. overdue_cur：当前处于逾期状态（状态码为1-7或标注"逾期"）的账户笔数
-6. overdue_max：历史所有账户中最长逾期天数（状态码1=1-7天,2=8-30天,3=31-60天,4=61-90天,5=91-120天,6=121-150天,7=151+天，按天数换算）
-7. loan_count：所有贷款类账户总数（含房贷、车贷、个人消费贷、经营贷等，不含信用卡）
-8. card_count：所有信用卡账户总数（含借记卡附带信用额度）
-9. hist_years：最早账户开户日期至今的年数（取整）
+1. monthly_debt：所有未结清贷款账户"本月应还款"或"月还款额"之和（房贷+车贷+信用贷款+消费贷等），单位：元整数，万元需×10000
+2. card_limit：所有信用卡账户"授信额度"之和，单位：元整数，万元需×10000
+3. card_used：所有信用卡账户"已用额度"之和，单位：元整数，万元需×10000
+4. q1：查询记录部分（报告最下方），逐行计数近1个月内"贷款审批"+"信用卡审批"类查询次数（本人查询不计入）
+5. q3：近3个月内"贷款审批"+"信用卡审批"类查询次数（本人查询不计入，逐行计数不要估算）
+6. q6：近6个月内"贷款审批"+"信用卡审批"类查询次数
+7. q12：近12个月内"贷款审批"+"信用卡审批"类查询次数
+8. overdue_cur：当前处于逾期状态（状态码为1-7或标注"逾期"）的账户笔数
+9. overdue_max：历史所有账户中最长逾期天数（状态码1=1-7天,2=8-30天,3=31-60天,4=61-90天,5=91-120天,6=121-150天,7=151+天，按天数换算）
+10. bank_loan_count：银行发放的贷款账户数（含房贷、车贷、消费贷、经营贷，机构名为纯银行名称）
+11. net_loan_count：网贷/消费金融账户数（机构名含"小贷/消费金融/网络/科技/互联网/分期"）
+12. card_count：所有信用卡账户总数
+13. hist_years：最早账户开户日期至今的年数（取整）
+
+【简版征信说明】简版征信只有汇总数据，从信贷记录汇总行提取账户数量和逾期次数，查询记录从查询汇总表逐行计数。
 
 【注意】找不到的字段填0，不要猜测，严格按报告数据填写。
 
-只返回JSON不含任何其他文字：{"monthly_debt":<整数>,"card_limit":<整数>,"card_used":<整数>,"q3":<整数>,"q6":<整数>,"q12":<整数>,"overdue_cur":<整数>,"overdue_max":<整数>,"loan_count":<整数>,"card_count":<整数>,"hist_years":<整数>}`
+只返回JSON不含任何其他文字：{"monthly_debt":<整数>,"card_limit":<整数>,"card_used":<整数>,"q1":<整数>,"q3":<整数>,"q6":<整数>,"q12":<整数>,"overdue_cur":<整数>,"overdue_max":<整数>,"bank_loan_count":<整数>,"net_loan_count":<整数>,"card_count":<整数>,"hist_years":<整数>}`
             }
           ]
         }]
@@ -4060,6 +4140,7 @@ async function runInlineDiag() {
   const social    = parseInt(document.getElementById('f-social')?.value) || 0;
   const provident = parseInt(document.getElementById('f-provident')?.value) || 0;
   const marriage  = document.getElementById('f-marriage')?.value || '';
+  const edu       = document.getElementById('f-edu')?.value || '';
   const cardLimit = parseFloat(document.getElementById('di-card-limit').value) || 0;
   const cardUsed  = parseFloat(document.getElementById('di-card-used').value) || 0;
   const q1        = parseInt(document.getElementById('di-q1').value) || 0;
@@ -4140,7 +4221,7 @@ async function runInlineDiag() {
 贷款查询次数：近1月${q1}次 / 近3月${q3}次 / 近6月${q6}次 / 近12月${q12}次
 逾期情况：当前逾期${odCur}笔 | 历史最长逾期${odMax}天
 账户结构：银行贷款${bankLoans}笔 / 网贷消费金融${netLoans}笔 / 信用卡${cards}张 | 信用历史${histYr}年以上
-在职年限：${workYears} | 社保月数：${social}月 | 公积金月缴：${provident}元 | 婚姻：${marriage}
+在职年限：${workYears} | 社保月数：${social}月 | 公积金月缴：${provident}元 | 婚姻：${marriage} | 学历：${edu}
 
 ${Object.keys(_uploadedFilesData).length > 0 ? '【已上传文件】：' + Object.keys(_uploadedFilesData).join('、') + '（请结合附件实际数据综合评估，以附件数据为准）' : ''}
 
@@ -4818,6 +4899,7 @@ async function _ccAnalyseManual() {
   const loans  = bankLoans + netLoans;
   const cards  = parseInt(document.getElementById('cc-cards').value)||0;
   const histYr = parseInt(document.getElementById('cc-hist').value)||0;
+  const edu    = document.getElementById('f-edu')?.value || '';
   const dr = income>0 ? Math.round((debt/income)*100) : 0;
   const cu = cardLmt>0 ? Math.round((cardUse/cardLmt)*100) : 0;
 
@@ -4856,7 +4938,7 @@ async function _ccAnalyseManual() {
 信用卡：总额度${cardLmt}元，已用${cardUse}元，使用率${cu}%
 查询记录：近1月${q1}次 / 近3月${q3}次 / 近6月${q6}次 / 近12月${q12}次
 逾期情况：当前${odCur}笔，历史最长${odMax}天
-账户结构：银行贷款${bankLoans}笔，网贷消费金融${netLoans}笔，信用卡${cards}张，信用历史${histYr}年以上
+账户结构：银行贷款${bankLoans}笔，网贷消费金融${netLoans}笔，信用卡${cards}张，信用历史${histYr}年以上 | 学历：${edu}
 
 【评分标准】
 负债率(35%)：≤30%=95, 31-40%=82, 41-50%=68, 51-60%=52, 61-70%=35, >70%=15
@@ -4975,6 +5057,31 @@ function _ccRenderReport(r) {
       <div class="cac-body"><span>${a.text}</span></div>
     </div>`).join('');
 
+  // B-03: 账户明细表渲染
+  const loansTable = document.getElementById('cc-loans-table');
+  const loansRows = document.getElementById('cc-loans-rows');
+  const accounts = (dpLoans && dpLoans.length > 0) ? dpLoans :
+    (r.extracted ? [
+      ...(r.extracted.bankLoanCount > 0 ? [{name:'银行贷款账户', type:'bank', principal: null, limit:null, used:null, monthly:null, status:'正常'}] : []),
+      ...(r.extracted.netLoanCount > 0 ? [{name:'网贷/消费金融账户', type:'online', principal:null, limit:null, used:null, monthly:null, status:'正常'}] : []),
+      ...(r.extracted.cardCount > 0 ? [{name:'信用卡账户', type:'credit', principal:null, limit:r.extracted.cardLimit, used:r.extracted.cardUsed, monthly:null, status:'正常'}] : [])
+    ] : []);
+  if(accounts.length > 0 && loansTable && loansRows) {
+    const typeLabel = {bank:'银行贷款', credit:'信用卡', online:'网贷', other:'其他'};
+    const statusColor = {正常:'#16a34a', 逾期:'#dc2626', 已结清:'#888'};
+    loansRows.innerHTML = accounts.map(a => `<tr style="border-bottom:1px solid rgba(0,0,0,0.06)">
+      <td style="padding:7px 10px">${a.name||'--'}</td>
+      <td style="padding:7px 10px">${typeLabel[a.type]||a.type||'--'}</td>
+      <td style="padding:7px 10px;text-align:right">${a.type==='credit'?(a.limit!=null?'¥'+(a.limit/10000).toFixed(1)+'万':'--'):(a.principal!=null?'¥'+(a.principal/10000).toFixed(1)+'万':'--')}</td>
+      <td style="padding:7px 10px;text-align:right">${a.type==='credit'?(a.used!=null?'¥'+(a.used/10000).toFixed(1)+'万':'--'):(a.principal!=null?'¥'+(a.principal/10000).toFixed(1)+'万':'--')}</td>
+      <td style="padding:7px 10px;text-align:right">${a.monthly!=null?'¥'+a.monthly.toLocaleString():'--'}</td>
+      <td style="padding:7px 10px;text-align:center;color:${statusColor[a.status]||'#555'};font-weight:600">${a.status||'--'}</td>
+    </tr>`).join('');
+    loansTable.style.display = 'block';
+  }
+  // 存储结果供邮件使用
+  window._ccLastReport = r;
+
   // 隐藏loading动画
   document.getElementById('ccReading').style.display = 'none';
 
@@ -4999,8 +5106,8 @@ function ccHandleDrop(e) {
 
 function ccHandleFile(f) {
   if(!f) return;
-  if(f.size > 8 * 1024 * 1024) {
-    alert('文件过大（' + (f.size/1024/1024).toFixed(1) + 'MB），请将PDF压缩至8MB以内再上传');
+  if(f.size > 20 * 1024 * 1024) {
+    alert('文件过大（' + (f.size/1024/1024).toFixed(1) + 'MB），请将PDF压缩至20MB以内再上传');
     return;
   }
   ccFile = f;
@@ -5378,6 +5485,93 @@ document.addEventListener('keydown', function(e){
 <script>
 if(new URLSearchParams(window.location.search).get('admin')==='dz2025'){
   document.getElementById('adminBadge').style.display='block';
+}
+</script>
+<script>
+// ════════════════════════════════════════
+// EmailJS 配置（在 emailjs.com 注册后替换以下三个值）
+// ════════════════════════════════════════
+const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';   // 替换为你的 Service ID
+const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';  // 替换为你的 Template ID
+const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';   // 替换为你的 Public Key
+
+(function() {
+  if(typeof emailjs !== 'undefined') {
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+  }
+})();
+
+function ccSendEmail() {
+  const email = document.getElementById('cc-email-input')?.value?.trim();
+  const msgEl = document.getElementById('cc-email-msg');
+  if(!email || !email.includes('@')) {
+    msgEl.style.display = 'block';
+    msgEl.style.color = '#dc2626';
+    msgEl.textContent = '请输入有效的邮箱地址';
+    return;
+  }
+  const r = window._ccLastReport;
+  if(!r) {
+    msgEl.style.display = 'block';
+    msgEl.style.color = '#dc2626';
+    msgEl.textContent = '暂无诊断结果，请先完成分析';
+    return;
+  }
+  if(typeof emailjs === 'undefined') {
+    msgEl.style.display = 'block';
+    msgEl.style.color = '#dc2626';
+    msgEl.textContent = 'EmailJS 未加载，请检查网络连接';
+    return;
+  }
+
+  // 格式化报告内容
+  const dimLines = r.dims ? Object.entries(r.dims).map(([k,d]) =>
+    `${k}: ${d.status} (${d.score}分) — ${d.detail}`
+  ).join('\n') : '';
+  const advLines = r.advice ? r.advice.map((a,i) =>
+    `${i+1}. [${a.priority}] ${a.title||''} ${a.text}`
+  ).join('\n') : '';
+  const riskLines = r.riskFlags?.join('\n') || '无';
+  const bankFit = r.bank_fit ? (Array.isArray(r.bank_fit)
+    ? r.bank_fit.map(b=>`${b.bank} ${b.months===0?'(当前可申请)':`(${b.months}月后)`}`).join('、')
+    : `当前：${r.bank_fit.now} | 改善后：${r.bank_fit.after_improve}`) : '--';
+
+  const reportText = `贷准征信诊断报告
+
+综合评分：${r.score} / 100（${r.grade}）
+可贷等级：${r.loanGrade}
+综合评价：${r.summary}
+
+【各维度评分】
+${dimLines}
+
+【风险预警】
+${riskLines}
+
+【改善建议】
+${advLines}
+
+【银行匹配】
+${bankFit}
+
+—— 由贷准 dzhun.com.cn 生成`;
+
+  msgEl.style.display = 'block';
+  msgEl.style.color = '#888';
+  msgEl.textContent = '发送中…';
+
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+    to_email: email,
+    report_content: reportText,
+    score: r.score,
+    grade: r.grade
+  }).then(() => {
+    msgEl.style.color = '#16a34a';
+    msgEl.textContent = '✅ 报告已发送至您的邮箱';
+  }).catch(err => {
+    msgEl.style.color = '#dc2626';
+    msgEl.textContent = '发送失败：' + (err.text || err.message || JSON.stringify(err));
+  });
 }
 </script>
 </body>
