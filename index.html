@@ -5216,12 +5216,12 @@ function _ccRenderReport(r) {
   const lRows=document.getElementById('ccLoansDetailRows');
   const lFoot=document.getElementById('ccLoansTfoot');
   if(lBlock&&lRows&&loans.length>0){
-    const typeColor={银行贷款:'#1e40af',消费金融:'#d97706',小贷:'#dc2626',其他:'#555'};
+    const typeColor={银行贷款:'#1e40af',消费金融:'#d97706',小贷:'#dc2626',其他:'#555555'};
     const stColor={正常:'#16a34a',逾期:'#dc2626',已结清:'#888',呆账:'#dc2626'};
     lRows.innerHTML=loans.map((l,i)=>`<tr style="border-bottom:1px solid rgba(0,0,0,0.05)${l.status==='逾期'||l.status==='呆账'?';background:rgba(220,38,38,0.04)':''}">
       <td style="padding:6px 8px;color:#888">${i+1}</td>
       <td style="padding:6px 8px">${l.institution||'--'}</td>
-      <td style="padding:6px 8px;text-align:center"><span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:${typeColor[l.product_type]||'#555'}22;color:${typeColor[l.product_type]||'#555'}">${l.product_type||'--'}</span></td>
+      <td style="padding:6px 8px;text-align:center"><span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:${typeColor[l.product_type]||'#555555'}22;color:${typeColor[l.product_type]||'#555555'}">${l.product_type||'--'}</span></td>
       <td style="padding:6px 8px;text-align:right">${l.limit!=null?'¥'+Math.round(l.limit/10000)+'万':'--'}</td>
       <td style="padding:6px 8px;text-align:right">${l.balance!=null?'¥'+Math.round(l.balance/10000)+'万':'--'}</td>
       <td style="padding:6px 8px;text-align:right">${l.monthly!=null?'¥'+Math.round(l.monthly).toLocaleString():'--'}</td>
