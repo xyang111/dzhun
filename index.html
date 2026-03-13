@@ -3034,6 +3034,11 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
 </footer>
 
 <script>
+// 管理员模式
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('admin') === 'dz2025') {
+  localStorage.setItem('unlockedFeatures', JSON.stringify(['quota', 'diag']));
+}
 // ── Bank data ──
 const BANKS = [
   // ── 国有六大行 ──
@@ -5202,6 +5207,12 @@ document.addEventListener('keydown', function(e){
   }
 });
 
+</script>
+<div id="adminBadge" style="display:none;position:fixed;bottom:20px;right:20px;background:#c8a96e;color:#0a1628;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;z-index:9999;">🔧 管理员模式</div>
+<script>
+if(new URLSearchParams(window.location.search).get('admin')==='dz2025'){
+  document.getElementById('adminBadge').style.display='block';
+}
 </script>
 </body>
 </html>
