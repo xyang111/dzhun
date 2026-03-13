@@ -1901,12 +1901,13 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
             <div class="ccr-step" id="ccs4"><div class="ccs-dot"></div>评估逾期风险</div>
             <div class="ccr-step" id="ccs5"><div class="ccs-dot"></div>生成综合评分与建议</div>
           </div>
+          <div id="ccReadingMsg" style="text-align:center;color:#c8a96e;font-size:13px;font-weight:600;margin-top:8px"></div>
         </div>
 
         <!-- Report -->
         <div class="cc-report" id="ccReport">
 
-          <!-- Score hero -->
+          <!-- 区块一：综合评分卡片 -->
           <div class="cc-score-hero">
             <div class="ccsh-row">
               <div class="ccsh-score-wrap">
@@ -1922,85 +1923,140 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
                   <span class="ccsh-loan-label">可贷等级</span>
                   <span class="ccsh-loan-grade" id="ccLoanGrade">--</span>
                 </div>
-                <div class="ccsh-summary" id="ccSummary">--</div>
+                <div id="ccBiggestRisk" style="font-size:11px;color:#f87171;margin-top:4px;font-weight:600"></div>
               </div>
             </div>
+            <div class="ccsh-summary" id="ccSummary" style="margin-top:10px;font-size:13px;line-height:1.6;color:rgba(255,255,255,0.85)">--</div>
           </div>
 
-          <!-- Extracted data table -->
-          <div class="cc-data-table">
-            <div class="cdt-header">📊 提取到的征信数据</div>
-            <div class="cdt-rows" id="ccDataRows"></div>
+          <!-- 区块二：风险预警标签 -->
+          <div id="ccRiskFlags" style="display:none;margin-bottom:4px">
+            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">⚠️ 风险预警</div>
+            <div id="ccRiskFlagItems" style="display:flex;flex-wrap:wrap;gap:6px"></div>
           </div>
 
-          <!-- 6 dimension cards -->
+          <!-- 区块三：六维评分 -->
           <div class="cc-dims-grid">
-            <div class="cc-dim-card">
-              <div class="cdc-head"><div class="cdc-name">💰 负债情况</div><div class="cdc-status" id="cc1-s">--</div></div>
-              <div class="cdc-value" id="cc1-v">--%</div>
-              <div class="cdc-bar"><div class="cdc-bar-fill" id="cc1-b" style="width:0%"></div></div>
-              <div class="cdc-note" id="cc1-n">--</div>
-            </div>
-            <div class="cc-dim-card">
-              <div class="cdc-head"><div class="cdc-name">🔍 查询次数</div><div class="cdc-status" id="cc2-s">--</div></div>
-              <div class="cdc-value" id="cc2-v">-- 次</div>
-              <div class="cdc-bar"><div class="cdc-bar-fill" id="cc2-b" style="width:0%"></div></div>
-              <div class="cdc-note" id="cc2-n">--</div>
-            </div>
-            <div class="cc-dim-card">
-              <div class="cdc-head"><div class="cdc-name">⚠️ 逾期记录</div><div class="cdc-status" id="cc3-s">--</div></div>
-              <div class="cdc-value" id="cc3-v">-- 笔</div>
-              <div class="cdc-bar"><div class="cdc-bar-fill" id="cc3-b" style="width:0%"></div></div>
-              <div class="cdc-note" id="cc3-n">--</div>
-            </div>
-            <div class="cc-dim-card">
-              <div class="cdc-head"><div class="cdc-name">💳 信用卡使用率</div><div class="cdc-status" id="cc4-s">--</div></div>
-              <div class="cdc-value" id="cc4-v">--%</div>
-              <div class="cdc-bar"><div class="cdc-bar-fill" id="cc4-b" style="width:0%"></div></div>
-              <div class="cdc-note" id="cc4-n">--</div>
-            </div>
-            <div class="cc-dim-card">
-              <div class="cdc-head"><div class="cdc-name">🏦 账户结构</div><div class="cdc-status" id="cc5-s">--</div></div>
-              <div class="cdc-value" id="cc5-v">-- 个</div>
-              <div class="cdc-bar"><div class="cdc-bar-fill" id="cc5-b" style="width:0%"></div></div>
-              <div class="cdc-note" id="cc5-n">--</div>
-            </div>
-            <div class="cc-dim-card">
-              <div class="cdc-head"><div class="cdc-name">📅 信用历史</div><div class="cdc-status" id="cc6-s">--</div></div>
-              <div class="cdc-value" id="cc6-v">-- 年</div>
-              <div class="cdc-bar"><div class="cdc-bar-fill" id="cc6-b" style="width:0%"></div></div>
-              <div class="cdc-note" id="cc6-n">--</div>
+            <div class="cc-dim-card"><div class="cdc-head"><div class="cdc-name">💰 负债情况</div><div class="cdc-status" id="cc1-s">--</div></div><div class="cdc-value" id="cc1-v">--%</div><div class="cdc-bar"><div class="cdc-bar-fill" id="cc1-b" style="width:0%"></div></div><div class="cdc-note" id="cc1-n">--</div></div>
+            <div class="cc-dim-card"><div class="cdc-head"><div class="cdc-name">🔍 查询次数</div><div class="cdc-status" id="cc2-s">--</div></div><div class="cdc-value" id="cc2-v">-- 次</div><div class="cdc-bar"><div class="cdc-bar-fill" id="cc2-b" style="width:0%"></div></div><div class="cdc-note" id="cc2-n">--</div></div>
+            <div class="cc-dim-card"><div class="cdc-head"><div class="cdc-name">⚠️ 逾期记录</div><div class="cdc-status" id="cc3-s">--</div></div><div class="cdc-value" id="cc3-v">-- 笔</div><div class="cdc-bar"><div class="cdc-bar-fill" id="cc3-b" style="width:0%"></div></div><div class="cdc-note" id="cc3-n">--</div></div>
+            <div class="cc-dim-card"><div class="cdc-head"><div class="cdc-name">💳 信用卡使用率</div><div class="cdc-status" id="cc4-s">--</div></div><div class="cdc-value" id="cc4-v">--%</div><div class="cdc-bar"><div class="cdc-bar-fill" id="cc4-b" style="width:0%"></div></div><div class="cdc-note" id="cc4-n">--</div></div>
+            <div class="cc-dim-card"><div class="cdc-head"><div class="cdc-name">🏦 账户结构</div><div class="cdc-status" id="cc5-s">--</div></div><div class="cdc-value" id="cc5-v">-- 个</div><div class="cdc-bar"><div class="cdc-bar-fill" id="cc5-b" style="width:0%"></div></div><div class="cdc-note" id="cc5-n">--</div></div>
+            <div class="cc-dim-card"><div class="cdc-head"><div class="cdc-name">📅 信用历史</div><div class="cdc-status" id="cc6-s">--</div></div><div class="cdc-value" id="cc6-v">-- 年</div><div class="cdc-bar"><div class="cdc-bar-fill" id="cc6-b" style="width:0%"></div></div><div class="cdc-note" id="cc6-n">--</div></div>
+          </div>
+
+          <!-- 区块四：负债概要表格 -->
+          <div id="ccDebtSummaryBlock" style="display:none">
+            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">📊 负债概要</div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:12px">
+                <thead>
+                  <tr style="background:rgba(10,22,40,0.07)">
+                    <th style="padding:7px 10px;text-align:left;font-weight:600;color:var(--navy)">类型</th>
+                    <th style="padding:7px 10px;text-align:right;font-weight:600;color:var(--navy)">账户数</th>
+                    <th style="padding:7px 10px;text-align:right;font-weight:600;color:var(--navy)">授信额度</th>
+                    <th style="padding:7px 10px;text-align:right;font-weight:600;color:var(--navy)">余额/已用</th>
+                    <th style="padding:7px 10px;text-align:right;font-weight:600;color:var(--navy)">月还款</th>
+                    <th style="padding:7px 10px;text-align:right;font-weight:600;color:var(--navy)">使用率</th>
+                  </tr>
+                </thead>
+                <tbody id="ccDebtSummaryRows"></tbody>
+              </table>
             </div>
           </div>
 
-          <!-- Advice -->
+          <!-- 区块五：贷款明细表格 -->
+          <div id="ccLoansDetailBlock" style="display:none">
+            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">🏦 贷款明细</div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:12px">
+                <thead>
+                  <tr style="background:rgba(10,22,40,0.07)">
+                    <th style="padding:7px 8px;text-align:left;font-weight:600;color:var(--navy)">#</th>
+                    <th style="padding:7px 8px;text-align:left;font-weight:600;color:var(--navy)">管理机构</th>
+                    <th style="padding:7px 8px;text-align:center;font-weight:600;color:var(--navy)">类型</th>
+                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy)">授信额度</th>
+                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy)">当前余额</th>
+                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy)">月还款</th>
+                    <th style="padding:7px 8px;text-align:center;font-weight:600;color:var(--navy)">起止日期</th>
+                    <th style="padding:7px 8px;text-align:center;font-weight:600;color:var(--navy)">状态</th>
+                  </tr>
+                </thead>
+                <tbody id="ccLoansDetailRows"></tbody>
+                <tfoot id="ccLoansTfoot" style="background:rgba(10,22,40,0.05);font-weight:700"></tfoot>
+              </table>
+            </div>
+          </div>
+
+          <!-- 区块六：信用卡明细表格 -->
+          <div id="ccCardsDetailBlock" style="display:none">
+            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">💳 信用卡明细</div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:12px">
+                <thead>
+                  <tr style="background:rgba(10,22,40,0.07)">
+                    <th style="padding:7px 8px;text-align:left;font-weight:600;color:var(--navy)">#</th>
+                    <th style="padding:7px 8px;text-align:left;font-weight:600;color:var(--navy)">发卡机构</th>
+                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy)">授信额度</th>
+                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy)">已用额度</th>
+                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy)">大额分期</th>
+                    <th style="padding:7px 8px;text-align:right;font-weight:600;color:var(--navy)">使用率</th>
+                    <th style="padding:7px 8px;text-align:center;font-weight:600;color:var(--navy)">状态</th>
+                  </tr>
+                </thead>
+                <tbody id="ccCardsDetailRows"></tbody>
+                <tfoot id="ccCardsTfoot" style="background:rgba(10,22,40,0.05);font-weight:700"></tfoot>
+              </table>
+            </div>
+          </div>
+
+          <!-- 区块七：查询统计表格 -->
+          <div id="ccQueryStatsBlock" style="display:none">
+            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">🔍 查询记录统计</div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:12px">
+                <thead>
+                  <tr style="background:rgba(10,22,40,0.07)">
+                    <th style="padding:7px 10px;text-align:left;font-weight:600;color:var(--navy)">时间段</th>
+                    <th style="padding:7px 10px;text-align:center;font-weight:600;color:var(--navy)">贷款审批</th>
+                    <th style="padding:7px 10px;text-align:center;font-weight:600;color:var(--navy)">信用卡审批</th>
+                    <th style="padding:7px 10px;text-align:center;font-weight:600;color:var(--navy)">担保资格</th>
+                    <th style="padding:7px 10px;text-align:center;font-weight:600;color:var(--navy)">本人查询</th>
+                    <th style="padding:7px 10px;text-align:center;font-weight:600;color:var(--navy)">合计(非本人)</th>
+                  </tr>
+                </thead>
+                <tbody id="ccQueryStatsRows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 区块八：改善建议 -->
           <div>
             <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px;display:flex;align-items:center;gap:6px">💡 专属改善建议</div>
             <div class="cc-advice-grid" id="ccAdvice"></div>
           </div>
 
-          <!-- 账户明细表 -->
-          <div id="cc-loans-table" style="display:none;margin-top:14px">
-            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;display:flex;align-items:center;gap:6px">🏦 识别到的账户明细</div>
-            <div style="overflow-x:auto">
-              <table id="cc-loans-tbody" style="width:100%;border-collapse:collapse;font-size:12px">
-                <thead>
-                  <tr style="background:rgba(10,22,40,0.06);color:var(--navy)">
-                    <th style="padding:7px 10px;text-align:left;font-weight:600">机构名称</th>
-                    <th style="padding:7px 10px;text-align:left;font-weight:600">类型</th>
-                    <th style="padding:7px 10px;text-align:right;font-weight:600">金额/额度</th>
-                    <th style="padding:7px 10px;text-align:right;font-weight:600">余额/已用</th>
-                    <th style="padding:7px 10px;text-align:right;font-weight:600">月还款</th>
-                    <th style="padding:7px 10px;text-align:center;font-weight:600">状态</th>
-                  </tr>
-                </thead>
-                <tbody id="cc-loans-rows"></tbody>
-              </table>
+          <!-- 区块九：银行匹配结论 -->
+          <div id="ccBankFitBlock" style="display:none;background:rgba(10,22,40,0.04);border-radius:12px;padding:14px 16px">
+            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px">🏦 银行匹配结论</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+              <div style="text-align:center">
+                <div style="font-size:10px;color:#888;margin-bottom:4px">当前可申请</div>
+                <div id="ccBfNow" style="font-size:12px;font-weight:700;color:var(--navy)">--</div>
+              </div>
+              <div style="text-align:center;border-left:1px solid rgba(0,0,0,0.1);border-right:1px solid rgba(0,0,0,0.1)">
+                <div style="font-size:10px;color:#888;margin-bottom:4px">改善后可申请</div>
+                <div id="ccBfAfter" style="font-size:12px;font-weight:700;color:var(--navy)">--</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:10px;color:#888;margin-bottom:4px">预计改善周期</div>
+                <div id="ccBfMonths" style="font-size:12px;font-weight:700;color:var(--gold)">--</div>
+              </div>
             </div>
           </div>
 
-          <!-- 邮件发送 -->
-          <div style="margin-top:16px;background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.3);border-radius:12px;padding:14px 16px">
+          <!-- 区块十：邮件发送 -->
+          <div style="margin-top:4px;background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.3);border-radius:12px;padding:14px 16px">
             <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px">📧 将报告发送至邮箱</div>
             <div style="display:flex;gap:8px;align-items:center">
               <input type="email" id="cc-email-input" placeholder="请输入您的邮箱" style="flex:1;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none">
@@ -3788,7 +3844,7 @@ async function autoFillFromCredit(base64, mediaType) {
 
 【注意】找不到的字段填0，不要猜测，严格按报告数据填写。
 
-只返回JSON不含任何其他文字：{"monthly_debt":<整数>,"card_limit":<整数>,"card_used":<整数>,"q1":<整数>,"q3":<整数>,"q6":<整数>,"q12":<整数>,"overdue_cur":<整数>,"overdue_max":<整数>,"bank_loan_count":<整数>,"net_loan_count":<整数>,"card_count":<整数>,"hist_years":<整数>}`
+只返回JSON不含任何其他文字：{"monthly_debt":<整数>,"card_limit":<整数>,"card_used":<整数>,"q1":<整数>,"q3":<整数>,"q6":<整数>,"q12":<整数>,"overdue_cur":<整数>,"overdue_max":<整数>,"bank_loan_count":<整数>,"net_loan_count":<整数>,"card_count":<整数>,"hist_years":<整数>,"q7d":<近7天贷款审批+信用卡审批次数整数>}`
             }
           ]
         }]
@@ -4774,6 +4830,7 @@ async function runCCDiag() {
   let result;
   try {
     if (_ccHasFile && _ccPdfBase64) {
+      document.getElementById('ccReadingMsg').textContent = '正在提取征信数据…（第1步/共2步）';
       result = await _ccAnalysePDF();
     } else {
       result = await _ccAnalyseManual();
@@ -4794,91 +4851,191 @@ async function runCCDiag() {
   }, 13200);
 }
 
-// ── PDF analysis via Claude API ──
+// ── PDF analysis - 两步串行：第一步提取数据，第二步分析 ──
 async function _ccAnalysePDF() {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120000);
-  const resp = await fetch(PROXY_URL, {
+  // ══ 第一步：纯数据提取 ══
+  const ctrl1 = new AbortController();
+  const t1 = setTimeout(() => ctrl1.abort(), 150000);
+  const resp1 = await fetch(PROXY_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    signal: controller.signal,
+    signal: ctrl1.signal,
     body: JSON.stringify({
       model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 2000,
+      max_tokens: 4000,
       messages: [{
         role: 'user',
         content: [
           { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: _ccPdfBase64 } },
-          { type: 'text', text: `你是拥有15年经验的中国银行信贷风险评估专家，精通人行征信报告每一个字段含义。请仔细解读这份人行征信报告PDF。
+          { type: 'text', text: `你是专业的征信报告抄写员。你的唯一任务是把这份人行征信PDF里所有能看到的数据原样抄写出来，不做任何评价和分析。
 
-【人行征信报告字段解读指南】
+请按以下结构提取，所有字段名用英文，金额统一转换为元整数（万元×10000），看不清的字段填null。
 
-▍详版征信报告结构
-1. 个人基本信息：姓名、证件、婚姻状态、居住信息、职业信息
-2. 信息概要：账户数汇总（未结清/已结清）、负债汇总、逾期汇总
-3. 信贷交易信息明细：
-   - 贷款类：开立日期、贷款金额、月还款额、当前余额、还款状态
-   - 信用卡类：开卡日期、授信额度、已用额度、最近6个月平均使用额度
-   - 还款状态代码：N=正常，1=逾期1-30天，2=31-60天，3=61-90天，4/5/6/7=90天以上
-4. 公共信息：法院判决、欠税记录、行政处罚（严重负面信息）
-5. 查询记录：查询日期、查询原因（贷款审批/信用卡审批/本人查询）、查询机构
+只返回JSON，不含任何分析文字和markdown：
 
-▍简版征信报告结构
-1. 个人信息概要
-2. 信贷记录汇总（账户数量、逾期次数）
-3. 最近5年内的逾期情况（矩阵图）
-4. 查询记录（最近2年内）
-
-▍关键数据提取要点
-- 月还款额：汇总所有未结清贷款月还款额 + 信用卡按授信额度×5%估算
-- 查询次数：分别统计近1月/3月/6月/12月，仅统计"贷款审批"和"信用卡审批"类型
-- 逾期判断：查看每笔账户还款状态是否出现1/2/3/4/5/6/7代码
-- 当前逾期：最新月份状态≠N的账户数量
-- 信用历史：最早开立账户日期至今年数
-- 网贷识别：机构名含"小贷/消费金融/网络/科技"字样的为网贷
-
-▍高风险信号（必须识别并标注）
-- 连三累六：任意账户连续3月逾期，或24月内累计6次逾期 → 🔴高危
-- 呆账/代偿：还款状态出现呆账或代偿字样 → 🔴高危
-- 查询无放款：多次贷款审批查询但无对应新增贷款 → ⚠️中危
-- 网贷堆积：网贷消费金融账户≥5笔 → ⚠️中危
-- 信用卡使用率>100% → 🔴疑似套现高危
-- 公共记录异常：法院强制执行、欠税记录 → 🔴高危
-
-【必须提取的数据项】
-1. 月均收入（如有）
-2. 月总还款额（所有未结清贷款月供合计）
-3. 信用卡总授信额度和已用额度
-4. 查询次数：近1月/3月/6月/12月的贷款审批类查询次数
-5. 当前逾期账户数和历史最长逾期天数
-6. 银行贷款笔数、网贷/消费金融笔数、信用卡账户数（分类统计）
-7. 最早信用记录时间（计算信用历史年数）
-8. 是否存在连三累六、呆账、公共记录异常、信用卡疑似套现
-
-【评分标准】
-负债率(35%)：≤30%=95, 31-50%=75, 51-70%=45, >70%=15
-查询近3月(20%)：≤2=90, 3-4=72, 5-6=48, ≥7=20
-逾期(25%)：零=100, 历史≤7天=78, 历史8-30天=55, >30天=30, 当前=10
-信用卡使用率(10%)：≤30%=95, 31-70%=65, >70%=25, >100%=0
-账户结构(5%)：合理=90, 网贷≥5笔扣25, 白户扣20
-信用历史(5%)：≥5年=90, 3-5年=75, 1-3年=55, <1年=30
-
-如文件不是征信报告，按中等资质生成示例，在summary注明"示例数据，请上传真实征信报告"。
-
-严格返回JSON不含markdown：{"score":<0-100>,"grade":<"优质"|"良好"|"一般"|"待改善">,"loanGrade":<"A级"|"B级"|"C级"|"D级">,"overall":<"资质优良"|"资质良好"|"资质一般"|"资质较差">,"biggestRisk":<15字内>,"riskFlags":[<风险预警数组>],"summary":<120字内专业点评，高危信号必须提及>,"extracted":{"income":<数字或null>,"debt":<数字或null>,"cardLimit":<数字或null>,"cardUsed":<数字或null>,"q1":<整数>,"q3":<整数>,"q6":<整数>,"q12":<整数>,"overdueCur":<整数>,"overdueMax":<整数>,"bankLoanCount":<整数>,"netLoanCount":<整数>,"cardCount":<整数>,"histYr":<整数>,"hasLianSan":<true|false>,"hasSuiteXian":<true|false>,"hasGongGong":<true|false>},"dims":{"debt":{"score":<0-100>,"status":<"良好"|"偏高"|"过高"|"危险">,"value":<如"32%">,"detail":<40字>},"query":{"score":<0-100>,"status":<"正常"|"偏多"|"过多">,"value":<如"近3月7次">,"detail":<40字>},"overdue":{"score":<0-100>,"status":<"无逾期"|"轻微"|"较严重"|"严重">,"value":<如"0笔">,"detail":<40字>},"cardUtil":{"score":<0-100>,"status":<"健康"|"偏高"|"过高"|"疑似套现">,"value":<如"86%">,"detail":<40字>},"accounts":{"score":<0-100>,"status":<"合理"|"偏多"|"偏少">,"value":<如"银行10笔/网贷16笔">,"detail":<40字>},"history":{"score":<0-100>,"status":<"优质"|"良好"|"较短"|"很短">,"value":<如"6年">,"detail":<40字>}},"advice":[{"priority":"high","title":<10字内>,"text":<60字内含时间节点>},{"priority":"high","title":<10字内>,"text":<60字内>},{"priority":"med","title":<10字内>,"text":<60字内>}],"bank_fit":{"now":<当前可申请银行25字内>,"after_improve":<改善后可申请25字内>,"improve_months":<整数>}}` }
+{
+  "summary": {
+    "loan_count": <贷款账户总数整数>,
+    "card_count": <信用卡账户总数整数>,
+    "total_loan_limit": <贷款总授信额度元整数或null>,
+    "total_loan_balance": <贷款总余额元整数或null>,
+    "total_card_limit": <信用卡总授信额度元整数或null>,
+    "total_card_used": <信用卡总已用额度元整数或null>,
+    "monthly_debt_est": <所有未结清贷款月还款额合计估算元整数>,
+    "has_overdue": <true|false>,
+    "hist_years": <最早账户至今年数整数>
+  },
+  "loans": [
+    {
+      "institution": <管理机构名称字符串>,
+      "product_type": <"银行贷款"|"消费金融"|"小贷"|"其他">,
+      "limit": <授信额度元整数或null>,
+      "balance": <当前余额元整数或null>,
+      "monthly": <月还款额元整数或null>,
+      "start_date": <开立日期如"2021-03"或null>,
+      "end_date": <到期日期或null>,
+      "status": <"正常"|"逾期"|"已结清"|"呆账">
+    }
+  ],
+  "cards": [
+    {
+      "institution": <发卡机构字符串>,
+      "limit": <授信额度元整数或null>,
+      "used": <已用额度元整数或null>,
+      "installment": <大额分期金额元整数或null>,
+      "util_pct": <使用率百分比整数或null>,
+      "status": <"正常"|"逾期"|"已结清">
+    }
+  ],
+  "query_stats": {
+    "d7":  {"loan":0,"card":0,"guarantee":0,"self":0},
+    "m1":  {"loan":0,"card":0,"guarantee":0,"self":0},
+    "m2":  {"loan":0,"card":0,"guarantee":0,"self":0},
+    "m3":  {"loan":0,"card":0,"guarantee":0,"self":0},
+    "m6":  {"loan":0,"card":0,"guarantee":0,"self":0},
+    "y1":  {"loan":0,"card":0,"guarantee":0,"self":0},
+    "y2":  {"loan":0,"card":0,"guarantee":0,"self":0}
+  },
+  "overdue_history": [
+    {
+      "institution": <机构名>,
+      "period": <逾期时间段>,
+      "count": <逾期期数整数>
+    }
+  ],
+  "query_records": [
+    {
+      "date": <查询日期如"2024-11-01">,
+      "institution": <查询机构>,
+      "reason": <查询原因>,
+      "granted": <是否有放款true|false>,
+      "amount": <放款金额元整数或null>
+    }
+  ]
+}` }
         ]
       }]
     })
   });
-  clearTimeout(timeout);
-  const rText = await resp.text();
-  if(!rText||!rText.trim()) throw new Error('服务器返回空响应，请重试');
-  if(!resp.ok) throw new Error(`HTTP ${resp.status}: ${rText.slice(0,120)}`);
-  let data; try { data = JSON.parse(rText); } catch(e){ throw new Error('服务器响应格式异常'); }
-  if(data.error) throw new Error(data.error.message || 'PDF分析失败');
-  const raw = (data.content||[]).map(b=>b.text||'').join('');
-  const result = extractJson(raw);
-  if(!result) throw new Error('PDF分析结果解析失败，请重试');
+  clearTimeout(t1);
+  const r1Text = await resp1.text();
+  if(!r1Text||!r1Text.trim()) throw new Error('第一步：服务器返回空响应，请重试');
+  if(!resp1.ok) throw new Error(`第一步失败: HTTP ${resp1.status}`);
+  let d1; try { d1 = JSON.parse(r1Text); } catch(e){ throw new Error('第一步：服务器响应格式异常'); }
+  if(d1.error) throw new Error(d1.error.message || '第一步API错误');
+  const raw1 = (d1.content||[]).map(b=>b.text||'').join('');
+  const extracted = extractJson(raw1);
+  if(!extracted) throw new Error('第一步：数据提取失败，请重试');
+
+  // 更新进度提示
+  const readingEl = document.getElementById('ccReading');
+  if(readingEl) {
+    const stepMsg = readingEl.querySelector('.cc-step-msg') || readingEl;
+    const msgEl = document.createElement('div');
+    msgEl.style.cssText = 'text-align:center;color:#c8a96e;font-size:13px;font-weight:600;margin-top:8px';
+    msgEl.textContent = '✅ 数据提取完成，正在生成分析报告…';
+    readingEl.appendChild(msgEl);
+  }
+
+  // ══ 第二步：智能分析（纯文本，不含PDF） ══
+  const s = extracted.summary || {};
+  const loans = extracted.loans || [];
+  const cards = extracted.cards || [];
+  const qs = extracted.query_stats || {};
+  const qr = extracted.query_records || [];
+  const oh = extracted.overdue_history || [];
+
+  const bankLoans = loans.filter(l=>l.product_type==='银行贷款').length;
+  const netLoans  = loans.filter(l=>['消费金融','小贷'].includes(l.product_type)).length;
+  const totalMonthly = s.monthly_debt_est || loans.reduce((a,l)=>a+(l.monthly||0),0);
+  const totalCardLimit = s.total_card_limit || cards.reduce((a,c)=>a+(c.limit||0),0);
+  const totalCardUsed  = s.total_card_used  || cards.reduce((a,c)=>a+(c.used||0),0);
+  const cardUtil = totalCardLimit>0 ? Math.round(totalCardUsed/totalCardLimit*100) : 0;
+  const q3Total = (qs.m3?.loan||0)+(qs.m3?.card||0);
+  const q1Total = (qs.m1?.loan||0)+(qs.m1?.card||0);
+  const q6Total = (qs.m6?.loan||0)+(qs.m6?.card||0);
+  const q12Total= (qs.y1?.loan||0)+(qs.y1?.card||0);
+
+  // 查询无放款分析
+  const loanQueryCount = qr.filter(q=>q.reason&&q.reason.includes('贷款审批')).length;
+  const newLoansGranted = qr.filter(q=>q.granted).length;
+  const queryNoLoan = loanQueryCount > 3 && newLoansGranted < loanQueryCount * 0.3;
+
+  const dataDesc = `【从征信PDF提取的原始数据】
+
+基本概要：
+- 贷款账户：${s.loan_count||0}笔（银行${bankLoans}笔 / 消费金融+小贷${netLoans}笔）
+- 信用卡账户：${s.card_count||0}张
+- 贷款总余额：${s.total_loan_balance!=null?Math.round(s.total_loan_balance/10000)+'万元':'未知'}
+- 信用卡总授信：${totalCardLimit?Math.round(totalCardLimit/10000)+'万元':'未知'} / 已用：${totalCardUsed?Math.round(totalCardUsed/10000)+'万元':'未知'} / 使用率：${cardUtil}%
+- 月还款额合计：${totalMonthly?Math.round(totalMonthly)+'元':'未知'}
+- 是否有逾期：${s.has_overdue?'是':'否'}
+- 信用历史：${s.hist_years||0}年
+
+查询记录统计：
+- 近7天：贷款审批${qs.d7?.loan||0}次 / 信用卡审批${qs.d7?.card||0}次
+- 近1月：贷款审批${qs.m1?.loan||0}次 / 信用卡审批${qs.m1?.card||0}次（合计${q1Total}次）
+- 近3月：贷款审批${qs.m3?.loan||0}次 / 信用卡审批${qs.m3?.card||0}次（合计${q3Total}次）
+- 近6月：贷款审批${qs.m6?.loan||0}次 / 信用卡审批${qs.m6?.card||0}次（合计${q6Total}次）
+- 近1年：合计${q12Total}次
+- 查询无放款信号：${queryNoLoan?'是（多次查询但放款率低，屡次被拒信号）':'否'}
+
+贷款明细（${loans.length}笔）：
+${loans.map((l,i)=>`  ${i+1}. ${l.institution} [${l.product_type}] 余额${l.balance!=null?Math.round(l.balance/10000)+'万':'未知'}元 月还${l.monthly||'未知'}元 状态:${l.status}`).join('\n')||'  无'}
+
+信用卡明细（${cards.length}张）：
+${cards.map((c,i)=>`  ${i+1}. ${c.institution} 额度${c.limit!=null?Math.round(c.limit/10000)+'万':'未知'}元 已用${c.used!=null?Math.round(c.used/10000)+'万':'未知'}元 使用率${c.util_pct!=null?c.util_pct+'%':'未知'} 状态:${c.status}`).join('\n')||'  无'}
+
+逾期历史：
+${oh.length>0?oh.map(o=>`  ${o.institution} 逾期${o.count}期`).join('\n'):'  无逾期记录'}`;
+
+  const analysisPrompt = `你是拥有15年经验的中国银行信贷风险评估专家，精通人行征信体系和各银行审批逻辑。
+
+${dataDesc}
+
+【评分规则】
+负债率(35%)：负债率=月还款÷月收入（无收入数据时按贷款结构估算）≤30%=95, 31-50%=75, 51-70%=45, >70%=15
+查询近3月(20%)：≤2=90, 3-4=72, 5-6=48, ≥7=20
+逾期(25%)：零=100, 历史轻微已结清=78, 历史较重=55, 历史严重=30, 当前逾期=10
+信用卡使用率(10%)：≤30%=95, 31-70%=65, >70%=25, >100%=0
+账户结构(5%)：合理=90, 消费金融+小贷≥5笔扣25, 白户扣20
+信用历史(5%)：≥5年=90, 3-5年=75, 1-3年=55, <1年=30
+
+【厦门本地银行审批参考】
+厦门银行：负债率≤55%，近3月查询≤3次，无当前逾期，公积金客户优先
+厦门农商银行：负债率≤60%，本地户籍或稳定工作单位
+建行/工行厦门：负债率≤50%，综合分≥75
+招商银行厦门：信用卡使用率≤70%，月收入≥8000元
+平安银行厦门：接受轻微历史逾期（已结清6个月+），负债率≤65%
+
+严格返回JSON不含markdown：{"score":<0-100>,"grade":<"优质"|"良好"|"一般"|"待改善">,"loanGrade":<"A级"|"B级"|"C级"|"D级">,"biggestRisk":<15字内最大风险点>,"riskFlags":[<风险预警字符串数组，触发标注⚠️或🔴>],"summary":<120字内专业点评，高危信号必须提及>,"dims":{"debt":{"score":<0-100>,"status":<"良好"|"偏高"|"过高"|"危险">,"value":<如"负债率约45%">,"detail":<40字>},"query":{"score":<0-100>,"status":<"正常"|"偏多"|"过多">,"value":<如"近3月${q3Total}次">,"detail":<40字>},"overdue":{"score":<0-100>,"status":<"无逾期"|"轻微"|"较严重"|"严重">,"value":<如"0笔">,"detail":<40字>},"cardUtil":{"score":<0-100>,"status":<"健康"|"偏高"|"过高"|"疑似套现">,"value":<如"${cardUtil}%">,"detail":<40字>},"accounts":{"score":<0-100>,"status":<"合理"|"偏多"|"偏少">,"value":<如"银行${bankLoans}笔/网贷${netLoans}笔">,"detail":<40字>},"history":{"score":<0-100>,"status":<"优质"|"良好"|"较短"|"很短">,"value":<如"${s.hist_years||0}年">,"detail":<40字>}},"advice":[{"priority":"high","title":<10字内>,"text":<60字内含时间节点>},{"priority":"high","title":<10字内>,"text":<60字内>},{"priority":"med","title":<10字内>,"text":<60字内>}],"bank_fit":{"now":<当前可申请银行25字内>,"after_improve":<改善后可申请25字内>,"improve_months":<整数>}}`;
+
+  const raw2 = await callAI([{role:'user', content: analysisPrompt}], 2000);
+  const result = extractJson(raw2);
+  if(!result) throw new Error('第二步：分析结果解析失败，请重试');
+
+  // 把提取到的明细挂到结果上，供渲染使用
+  result._extracted = extracted;
   return result;
 }
 
@@ -4976,118 +5133,182 @@ function _ccLocalFallback() {
 
 // ── Render report ──
 function _ccRenderReport(r) {
-  // Score animation — 用现有HTML的 ccScore id
+  const ex = r._extracted || {};
+  const loans  = ex.loans  || [];
+  const cards  = ex.cards  || [];
+  const qs     = ex.query_stats || {};
+  const s      = ex.summary || {};
+
+  // ── 区块一：评分 ──
   const scoreEl = document.getElementById('ccScore');
   if(scoreEl) {
-    let n = 0;
-    const t = setInterval(() => { n = Math.min(n + 2, r.score); scoreEl.textContent = n; if(n >= r.score) clearInterval(t); }, 28);
-    scoreEl.style.color = r.score>=80 ? '#4ade80' : r.score>=65 ? '#60a5fa' : r.score>=50 ? '#fbbf24' : '#f87171';
+    let n=0, tgt=r.score||0;
+    const t=setInterval(()=>{n=Math.min(n+2,tgt);scoreEl.textContent=n;if(n>=tgt)clearInterval(t);},28);
+    scoreEl.style.color=tgt>=80?'#4ade80':tgt>=65?'#60a5fa':tgt>=50?'#fbbf24':'#f87171';
+  }
+  const gradeEl=document.getElementById('ccGrade');
+  if(gradeEl){gradeEl.textContent=r.grade;gradeEl.className='ccsh-grade '+({优质:'grade-excellent',良好:'grade-good',一般:'grade-medium',待改善:'grade-poor'}[r.grade]||'');}
+  const lgEl=document.getElementById('ccLoanGrade'); if(lgEl)lgEl.textContent=r.loanGrade||'--';
+  const sumEl=document.getElementById('ccSummary'); if(sumEl)sumEl.textContent=r.summary||'';
+  const brEl=document.getElementById('ccBiggestRisk'); if(brEl&&r.biggestRisk)brEl.textContent='最大风险：'+r.biggestRisk;
+
+  // ── 区块二：风险预警 ──
+  const rfBlock=document.getElementById('ccRiskFlags');
+  const rfItems=document.getElementById('ccRiskFlagItems');
+  if(r.riskFlags&&r.riskFlags.length>0&&rfBlock&&rfItems){
+    rfBlock.style.display='block';
+    rfItems.innerHTML=r.riskFlags.map(f=>`<span style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:600;background:${f.includes('🔴')?'rgba(220,38,38,0.1)':'rgba(245,158,11,0.1)'};color:${f.includes('🔴')?'#dc2626':'#b45309'};border:1px solid ${f.includes('🔴')?'rgba(220,38,38,0.3)':'rgba(245,158,11,0.3)'}">${f}</span>`).join('');
   }
 
-  // Grade
-  const gradeEl = document.getElementById('ccGrade');
-  if(gradeEl) {
-    gradeEl.textContent = r.grade;
-    gradeEl.className = 'ccsh-grade ' + ({优质:'grade-excellent',良好:'grade-good',一般:'grade-medium',待改善:'grade-poor'}[r.grade] || '');
-  }
-
-  // Loan grade & summary
-  const lgEl = document.getElementById('ccLoanGrade');
-  if(lgEl) lgEl.textContent = r.loanGrade;
-  const sumEl = document.getElementById('ccSummary');
-  if(sumEl) sumEl.textContent = r.summary;
-
-  // Extracted data rows
-  if(r.extracted) {
-    const rows = [
-      ['月收入', r.extracted.income ? `${r.extracted.income.toLocaleString()}元` : '--'],
-      ['月还款', r.extracted.debt ? `${r.extracted.debt.toLocaleString()}元` : '--'],
-      ['信用卡总额度', r.extracted.cardLimit ? `${r.extracted.cardLimit.toLocaleString()}元` : '--'],
-      ['信用卡已用', r.extracted.cardUsed ? `${r.extracted.cardUsed.toLocaleString()}元` : '--'],
-      ['近3月查询', r.extracted.q3 != null ? `${r.extracted.q3}次` : '--'],
-      ['近6月查询', r.extracted.q6 != null ? `${r.extracted.q6}次` : '--'],
-      ['当前逾期', r.extracted.overdueCur != null ? `${r.extracted.overdueCur}笔` : '--'],
-      ['历史最长逾期', r.extracted.overdueMax != null ? `${r.extracted.overdueMax}天` : '--'],
-      ['信用历史', r.extracted.histYr ? `${r.extracted.histYr}年以上` : '--'],
-    ];
-    const rowsEl = document.getElementById('ccDataRows');
-    if(rowsEl) rowsEl.innerHTML = rows.map(([k,v]) =>
-      `<div class="cdt-row"><span class="cdt-key">${k}</span><span class="cdt-val">${v}</span></div>`
-    ).join('');
-  }
-
-  // 6 dimension cards — 匹配现有 cc1-s, cc1-v, cc1-b, cc1-n 等id
-  const bdgCls = {
-    良好:'ds-green', 健康:'ds-green', 正常:'ds-green', 无逾期:'ds-green', 优质:'ds-green', 合理:'ds-green',
-    偏高:'ds-yellow', 偏多:'ds-yellow', 偏少:'ds-yellow', 较短:'ds-yellow', 轻微:'ds-yellow',
-    过高:'ds-red', 较严重:'ds-red', 严重:'ds-red', 危险:'ds-red', 很短:'ds-red'
-  };
-  const dimCfg = [
-    {num:1, key:'debt'},
-    {num:2, key:'query'},
-    {num:3, key:'overdue'},
-    {num:4, key:'cardUtil'},
-    {num:5, key:'accounts'},
-    {num:6, key:'history'},
-  ];
-  dimCfg.forEach(cfg => {
-    const dim = r.dims[cfg.key];
-    if(!dim) return;
-    const sEl = document.getElementById(`cc${cfg.num}-s`);
-    const vEl = document.getElementById(`cc${cfg.num}-v`);
-    const bEl = document.getElementById(`cc${cfg.num}-b`);
-    const nEl = document.getElementById(`cc${cfg.num}-n`);
-    if(sEl) { sEl.textContent = dim.status; sEl.className = 'cdc-status ' + (bdgCls[dim.status] || 'ds-yellow'); }
-    if(vEl) vEl.textContent = dim.value || '--';
-    if(nEl) nEl.textContent = dim.detail;
-    if(bEl) {
-      const pct = dim.score || 0;
-      const fillCls = pct>=70 ? 'fill-green' : pct>=45 ? 'fill-yellow' : 'fill-red';
-      bEl.className = 'cdc-bar-fill ' + fillCls;
-      setTimeout(() => { bEl.style.width = pct + '%'; }, 150);
-    }
+  // ── 区块三：六维评分 ──
+  const bdgCls={良好:'ds-green',健康:'ds-green',正常:'ds-green',无逾期:'ds-green',优质:'ds-green',合理:'ds-green',偏高:'ds-yellow',偏多:'ds-yellow',偏少:'ds-yellow',较短:'ds-yellow',轻微:'ds-yellow',过高:'ds-red',较严重:'ds-red',严重:'ds-red',危险:'ds-red',很短:'ds-red',疑似套现:'ds-red'};
+  [{num:1,key:'debt'},{num:2,key:'query'},{num:3,key:'overdue'},{num:4,key:'cardUtil'},{num:5,key:'accounts'},{num:6,key:'history'}].forEach(cfg=>{
+    const dim=r.dims&&r.dims[cfg.key]; if(!dim)return;
+    const sEl=document.getElementById(`cc${cfg.num}-s`);
+    const vEl=document.getElementById(`cc${cfg.num}-v`);
+    const bEl=document.getElementById(`cc${cfg.num}-b`);
+    const nEl=document.getElementById(`cc${cfg.num}-n`);
+    if(sEl){sEl.textContent=dim.status;sEl.className='cdc-status '+(bdgCls[dim.status]||'ds-yellow');}
+    if(vEl)vEl.textContent=dim.value||'--';
+    if(nEl)nEl.textContent=dim.detail||'';
+    if(bEl){const pct=dim.score||0;bEl.className='cdc-bar-fill '+(pct>=70?'fill-green':pct>=45?'fill-yellow':'fill-red');setTimeout(()=>{bEl.style.width=pct+'%';},150);}
   });
 
-  // Advice — 匹配现有 ccAdvice id
-  const priDot = {high:'🔴', med:'🟡', low:'🟢'};
-  const advEl = document.getElementById('ccAdvice');
-  if(advEl) advEl.innerHTML = r.advice.map(a => `
+  // ── 区块四：负债概要 ──
+  const debtBlock=document.getElementById('ccDebtSummaryBlock');
+  const debtRows=document.getElementById('ccDebtSummaryRows');
+  if(debtBlock&&debtRows&&(loans.length>0||cards.length>0||s.loan_count>0)){
+    const bankL=loans.filter(l=>l.product_type==='银行贷款');
+    const cfL  =loans.filter(l=>l.product_type==='消费金融');
+    const xlL  =loans.filter(l=>l.product_type==='小贷');
+    const otL  =loans.filter(l=>!['银行贷款','消费金融','小贷'].includes(l.product_type));
+    const totalLoanBal=loans.reduce((a,l)=>a+(l.balance||0),0);
+    const totalLoanLmt=loans.reduce((a,l)=>a+(l.limit||0),0);
+    const totalLoanMon=loans.reduce((a,l)=>a+(l.monthly||0),0);
+    const totalCardLmt=cards.reduce((a,c)=>a+(c.limit||0),0)||s.total_card_limit||0;
+    const totalCardUsd=cards.reduce((a,c)=>a+(c.used||0),0)||s.total_card_used||0;
+    const cardUtil=totalCardLmt>0?Math.round(totalCardUsd/totalCardLmt*100):0;
+    const fmt=v=>v>0?'¥'+Math.round(v/10000)+'万':'--';
+    const pct=v=>v?v+'%':'--';
+    const mkRow=(type,cnt,lmt,bal,mon,util,bold)=>`<tr style="${bold?'font-weight:700;background:rgba(10,22,40,0.04)':''}border-bottom:1px solid rgba(0,0,0,0.06)">
+      <td style="padding:7px 10px">${type}</td>
+      <td style="padding:7px 10px;text-align:right">${cnt}</td>
+      <td style="padding:7px 10px;text-align:right">${fmt(lmt)}</td>
+      <td style="padding:7px 10px;text-align:right">${fmt(bal)}</td>
+      <td style="padding:7px 10px;text-align:right">${mon>0?'¥'+Math.round(mon):'--'}</td>
+      <td style="padding:7px 10px;text-align:right;${util>70?'color:#dc2626;font-weight:600':''}">${pct(util)}</td>
+    </tr>`;
+    debtRows.innerHTML=
+      (bankL.length?mkRow('　银行贷款',bankL.length,bankL.reduce((a,l)=>a+(l.limit||0),0),bankL.reduce((a,l)=>a+(l.balance||0),0),bankL.reduce((a,l)=>a+(l.monthly||0),0),0):'')
+      +(cfL.length?mkRow('　消费金融',cfL.length,cfL.reduce((a,l)=>a+(l.limit||0),0),cfL.reduce((a,l)=>a+(l.balance||0),0),cfL.reduce((a,l)=>a+(l.monthly||0),0),0):'')
+      +(xlL.length?mkRow('　小贷公司',xlL.length,xlL.reduce((a,l)=>a+(l.limit||0),0),xlL.reduce((a,l)=>a+(l.balance||0),0),xlL.reduce((a,l)=>a+(l.monthly||0),0),0):'')
+      +(otL.length?mkRow('　其他贷款',otL.length,otL.reduce((a,l)=>a+(l.limit||0),0),otL.reduce((a,l)=>a+(l.balance||0),0),otL.reduce((a,l)=>a+(l.monthly||0),0),0):'')
+      +mkRow('贷款小计',loans.length||s.loan_count||0,totalLoanLmt,totalLoanBal,totalLoanMon,totalLoanLmt>0?Math.round(totalLoanBal/totalLoanLmt*100):0,true)
+      +mkRow('信用卡',cards.length||s.card_count||0,totalCardLmt,totalCardUsd,Math.round(totalCardLmt*0.05),cardUtil,true)
+      +mkRow('合计',(loans.length||s.loan_count||0)+(cards.length||s.card_count||0),totalLoanLmt+totalCardLmt,totalLoanBal+totalCardUsd,totalLoanMon+Math.round(totalCardLmt*0.05),0,true);
+    debtBlock.style.display='block';
+  }
+
+  // ── 区块五：贷款明细 ──
+  const lBlock=document.getElementById('ccLoansDetailBlock');
+  const lRows=document.getElementById('ccLoansDetailRows');
+  const lFoot=document.getElementById('ccLoansTfoot');
+  if(lBlock&&lRows&&loans.length>0){
+    const typeColor={银行贷款:'#1e40af',消费金融:'#d97706',小贷:'#dc2626',其他:'#555'};
+    const stColor={正常:'#16a34a',逾期:'#dc2626',已结清:'#888',呆账:'#dc2626'};
+    lRows.innerHTML=loans.map((l,i)=>`<tr style="border-bottom:1px solid rgba(0,0,0,0.05)${l.status==='逾期'||l.status==='呆账'?';background:rgba(220,38,38,0.04)':''}">
+      <td style="padding:6px 8px;color:#888">${i+1}</td>
+      <td style="padding:6px 8px">${l.institution||'--'}</td>
+      <td style="padding:6px 8px;text-align:center"><span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:${typeColor[l.product_type]||'#555'}22;color:${typeColor[l.product_type]||'#555'}">${l.product_type||'--'}</span></td>
+      <td style="padding:6px 8px;text-align:right">${l.limit!=null?'¥'+Math.round(l.limit/10000)+'万':'--'}</td>
+      <td style="padding:6px 8px;text-align:right">${l.balance!=null?'¥'+Math.round(l.balance/10000)+'万':'--'}</td>
+      <td style="padding:6px 8px;text-align:right">${l.monthly!=null?'¥'+Math.round(l.monthly).toLocaleString():'--'}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px;color:#888">${[l.start_date,l.end_date].filter(Boolean).join('~')||'--'}</td>
+      <td style="padding:6px 8px;text-align:center;font-weight:600;color:${stColor[l.status]||'#555'}">${l.status||'--'}</td>
+    </tr>`).join('');
+    const tot_bal=loans.reduce((a,l)=>a+(l.balance||0),0);
+    const tot_mon=loans.reduce((a,l)=>a+(l.monthly||0),0);
+    if(lFoot)lFoot.innerHTML=`<tr><td style="padding:7px 8px" colspan="4">合计 ${loans.length} 笔</td><td style="padding:7px 8px;text-align:right">¥${Math.round(tot_bal/10000)}万</td><td style="padding:7px 8px;text-align:right">¥${Math.round(tot_mon).toLocaleString()}</td><td colspan="2"></td></tr>`;
+    lBlock.style.display='block';
+  }
+
+  // ── 区块六：信用卡明细 ──
+  const cBlock=document.getElementById('ccCardsDetailBlock');
+  const cRows=document.getElementById('ccCardsDetailRows');
+  const cFoot=document.getElementById('ccCardsTfoot');
+  if(cBlock&&cRows&&cards.length>0){
+    const stColor={正常:'#16a34a',逾期:'#dc2626',已结清:'#888'};
+    cRows.innerHTML=cards.map((c,i)=>{
+      const util=c.util_pct!=null?c.util_pct:(c.limit&&c.used?Math.round(c.used/c.limit*100):null);
+      const overLimit=util!=null&&util>100;
+      const highUtil=util!=null&&util>70;
+      return `<tr style="border-bottom:1px solid rgba(0,0,0,0.05)${overLimit?';background:rgba(220,38,38,0.06)':''}">
+        <td style="padding:6px 8px;color:#888">${i+1}</td>
+        <td style="padding:6px 8px">${c.institution||'--'}</td>
+        <td style="padding:6px 8px;text-align:right">${c.limit!=null?'¥'+Math.round(c.limit/10000)+'万':'--'}</td>
+        <td style="padding:6px 8px;text-align:right">${c.used!=null?'¥'+Math.round(c.used/10000)+'万':'--'}</td>
+        <td style="padding:6px 8px;text-align:right">${c.installment!=null?'¥'+Math.round(c.installment/10000)+'万':'--'}</td>
+        <td style="padding:6px 8px;text-align:right;font-weight:600;color:${overLimit?'#dc2626':highUtil?'#d97706':'#16a34a'}">${util!=null?util+'%':'--'}</td>
+        <td style="padding:6px 8px;text-align:center;font-weight:600;color:${stColor[c.status]||'#555'}">${c.status||'--'}</td>
+      </tr>`;
+    }).join('');
+    const tot_lmt=cards.reduce((a,c)=>a+(c.limit||0),0);
+    const tot_usd=cards.reduce((a,c)=>a+(c.used||0),0);
+    const tot_util=tot_lmt>0?Math.round(tot_usd/tot_lmt*100):0;
+    if(cFoot)cFoot.innerHTML=`<tr style="${tot_util>100?'color:#dc2626':''}"><td style="padding:7px 8px" colspan="2">合计 ${cards.length} 张</td><td style="padding:7px 8px;text-align:right">¥${Math.round(tot_lmt/10000)}万</td><td style="padding:7px 8px;text-align:right">¥${Math.round(tot_usd/10000)}万</td><td></td><td style="padding:7px 8px;text-align:right;font-weight:700">${tot_util}%${tot_util>100?' ⚠️套现风险':''}</td><td></td></tr>`;
+    cBlock.style.display='block';
+  }
+
+  // ── 区块七：查询统计 ──
+  const qBlock=document.getElementById('ccQueryStatsBlock');
+  const qRows=document.getElementById('ccQueryStatsRows');
+  if(qBlock&&qRows&&Object.keys(qs).length>0){
+    const periods=[['d7','近7天'],['m1','近1月'],['m2','近2月'],['m3','近3月'],['m6','近6月'],['y1','近1年'],['y2','近2年']];
+    qRows.innerHTML=periods.map(([key,label])=>{
+      const q=qs[key]||{};
+      const loan=q.loan||0; const card=q.card||0; const g=q.guarantee||0; const self=q.self||0;
+      const total=loan+card+g;
+      const loanAlert=key==='m3'&&loan>=5;
+      return `<tr style="border-bottom:1px solid rgba(0,0,0,0.06)">
+        <td style="padding:7px 10px;font-weight:600">${label}</td>
+        <td style="padding:7px 10px;text-align:center;${loanAlert?'color:#dc2626;font-weight:700':''}">${loan}</td>
+        <td style="padding:7px 10px;text-align:center">${card}</td>
+        <td style="padding:7px 10px;text-align:center">${g}</td>
+        <td style="padding:7px 10px;text-align:center;color:#888">${self}</td>
+        <td style="padding:7px 10px;text-align:center;font-weight:${total>5?'700':'400'};color:${total>5?'#dc2626':'inherit'}">${total}${loanAlert?' 🔴':''}</td>
+      </tr>`;
+    }).join('');
+    qBlock.style.display='block';
+  }
+
+  // ── 区块八：建议 ──
+  const priDot={high:'🔴',med:'🟡',low:'🟢'};
+  const advEl=document.getElementById('ccAdvice');
+  if(advEl&&r.advice)advEl.innerHTML=r.advice.map(a=>`
     <div class="cc-advice-card ${a.priority==='high'?'adv-high':a.priority==='med'?'adv-med':''}">
       <span class="cac-icon">${priDot[a.priority]||'💡'}</span>
-      <div class="cac-body"><span>${a.text}</span></div>
+      <div class="cac-body">
+        <div class="cac-title" style="font-weight:700;font-size:12px;color:var(--navy);margin-bottom:2px">${a.title||''}</div>
+        <span>${a.text}</span>
+      </div>
     </div>`).join('');
 
-  // B-03: 账户明细表渲染
-  const loansTable = document.getElementById('cc-loans-table');
-  const loansRows = document.getElementById('cc-loans-rows');
-  const accounts = (dpLoans && dpLoans.length > 0) ? dpLoans :
-    (r.extracted ? [
-      ...(r.extracted.bankLoanCount > 0 ? [{name:'银行贷款账户', type:'bank', principal: null, limit:null, used:null, monthly:null, status:'正常'}] : []),
-      ...(r.extracted.netLoanCount > 0 ? [{name:'网贷/消费金融账户', type:'online', principal:null, limit:null, used:null, monthly:null, status:'正常'}] : []),
-      ...(r.extracted.cardCount > 0 ? [{name:'信用卡账户', type:'credit', principal:null, limit:r.extracted.cardLimit, used:r.extracted.cardUsed, monthly:null, status:'正常'}] : [])
-    ] : []);
-  if(accounts.length > 0 && loansTable && loansRows) {
-    const typeLabel = {bank:'银行贷款', credit:'信用卡', online:'网贷', other:'其他'};
-    const statusColor = {正常:'#16a34a', 逾期:'#dc2626', 已结清:'#888'};
-    loansRows.innerHTML = accounts.map(a => `<tr style="border-bottom:1px solid rgba(0,0,0,0.06)">
-      <td style="padding:7px 10px">${a.name||'--'}</td>
-      <td style="padding:7px 10px">${typeLabel[a.type]||a.type||'--'}</td>
-      <td style="padding:7px 10px;text-align:right">${a.type==='credit'?(a.limit!=null?'¥'+(a.limit/10000).toFixed(1)+'万':'--'):(a.principal!=null?'¥'+(a.principal/10000).toFixed(1)+'万':'--')}</td>
-      <td style="padding:7px 10px;text-align:right">${a.type==='credit'?(a.used!=null?'¥'+(a.used/10000).toFixed(1)+'万':'--'):(a.principal!=null?'¥'+(a.principal/10000).toFixed(1)+'万':'--')}</td>
-      <td style="padding:7px 10px;text-align:right">${a.monthly!=null?'¥'+a.monthly.toLocaleString():'--'}</td>
-      <td style="padding:7px 10px;text-align:center;color:${statusColor[a.status]||'#555'};font-weight:600">${a.status||'--'}</td>
-    </tr>`).join('');
-    loansTable.style.display = 'block';
+  // ── 区块九：银行匹配 ──
+  const bfBlock=document.getElementById('ccBankFitBlock');
+  if(bfBlock&&r.bank_fit){
+    document.getElementById('ccBfNow').textContent=r.bank_fit.now||'--';
+    document.getElementById('ccBfAfter').textContent=r.bank_fit.after_improve||'--';
+    document.getElementById('ccBfMonths').textContent=r.bank_fit.improve_months!=null?r.bank_fit.improve_months+'个月':'--';
+    bfBlock.style.display='block';
   }
+
   // 存储结果供邮件使用
-  window._ccLastReport = r;
+  window._ccLastReport=r;
 
-  // 隐藏loading动画
-  document.getElementById('ccReading').style.display = 'none';
-
-  // Show report
-  document.getElementById('ccReport').style.display = 'flex';
-  document.getElementById('ccReport').scrollIntoView({behavior:'smooth', block:'nearest'});
+  // 隐藏loading
+  document.getElementById('ccReading').style.display='none';
+  document.getElementById('ccReport').style.display='flex';
+  document.getElementById('ccReport').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 
