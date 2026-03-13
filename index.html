@@ -2333,7 +2333,7 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
             </div>
             <div class="form-group">
               <label>在职年限</label>
-              <select>
+              <select id="f-work-years">
                 <option value="">请选择</option>
                 <option>不满1年</option><option>1-3年</option>
                 <option>3-5年</option><option>5年以上</option>
@@ -2341,11 +2341,15 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
             </div>
             <div class="form-group">
               <label>社保缴纳月数</label>
-              <input type="number" placeholder="连续缴纳月数（如36）">
+              <input type="number" id="f-social" placeholder="连续缴纳月数（如36）">
+            </div>
+            <div class="form-group">
+              <label>公积金月缴额（元）</label>
+              <input type="number" id="f-provident" placeholder="无则填0">
             </div>
             <div class="form-group">
               <label>期望贷款金额</label>
-              <select>
+              <select id="f-amount">
                 <option value="">请选择</option>
                 <option>5万以下</option><option>5-20万</option>
                 <option>20-50万</option><option>50万以上</option>
@@ -2353,7 +2357,7 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
             </div>
             <div class="form-group">
               <label>婚姻情况</label>
-              <select>
+              <select id="f-marriage">
                 <option value="">请选择</option>
                 <option>未婚</option><option>已婚</option>
                 <option>离异</option><option>丧偶</option>
@@ -2361,7 +2365,7 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
             </div>
             <div class="form-group">
               <label>期望还款方式</label>
-              <select>
+              <select id="f-repay">
                 <option value="">请选择</option>
                 <option>等额本息（每月固定还款）</option>
                 <option>等额本金（月供递减）</option>
@@ -2679,6 +2683,7 @@ footer{background:var(--navy);padding:56px 5vw 28px;border-top:1px solid rgba(20
                 <div class="idr-advice-title">专属改善建议</div>
                 <div class="idr-adv-items" id="ir-advice">--</div>
               </div>
+              <div id="ir-bank-fit" style="margin-top:12px"></div>
               <button class="diag-proceed-btn" id="diagProceedBtn" onclick="runProductMatch()">
                 🚀 诊断完成 · 立即匹配可贷产品 →
               </button>
@@ -4051,6 +4056,10 @@ async function runInlineDiag() {
   }
   const income    = parseFloat(document.getElementById('f-income').value) || 0;
   const debt      = parseFloat(document.getElementById('di-debt').value) || 0;
+  const workYears = document.getElementById('f-work-years')?.value || '';
+  const social    = parseInt(document.getElementById('f-social')?.value) || 0;
+  const provident = parseInt(document.getElementById('f-provident')?.value) || 0;
+  const marriage  = document.getElementById('f-marriage')?.value || '';
   const cardLimit = parseFloat(document.getElementById('di-card-limit').value) || 0;
   const cardUsed  = parseFloat(document.getElementById('di-card-used').value) || 0;
   const q1        = parseInt(document.getElementById('di-q1').value) || 0;
@@ -4131,6 +4140,7 @@ async function runInlineDiag() {
 贷款查询次数：近1月${q1}次 / 近3月${q3}次 / 近6月${q6}次 / 近12月${q12}次
 逾期情况：当前逾期${odCur}笔 | 历史最长逾期${odMax}天
 账户结构：银行贷款${bankLoans}笔 / 网贷消费金融${netLoans}笔 / 信用卡${cards}张 | 信用历史${histYr}年以上
+在职年限：${workYears} | 社保月数：${social}月 | 公积金月缴：${provident}元 | 婚姻：${marriage}
 
 ${Object.keys(_uploadedFilesData).length > 0 ? '【已上传文件】：' + Object.keys(_uploadedFilesData).join('、') + '（请结合附件实际数据综合评估，以附件数据为准）' : ''}
 
@@ -4205,7 +4215,7 @@ function localDiag({debtRatio,cardUtil,q3,odCur,odMax,totalAcct,histYr}) {
   const cs = cardUtil<=30?90:cardUtil<=60?70:cardUtil<=80?45:20;
   const as = totalAcct>=2&&totalAcct<=8?85:totalAcct<2?60:50;
   const hs = histYr>=8?95:histYr>=5?80:histYr>=3?65:histYr>=1?45:25;
-  const total = Math.round((ds+qs+os+cs+as+hs)/6);
+  const total = Math.round(ds*0.35 + os*0.25 + qs*0.20 + cs*0.10 + as*0.05 + hs*0.05);
   const grade = total>=80?'优质':total>=65?'良好':total>=50?'一般':'待改善';
   return {
     score:total, grade, loanGrade:total>=80?'A级':total>=65?'B级':total>=50?'C级':'D级',
@@ -4219,9 +4229,9 @@ function localDiag({debtRatio,cardUtil,q3,odCur,odMax,totalAcct,histYr}) {
       history:{score:hs,status:histYr>=8?'优质':histYr>=5?'良好':histYr>=3?'较短':'很短',detail:`信用历史${histYr}年，${histYr>=3?'有一定积累':'建议持续维护'}`}
     },
     advice:[
-      {priority:debtRatio>50?'high':'low',text:debtRatio>50?`负债率${debtRatio}%偏高，建议优先还清小额贷款，降至50%以下再申请`:'负债率良好，保持按时还款'},
-      {priority:q3>4?'high':q3>2?'med':'low',text:q3>4?`近3月查询${q3}次过多，建议暂停申请，等3-6个月再操作`:'查询次数正常，可正常申请'},
-      {priority:cardUtil>60?'high':cardUtil>30?'med':'low',text:cardUtil>60?`信用卡使用率${cardUtil}%，建议还款至额度30%以下提升资质`:'信用卡使用健康，对申请有正向加分'}
+      {priority:debtRatio>50?'high':'low',title:debtRatio>50?'降低负债率':'负债率良好',text:debtRatio>50?`负债率${debtRatio}%偏高，建议优先还清小额贷款，降至50%以下再申请`:'负债率良好，保持按时还款'},
+      {priority:q3>4?'high':q3>2?'med':'low',title:q3>4?'暂缓申请':'查询正常',text:q3>4?`近3月查询${q3}次过多，建议暂停申请，等3-6个月再操作`:'查询次数正常，可正常申请'},
+      {priority:cardUtil>60?'high':cardUtil>30?'med':'low',title:cardUtil>60?'降低卡使用率':'信用卡健康',text:cardUtil>60?`信用卡使用率${cardUtil}%，建议还款至额度30%以下提升资质`:'信用卡使用健康，对申请有正向加分'}
     ]
   };
 }
@@ -4277,6 +4287,25 @@ function renderInlineDiag(r, raw) {
       <span class="idr-adv-icon">${priIcon[a.priority]||'💡'}</span>
       <div><div style="font-weight:700;font-size:12px;color:var(--navy);margin-bottom:2px">${a.title||''}</div><span>${a.text}</span></div>
     </div>`).join('');
+
+  // A-02: 渲染 bank_fit 可申请银行预览
+  const bfEl = document.getElementById('ir-bank-fit');
+  if (bfEl) {
+    if (r.bank_fit && (Array.isArray(r.bank_fit) ? r.bank_fit.length : r.bank_fit.now)) {
+      const items = Array.isArray(r.bank_fit) ? r.bank_fit : [
+        {bank: r.bank_fit.now, months: 0},
+        {bank: r.bank_fit.after_improve, months: r.bank_fit.improve_months}
+      ].filter(b => b.bank);
+      bfEl.innerHTML = '<div class="idr-advice-title" style="margin-bottom:8px">可申请银行预览</div>' +
+        items.map(b => `<div class="idr-adv-item pmed" style="margin-bottom:6px">
+          <span class="idr-adv-icon">${b.months===0?'✅':'⏳'}</span>
+          <div><b>${b.bank||''}</b>${b.rate_range?' '+b.rate_range:''}<br>
+          <small style="color:#888">${b.months===0?'当前资质可申请':b.months+'个月后可申请'}</small></div>
+        </div>`).join('');
+    } else {
+      bfEl.innerHTML = '';
+    }
+  }
 
   _diagResult = r;
   document.getElementById('inlineDiagResult').style.display = 'flex';
