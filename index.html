@@ -3340,13 +3340,13 @@ async function dpOcrExtract(base64, mediaType, fileName) {
       headers: {'Content-Type': 'application/json'},
       signal: controller.signal,
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 2000,
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
         messages: [{
           role: 'user',
           content: [
             fileBlock,
-            {type: 'text', text: `你是银行信贷审核员，精通人行征信报告格式。请仔细识别并提取报告中所有账户信息。
+            {type: 'text', text: `你是银行信贷审核员，精通人行征信报告格式（含详版和简版）。请仔细识别并提取报告中所有未结清账户信息。
 
 【账户类型判断规则】
 - bank：纯银行发放的贷款（含房贷、车贷、消费贷、经营贷）
@@ -3354,18 +3354,25 @@ async function dpOcrExtract(base64, mediaType, fileName) {
 - online：机构名含"小贷/消费金融/网络/科技/互联网/分期"的网贷
 - other：其他
 
-【贷款类账户提取】（每笔单独一条）
+【详版征信余额识别规则（重要）】
+详版征信每笔账户有独立信息块+月度还款状态矩阵（一排N/1/2/C/*等代码）。
+- principal（余额）= 账户信息表格中"余额"行的数值，单位元整数
+- ⚠️不要从还款矩阵（N/1/2/*/C状态码那一排）读取余额，矩阵只表示还款状态
+- 若账户信息表格无"余额"行，则取最近一期还款记录旁边的"余额"列数字
+- 信用卡used = 账户信息块中"已用额度"或"已使用额度"字段
+
+【贷款类账户提取】（每笔单独一条，只提取未结清）
 - name: 机构名 + 产品类型（如"招商银行-消费贷"）
 - type: bank / online / other
-- principal: 当前剩余本金/余额，单位元整数（万元需×10000），看不清填null
+- principal: 当前余额/剩余本金，单位元整数（万元需×10000），看不清填null
 - limit: null（贷款无授信额度）
 - used: null
 - rate: 年利率百分比数字（如4.35），看不清填null
 - monthly: 月还款额元整数，看不清填null
 - months: 剩余期数整数，看不清填null
-- status: "正常"/"逾期"/"已结清"，看不清填"正常"
+- status: "正常"/"逾期"，状态为"结清"/"销户"的跳过不提取
 
-【信用卡类账户提取】（每张单独一条）
+【信用卡类账户提取】（每张单独一条，只提取未销户）
 - name: 发卡行 + 卡产品名（如"招商银行-金卡"）
 - type: credit
 - principal: null
@@ -3374,7 +3381,7 @@ async function dpOcrExtract(base64, mediaType, fileName) {
 - rate: null
 - monthly: null
 - months: null
-- status: "正常"/"逾期"/"已结清"
+- status: "正常"/"逾期"，"销户"的跳过不提取
 
 所有金额统一转换为元，看不清的字段填null不要猜测。
 只返回JSON数组不含任何其他文字和markdown：[{"name":"招商银行-消费贷","type":"bank","principal":50000,"limit":null,"used":null,"rate":4.35,"monthly":1500,"months":24,"status":"正常"}]`}
@@ -3815,7 +3822,7 @@ async function autoFillFromCredit(base64, mediaType) {
       headers: {'Content-Type':'application/json'},
       signal: controller.signal,
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 1200,
         messages:[{
           role:'user',
@@ -4455,7 +4462,7 @@ ${getBankProductsForPrompt()}
       method:'POST',
       headers:{'Content-Type':'application/json'},
       signal: ctrl.signal,
-      body: JSON.stringify({ model:'claude-3-5-sonnet-20241022', max_tokens:2000, messages:[{role:'user', content: msgContent.length > 1 ? msgContent : diagPrompt}] })
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:2000, messages:[{role:'user', content: msgContent.length > 1 ? msgContent : diagPrompt}] })
     });
     clearTimeout(tout);
     const rText = await resp.text();
@@ -4992,34 +4999,68 @@ async function _ccAnalysePDF() {
     signal: ctrl1.signal,
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
+      max_tokens: 8192,
       messages: [{
         role: 'user',
         content: [
           { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: _ccPdfBase64 } },
-          { type: 'text', text: `你是专业的征信报告数据提取员。任务：从这份人行征信报告中提取关键数据，不做任何评价和分析。
+          { type: 'text', text: `你是专业的人行征信报告数据提取员。从这份征信PDF提取关键数据，只输出JSON不做任何分析。
 
-这份征信可能是扫描图片格式，请尽力识别图片中的文字内容，重点关注每个账户信息块的表格数据。
+【第一步：判断报告类型】
+- 详版特征：每个账户有独立信息块+月度还款状态矩阵（一排N/1/2/C/*等代码）
+- 简版特征：账户以自然语言段落描述，有信息概要汇总表
 
-【账户筛选规则——严格执行】
-只提取账户状态为"正常"或"逾期"的未结清账户。
-状态为"结清"、"销户"、"已结清"的账户一律跳过，不得出现在loans或cards数组中。
+【详版征信提取规则】
 
-【提取优先级——当页数过多无法全部识别时】
-第一优先：循环贷账户（未结清）和信用卡账户（未结清）
-第二优先：非循环贷未结清账户
-完全跳过：已结清、销户账户
+▍账户筛选：
+只提取当前账户状态为"正常"或"逾期"的账户。
+账户状态标注为"结清"或"销户"的一律跳过。
 
-【机构名称简化规则】
-保留核心机构名，去掉"股份有限公司""有限责任公司"等后缀和省市级分支机构后缀。
-示例："中国建设银行股份有限公司泉州分行"→"建设银行泉州分行"，"中国工商银行股份有限公司厦门分行"→"工商银行厦门分行"。
-消费金融、小贷公司保留全称（如"南银法巴消费金融有限公司"保留不简化）。
+▍每个贷款账户提取字段（从账户信息表格读取）：
+- institution: 管理机构名，去掉"股份有限公司""有限责任公司"及省市分行后缀
+  例："中国建设银行股份有限公司厦门分行"→"建设银行"
+  消费金融/小贷保留全称
+- product_type: 业务类型字段，映射规则：
+  含"住房"→"银行贷款"
+  含"消费"+"银行"→"银行贷款"
+  含"消费金融"→"消费金融"
+  含"小贷"→"小贷"
+  其他→"银行贷款"
+- limit: "借款金额"或"授信额度"字段的数值，单位元整数
+- balance: 账户信息块中"余额"字段数值，单位元整数（这才是当前欠款，不是借款金额）
+  ⚠️详版余额识别：不要从还款矩阵（N/1/2/*/C等状态码那一栏）读取，要从账户信息表格的"余额"行读取
+  若账户信息表格无"余额"行，则取最近一期还款记录旁边的"余额"列数字
+- monthly: "月还款额"或"应还款额"字段，单位元整数
+- start_date: "开立日期"字段，格式"YYYY-MM"
+- end_date: "到期日期"字段，格式"YYYY-MM"
+- status:
+  账户状态="正常"→"正常"
+  账户状态="逾期"或还款矩阵中有"1"/"2"/"3"以上→"逾期"
+  账户状态="结清"→跳过不提取
 
-【金额提取规则】
-所有金额统一转换为元整数（万元×10000）。看不清的字段填null。
-循环贷账户（循环贷款户一、循环贷款户二等）：提取"授信额度"作为limit，提取账户信息里的"余额"字段作为balance。
-非循环贷账户：提取"借款金额"或"授信额度"作为limit，提取当前状态栏或最新还款记录中的"余额"作为balance，提取"月还款额"或"应还款额"作为monthly。
-信用卡账户：提取"授信额度"作为limit，提取"已用额度"或"已使用额度"作为used。
+▍信用卡账户提取字段（从贷记卡账户信息块读取）：
+- institution: 发卡机构简化名
+- limit: "授信额度"字段，单位元整数
+- used: "已用额度"字段，单位元整数
+- util_pct: round(used/limit*100)
+- status: 账户状态="正常"→"正常"；"销户"→跳过
+
+▍查询记录统计（从查询记录页面读取）：
+报告时间 = 第1页"报告时间"字段（基准日期）
+对每条查询记录：
+- 查询原因含"贷款审批"→类型=loan
+- 查询原因含"信用卡审批"→类型=card
+- 查询原因含"贷后管理"→不计入任何时段统计
+- 查询原因含"本人查询"→类型=self
+- 查询原因含"担保"→类型=guarantee
+
+按查询日期距报告时间的时间段分组统计：
+d7=7天内, m1=1月内, m2=2月内, m3=3月内, m6=6月内, y1=1年内, y2=2年内
+注意：时段是累计的，m3包含m1和m2，y1包含m6以内所有。
+
+▍summary字段计算：
+- has_overdue: loans中任何账户status="逾期"则为true
+- hist_years: 所有账户start_date中最早年份到当前年份的差值
 
 ▍简版征信完整提取规则
 
