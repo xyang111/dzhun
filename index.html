@@ -350,6 +350,26 @@ nav{
 }
 .restart-btn:hover{border-color:var(--navy);color:var(--navy)}
 
+/* QR Modal */
+.qr-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
+  align-items:center;justify-content:center;
+}
+.qr-overlay.show{display:flex}
+.qr-modal{
+  background:#fff;border-radius:16px;padding:28px 24px 20px;max-width:320px;width:90%;
+  text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);position:relative;
+}
+.qr-modal-title{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px}
+.qr-modal-sub{font-size:12px;color:var(--gray-mid);margin-bottom:16px}
+.qr-modal img{width:100%;border-radius:8px}
+.qr-modal-close{
+  margin-top:16px;background:none;border:1px solid var(--gray-light);
+  border-radius:8px;padding:8px 24px;font-size:13px;color:var(--gray-mid);
+  cursor:pointer;font-family:'Noto Sans SC',sans-serif;
+}
+.qr-modal-close:hover{border-color:var(--navy);color:var(--navy)}
+
 /* Warning box */
 .warn-box{
   background:#fff8e0;border:1px solid rgba(184,134,11,.3);
@@ -934,11 +954,21 @@ footer{
           <div class="cta-box">
             <div class="cb-left">
               <div class="cb-title">专属顾问已收到您的报告</div>
-              <div class="cb-sub">将在 30 分钟内联系您，协助完成最终申请。建议优先申请通过率最高的产品。</div>
+              <div class="cb-sub">如您需要人工协助申请通过率最高的产品，可电话咨询或添加客服微信。</div>
             </div>
             <div class="cb-btns">
-              <a href="tel:18250760433" class="cb-btn cb-btn-gold">📞 立即咨询</a>
-              <button class="cb-btn cb-btn-outline" onclick="restartAll()">重新上传</button>
+              <a href="tel:18250760433" class="cb-btn cb-btn-gold">📞 电话咨询</a>
+              <button class="cb-btn cb-btn-outline" onclick="showQrModal()">💬 添加微信</button>
+            </div>
+          </div>
+
+          <!-- QR Modal -->
+          <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">
+            <div class="qr-modal">
+              <div class="qr-modal-title">添加客服微信</div>
+              <div class="qr-modal-sub">扫码添加，人工协助申请</div>
+              <img src="qr.jpg" alt="客服微信二维码">
+              <button class="qr-modal-close" onclick="hideQrModal()">关闭</button>
             </div>
           </div>
 
@@ -2517,6 +2547,15 @@ async function callAI(messages, max_tokens = 2000) {
   let data; try { data = JSON.parse(respText); } catch(e) { throw new Error('响应格式异常'); }
   if (data.error) throw new Error(data.error.message || 'API错误');
   return (data.content || []).map(b => b.text || '').join('').replace(/```json[^`]*```|```/g, '').trim();
+}
+
+function showQrModal() {
+  document.getElementById('qrOverlay').classList.add('show');
+}
+function hideQrModal(e) {
+  if (!e || e.target === document.getElementById('qrOverlay') || e.currentTarget.classList.contains('qr-modal-close')) {
+    document.getElementById('qrOverlay').classList.remove('show');
+  }
 }
 
 function restartAll() {
