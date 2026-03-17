@@ -1015,6 +1015,12 @@ footer{
           <!-- 征信全面分析报告 -->
           <div id="analysisReport" style="display:none;margin-top:20px">
 
+            <!-- 客户补充信息确认 -->
+            <div id="userInfoConfirmBox" style="display:none;background:var(--navy);border-radius:12px;padding:14px 18px;margin-bottom:14px">
+              <div style="font-size:11px;color:rgba(255,255,255,.45);letter-spacing:1px;margin-bottom:8px">📋 本次分析所用补充信息</div>
+              <div id="userInfoConfirmList" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+            </div>
+
             <!-- 风险等级 -->
             <div id="riskLevelBanner" class="risk-banner"></div>
 
@@ -1633,12 +1639,21 @@ function localFallbackMatch(data) {
     if (userEduRank >= 4) score += 5;  // 本科及以上
     else if (userEduRank >= 3) score += 2;  // 大专
 
-    // 收入充足加分
-    if (income > 0 && p.minIncome) {
-      const incRatio = income / p.minIncome;
-      if (incRatio >= 2)      score += 8;
-      else if (incRatio >= 1.5) score += 4;
-    }
+    // 收入加分
+    if (income >= 10000)      score += 5;
+    else if (income >= 5000)  score += 2;
+    else if (income > 0 && income < 5000) score -= 5;
+
+    // 户籍加分/减分（厦门本地银行敏感）
+    const hukouV = userInfo.hukou || '';
+    if (hukouV.includes('厦门'))      score += 5;
+    else if (hukouV.includes('福建')) score += 2;
+    else if (hukouV && hukouV !== '未填写') score -= 3;
+
+    // 资产加分
+    const assetsV = userInfo.assets || '';
+    if (assetsV.includes('房产'))    score += 8;
+    else if (assetsV.includes('车辆')) score += 4;
 
     // 负债率扣分
     const _loans2 = (data.loans||[]).filter(l=>l.status!=='结清'&&l.status!=='已结清');
@@ -2290,6 +2305,52 @@ async function startMatching() {
     : null;
   const debtRatio     = debtRatioPct != null ? debtRatioPct + '%' : '未知（未填收入）';
 
+  // 解析社保月数
+  const socialMonthsMatch = (userInfo.social || '').match(/已缴(\d+)月/);
+  const socialMonths = socialMonthsMatch ? parseInt(socialMonthsMatch[1]) : (userInfo.social.includes('有缴纳') ? 6 : 0);
+  const socialStr = userInfo.social.includes('有缴纳')
+    ? `有缴纳，已缴${socialMonths}个月`
+    : (userInfo.social.includes('无缴纳') ? '无缴纳（0个月）' : '未填写');
+
+  // 补充信息加减分评估
+  const scoreItems = [];
+  const eduVal = userInfo.edu || '';
+  if (eduVal.includes('本科')) scoreItems.push('✅学历加分：全日制本科及以上');
+  else if (eduVal.includes('大专')) scoreItems.push('➕学历中性：全日制大专');
+  else if (eduVal) scoreItems.push('➖学历减分：' + eduVal);
+
+  const workVal = userInfo.work || '';
+  if (['政府机关/公务员','事业单位'].some(w => workVal.includes(w.split('/')[0]))) scoreItems.push('✅单位加分：' + workVal);
+  else if (['国有企业','上市公司'].some(w => workVal.includes(w.split('/')[0]))) scoreItems.push('✅单位加分：' + workVal);
+  else if (workVal && workVal !== '未填写') scoreItems.push('➖单位中性/减分：' + workVal);
+
+  const pvd = userInfo.provident || 0;
+  if (pvd >= 1000) scoreItems.push('✅公积金加分：' + pvd + '元/月（≥1000元，满足股份制银行优质客户准入）');
+  else if (pvd >= 500) scoreItems.push('➕公积金中性：' + pvd + '元/月（500-999元）');
+  else if (pvd > 0) scoreItems.push('➖公积金较低：' + pvd + '元/月（<500元）');
+  else scoreItems.push('➖无公积金（优质产品准入受限）');
+
+  if (socialMonths >= 12) scoreItems.push('✅社保加分：已缴' + socialMonths + '个月（≥12月，银行判定工作稳定）');
+  else if (socialMonths >= 6) scoreItems.push('➕社保中性：已缴' + socialMonths + '个月（6-11月）');
+  else if (socialMonths > 0) scoreItems.push('➖社保减分：已缴' + socialMonths + '个月（<6月，银行判定工作稳定性差）');
+  else scoreItems.push('➖无社保（银行判定工作稳定性差，大额产品受限）');
+
+  const hukouVal = userInfo.hukou || '';
+  if (hukouVal.includes('厦门')) scoreItems.push('✅户籍加分：厦门本地户籍（本地银行全覆盖）');
+  else if (hukouVal.includes('福建')) scoreItems.push('➕户籍中性：福建省内非厦门（多数厦门银行可做）');
+  else if (hukouVal && hukouVal !== '未填写') scoreItems.push('➖户籍减分：省外户籍（部分厦门本地银行拒贷，需本地资产佐证）');
+
+  const assetsVal = userInfo.assets || '';
+  if (assetsVal.includes('房产')) scoreItems.push('✅资产加分：名下有房产（银行认可最高权重资产）');
+  if (assetsVal.includes('车辆')) scoreItems.push('➕资产加分：名下有车辆');
+  if (assetsVal.includes('营业执照')) scoreItems.push('➕资产：有营业执照（部分银行小微产品加分）');
+  if (assetsVal.includes('暂无') || assetsVal === '未填写') scoreItems.push('➖无资产（无法提供抵押/增信）');
+
+  const income = userInfo.income || 0;
+  if (income >= 10000) scoreItems.push('✅收入加分：月收入' + income + '元（≥1万，大额产品无障碍）');
+  else if (income >= 5000) scoreItems.push('➕收入中性：月收入' + income + '元（5000-9999元）');
+  else if (income > 0) scoreItems.push('➖收入减分：月收入' + income + '元（<5000元，大额信用贷额度受限）');
+
   // Update debt ratio display in summary bar
   if (debtRatioPct != null) {
     const drEl   = document.getElementById('sumDebtRatio');
@@ -2307,30 +2368,37 @@ async function startMatching() {
     }
   }
 
-  const prompt = `你是具备10年银行信贷审批经验的专家+贷款产品匹配顾问，仅基于本次上传的人行征信数据完成全流程分析。所有结论必须有征信数据支撑，禁止主观臆断，禁止使用"可能、大概、也许"等模糊词汇，结论必须明确。
+  const prompt = `你是具备10年银行信贷审批经验的专家+贷款产品匹配顾问，仅基于本次上传的人行简版征信报告+客户主动填写的补充信息完成全流程分析。所有结论必须同时结合征信数据+补充信息，禁止只看单一维度，禁止使用"可能、大概、也许"，结论必须明确。
 
-【客户基本信息（用户填写）】
-月收入：${incomeStr}
-工作单位性质：${userInfo.work}
-户籍：${userInfo.hukou}
-学历：${userInfo.edu}
-社保：${userInfo.social}
-公积金月缴额：${userInfo.provident != null ? userInfo.provident + '元' : '未填写'}
-名下资产：${userInfo.assets}
+═══════════════════════════════════
+【第一部分：客户补充信息（已从表单提取）】
+═══════════════════════════════════
+① 学历：${userInfo.edu || '无'}
+② 月工资：${income > 0 ? income + ' 元' : '0（未填写）'}
+③ 社保缴交：${socialStr}
+④ 公积金月缴额：${pvd > 0 ? pvd + ' 元' : '0（未缴）'}
+⑤ 资产情况：${assetsVal || '无'}
+⑥ 户籍地：${hukouVal || '未填写'}
+⑦ 单位性质：${workVal || '未填写'}
 
-【客户征信数据（来自人行征信报告AI识别）】
+【补充信息加减分评估（已预计算，供分析参考）】
+${scoreItems.join('\n')}
+
+═══════════════════════════════════
+【第二部分：征信核心数据】
+═══════════════════════════════════
 未结清贷款：${loans.length}笔（银行${loans.length - onlineCount}笔 | 网贷${onlineCount}笔）
-网贷机构数：合计${onlineInstTotal}家（消费金融${cfCount2}家 + 小额贷款${mlCount2}家），银行准入红线≤3家，当前状态：${onlineInstTotal > 3 ? '⚠️超标' : onlineInstTotal === 3 ? '临界' : '✅正常'}
+网贷机构数：合计${onlineInstTotal}家（消费金融${cfCount2}家 + 小额贷款${mlCount2}家）→ 银行红线≤3家，当前：${onlineInstTotal > 3 ? '⚠️超标' : onlineInstTotal === 3 ? '⚠️临界' : '✅正常'}
 未销户信用卡：${cards.length}张
-月还款估算：${fmt(Math.round(totalMonthly))}元（房贷×0.55%/车贷×3.04%/银行信用贷×3.14%/消金×4%/信用卡已用×2%）
-负债率：${debtRatio}
-信用卡使用率：${cardUtil}%
+月还款估算：${fmt(Math.round(totalMonthly))}元（本估算为银行审批参考值，非合同精确值）
+负债率：${debtRatio}（银行红线≤70%）
+信用卡使用率：${cardUtil}%（银行红线≤70%）
 当前逾期：${data.overdue_current || 0}笔
-历史逾期记录：${data.overdue_history_notes || '无历史逾期'}
+历史逾期：${data.overdue_history_notes || '无'}
 
-【查询记录（已排除贷后管理/本人查询/资信审查，含担保资格审查）】
-贷款审批近1月：${q.loan_1m || 0}次 | 近3月：${q3loans}次 | 信用卡审批近3月：${q3cards}次
-近3月合计审批查询：${q3}次 | 近6月合计审批查询：${q6}次
+【查询记录（已过滤贷后管理/本人查询）】
+近1月贷款审批：${q.loan_1m || 0}次 | 近3月贷款：${q3loans}次 | 近3月信用卡：${q3cards}次
+近3月合计：${q3}次（红线≤6次） | 近6月合计：${q6}次
 
 【贷款明细】
 ${loanDesc}
@@ -2338,68 +2406,71 @@ ${loanDesc}
 【信用卡明细】
 ${cardDesc}
 
-【银行通用风控红线（必须对照客户数据逐项判断）】
-① 网贷机构数≤3家（当前：${onlineInstTotal}家）
-② 近3个月审批查询≤6次（当前：${q3}次）
-③ 无当前逾期/连三累六（当前逾期：${data.overdue_current || 0}笔）
-④ 总月供≤月收入70%（当前负债率：${debtRatio}）
-⑤ 信用卡使用率≤70%（当前：${cardUtil}%）
+═══════════════════════════════════
+【第三部分：风控红线逐项对照】
+═══════════════════════════════════
+① 网贷机构数≤3家 → 当前${onlineInstTotal}家 → ${onlineInstTotal > 3 ? '❌超标（直接拒贷）' : onlineInstTotal === 3 ? '⚠️临界' : '✅达标'}
+② 近3月查询≤6次 → 当前${q3}次 → ${q3 > 6 ? '❌超标' : q3 >= 5 ? '⚠️接近红线' : '✅达标'}
+③ 无当前逾期 → ${(data.overdue_current||0) > 0 ? '❌有' + data.overdue_current + '笔逾期（绝对红线）' : '✅无逾期'}
+④ 负债率≤70% → ${debtRatio} → ${debtRatioPct != null ? (debtRatioPct > 70 ? '❌超标' : debtRatioPct >= 60 ? '⚠️偏高' : '✅达标') : '待计算'}
+⑤ 信用卡使用率≤70% → ${cardUtil}% → ${cardUtil > 70 ? '❌超标' : cardUtil >= 60 ? '⚠️偏高' : '✅达标'}
+⑥ 社保缴交≥12月（多数银行） → ${socialMonths >= 12 ? '✅' + socialMonths + '月达标' : socialMonths > 0 ? '⚠️仅' + socialMonths + '月' : '❌无社保（减分项）'}
 
-【银行产品准入条件（已根据客户数据预判，❌标记的产品被一票否决）】
+【银行产品准入预判（❌标记=一票否决）】
 ${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal)}
 
-【一票否决规则】
-① 当前逾期>0笔 → 排除所有 overdue=zero 的产品，仅保留招联消费金融
-② 近3月查询 > 产品maxQ3 → 直接排除，通过率=0
-③ 近6月查询 > 产品maxQ6 → 直接排除，通过率=0
-④ 负债率 > 产品maxDebt → 直接排除
-⑤ 网贷机构数>3家 → 所有银行产品通过率下调20%
-
-【通过率计算】
-基础65 + 查询距上限远(+15) + 查询距上限较近(+5) + 查询接近上限(-10)
-无任何逾期(+10) | 公积金在缴(+8) | 国企/事业/公务员(+10) | 有房产(+8)
-网贷机构数=3家(-10) | 网贷机构数>3家(-20) | 信用卡使用率>80%(-10)
+【通过率计算规则】
+基础分65 + 查询充裕(+15) | 查询宽松(+5) | 查询偏多(-10)
+无逾期(+10) | 公积金≥1000元(+8) | 公积金500-999元(+5)
+国企/事业/公务员(+10) | 上市公司/500强(+6) | 有房产(+8) | 有车(+4)
+本科及以上(+5) | 大专(+2) | 厦门户籍(+5) | 福建省内(+2) | 省外(-3)
+社保≥12月(+5) | 社保6-11月(+2) | 社保<6月(-3) | 无社保(-5)
+月收入≥10000(+5) | 月收入5000-9999(+2) | 月收入<5000(-5)
+网贷机构=3家(-10) | 网贷机构>3家(-20) | 信用卡使用率>80%(-10)
 80分以上=高概率 | 60-79=中概率 | 40-59=低概率 | <40不推荐
 
 严格返回JSON，不含任何其他文字和markdown代码块：
 {
-  "summary": "1-2句总体评估，50字内",
+  "summary": "1-2句整合征信+补充信息的总体评估，60字内",
   "count": 3,
-  "key_risk": "最大风险点20字内，无则空字符串",
+  "key_risk": "最大风险点25字内，征信+补充信息综合判断，无则空字符串",
   "risk_level": "健康",
+  "user_info_summary": ["① 学历：本科","② 月工资：8000元","③ 社保：已缴18个月","④ 公积金：1200元/月","⑤ 资产：厦门自有房","⑥ 户籍：厦门本地","⑦ 单位：私营企业"],
   "strengths": [
-    {"point": "无当前逾期记录", "impact": "还款意愿强，银行审批通过率高"}
+    {"point": "无逾期记录（征信）+ 厦门本地户籍（补充）", "impact": "银行判定还款意愿+稳定性双优，通过率显著提升"}
   ],
   "weaknesses": [
-    {"point": "近3月查询8次", "impact": "超多数银行≤6次红线，会导致审批被拒"}
+    {"point": "社保仅缴3个月（补充）", "impact": "银行判定工作稳定性不足，大额信用贷直接受限"}
   ],
   "redlines": ["当前无绝对红线"],
   "products": [
     {
       "bank": "银行名", "product": "产品名", "rate": "利率范围",
       "emoji": "🏦", "prob": "高", "probPct": 85,
-      "amount": "最高XX万", "tags": ["标签1"],
-      "reason": "30字内推荐理由，必须对应客户具体数据"
+      "amount": "最高XX万", "tags": ["厦门本地","标签2"],
+      "reason": "40字内推荐理由，必须同时引用征信数据+补充信息"
     }
   ],
   "rejected_products": [
-    {"type": "国有大行信用贷", "reason": "近3月查询X次，超大行≤6次红线，直接拒贷"}
+    {"type": "国有大行（工行/建行）信用贷", "reason": "近3月查询X次超大行≤6次红线，且无公积金，双重拒贷条件"}
   ],
   "optimization": [
     {
       "step": "结清X家小贷并注销账户",
       "goal": "网贷机构数从X家降至3家以内",
       "time": "1个月",
-      "unlock": "优化后可申请股份制银行产品"
+      "unlock": "达标后可申请股份制银行产品"
     }
   ],
-  "post_optimization": "优化完成后，可申请招行、浦发等股份制银行信用贷，预计额度XX万、利率XX%"
+  "post_optimization": "优化完成后，可申请招行/浦发/中信等股份制银行信用贷，预计额度XX万、利率XX%，原因：XXX"
 }
-注意：
-- products排序：通过率高优先，同等通过率利率低优先，最多7款；宁少勿滥
+注意（严格执行）：
+- products最多7款，宁少勿滥，必须对齐国有大行/股份制银行/城商行/消费金融的风控差异
+- strengths/weaknesses每条必须同时引用征信+补充信息，格式"XXX（征信）+ XXX（补充）"
+- rejected_products必须明确说明被拒的具体数据原因
+- optimization每步骤包含：step+goal+time+unlock四项，全部可落地
 - risk_level只能是：健康 / 轻微瑕疵 / 中度风险 / 高风险
-- weaknesses和rejected_products必须引用客户具体数据，不写通用废话
-- optimization每个步骤必须可落地，并说明优化目标和所需时间`;
+- user_info_summary严格按①-⑦格式输出客户实际填写值`;
 
   try {
     const raw = await callAI([{ role:'user', content: prompt }], 2000);
@@ -2430,6 +2501,15 @@ function renderMatchResult(r) {
   window._lastMatchResult = r;
   document.getElementById('matchCount').textContent = r.count || (r.products ? r.products.length : 0);
   document.getElementById('matchSub').textContent = r.summary || '基于您的征信数据匹配结果';
+
+  // ── 客户补充信息确认卡 ──
+  const uiSum = r.user_info_summary;
+  const uiBox = document.getElementById('userInfoConfirmBox');
+  if (uiSum && uiSum.length > 0 && uiBox) {
+    uiBox.style.display = 'block';
+    document.getElementById('userInfoConfirmList').innerHTML =
+      uiSum.map(s => `<span class="as-step-tag">${s}</span>`).join('');
+  }
 
   // ── 风险等级 banner ──
   const riskMap = {
@@ -2876,7 +2956,7 @@ function restartAll() {
 
   // Reset analysis sections
   document.getElementById('analysisReport').style.display = 'none';
-  ['strengthsSection','weaknessesSection','rejectedSection','optimizationSection','postOptSection']
+  ['userInfoConfirmBox','strengthsSection','weaknessesSection','rejectedSection','optimizationSection','postOptSection']
     .forEach(id => { document.getElementById(id).style.display = 'none'; });
   window._onlineInstTotal = undefined;
 
