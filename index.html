@@ -1543,8 +1543,7 @@ function localFallbackMatch(data) {
     // 负债率扣分
     const _loans2 = (data.loans||[]).filter(l=>l.status!=='结清'&&l.status!=='已结清');
   const _cards2 = (data.cards||[]).filter(c=>c.status!=='销户'&&c.status!=='已销户');
-  const _tm = _loans2.reduce((s,l)=>s+Math.round((l.balance||0)/10),0)
-            + _cards2.reduce((s,c)=>s+Math.round((c.used||0)*0.1),0);
+  const _tm = calcTotalMonthly(_loans2, _cards2);
   const debtRatio = income > 0 && _tm > 0 ? Math.round(_tm / income * 100) : 0;
     if (p.maxDebt && debtRatio > 0 && income > 0) {
       if (debtRatio > p.maxDebt * 0.9)       score -= 15;
@@ -1594,6 +1593,35 @@ function localFallbackMatch(data) {
 let _fileBase64 = null;
 let _fileMediaType = null;
 let _recognizedData = null; // {loans, cards, queries, summary}
+
+// ═══════════════════════════════════════════
+// 月供估算（银行风控规则）
+// 规则：房贷×0.0055 / 车贷×0.0304 / 银行信用贷×0.0314（超2年×0.04）
+//       消金/网贷×0.04（超2年×0.05） / 信用卡已用×0.02
+// ═══════════════════════════════════════════
+function calcLoanMonthly(loan) {
+  const bal = loan.balance || 0;
+  if (bal <= 0) return 0;
+  const cat = loan.loan_category || (loan.type === 'online' ? 'finance' : 'credit');
+  let isOld = false;
+  if (loan.issued_date) {
+    const issued = new Date(loan.issued_date);
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - 2);
+    isOld = issued < cutoff;
+  }
+  if (cat === 'mortgage') return Math.round(bal * 0.0055);
+  if (cat === 'car')      return Math.round(bal * 0.0304);
+  if (cat === 'finance')  return Math.round(bal * (isOld ? 0.05 : 0.04));
+  // default: bank credit loan
+  return Math.round(bal * (isOld ? 0.04 : 0.0314));
+}
+
+function calcTotalMonthly(loans, cards) {
+  const loanPart = loans.reduce((s, l) => s + calcLoanMonthly(l), 0);
+  const cardPart = cards.reduce((s, c) => s + Math.round((c.used || 0) * 0.02), 0);
+  return loanPart + cardPart;
+}
 
 // ═══════════════════════════════════════════
 // FILE HANDLING
@@ -1712,6 +1740,17 @@ async function startAnalysis() {
 - online（消费金融）：以上三类以外的所有机构，包括：其他含"银行"字样的机构（如武汉众邦银行、四川新网银行、网商银行、微众银行、亿联银行、蓝海银行、蒙商银行等民营银行/互联网银行），以及名称含"小贷/消费金融/网络/科技/互联网/分期/快贷"的机构
 - credit：信用卡账户
 
+【贷款细分类型（loan_category）】
+对每笔贷款，根据账户名称/用途判断细分类型：
+- "mortgage"（房贷/按揭）：账户名称含"住房"/"房贷"/"按揭"/"公积金贷款"/"购房"，或明显为个人住房抵押贷款
+- "car"（车贷）：账户名称含"汽车"/"购车"/"车贷"/"车辆"/"机动车"
+- "credit"（银行信用贷）：type=bank 且非房贷非车贷的所有贷款（含抵押消费贷、装修贷、信用贷等）
+- "finance"（消费金融/网贷）：type=online 的所有贷款，loan_category 固定填 "finance"
+
+【贷款发放日期（issued_date）】
+- 从征信报告中提取贷款"发放日期"或"开立日期"或"合同签订日期"，格式 YYYY-MM-DD
+- 若征信上无法识别具体日期，填 null
+
 只返回如下JSON，不含任何其他文字和markdown代码块：
 {
   "person_name": "陈志波",
@@ -1721,6 +1760,8 @@ async function startAnalysis() {
     {
       "name": "招商银行-消费贷",
       "type": "bank",
+      "loan_category": "credit",
+      "issued_date": "2024-05-01",
       "is_revolving": false,
       "credit_limit": 50000,
       "balance": 50000,
@@ -1729,18 +1770,22 @@ async function startAnalysis() {
       "status": "正常"
     },
     {
-      "name": "长安银行-消费贷",
+      "name": "建设银行-住房贷款",
       "type": "bank",
+      "loan_category": "mortgage",
+      "issued_date": "2019-03-15",
       "is_revolving": false,
-      "credit_limit": 500,
-      "balance": 500,
-      "rate": null,
-      "monthly": null,
+      "credit_limit": 800000,
+      "balance": 620000,
+      "rate": 3.7,
+      "monthly": 3800,
       "status": "正常"
     },
     {
       "name": "北京阳光消费金融-消费贷",
       "type": "online",
+      "loan_category": "finance",
+      "issued_date": null,
       "is_revolving": true,
       "credit_limit": 3000,
       "balance": 500,
@@ -1878,9 +1923,8 @@ function renderResult(data) {
   // Calculate query counts from raw records (frontend, exact date math)
   const q = calcQueryCounts(data.query_records || []);
 
-  // Summary bar - 月还款 = 贷款余额/10 + 信用卡已使用额度*10%
-  const totalMonthly = loans.reduce((s, l) => s + Math.round((l.balance || 0) / 10), 0)
-    + cards.reduce((s, c) => s + Math.round((c.used || 0) * 0.1), 0);
+  // Summary bar - 月供估算（银行风控规则）
+  const totalMonthly = calcTotalMonthly(loans, cards);
 
   document.getElementById('sumLoans').textContent = loans.length + ' 笔';
   document.getElementById('sumCards').textContent = cards.length + ' 张';
@@ -1939,14 +1983,18 @@ function renderResult(data) {
       // 3 separate columns: 授信额度 / 余额 / 月还款
       const colLimit   = l.credit_limit != null ? fmt(l.credit_limit) + '元' : '<span style="color:var(--gray-mid)">--</span>';
       const colBalance = l.balance != null      ? fmt(l.balance) + '元'      : '<span style="color:var(--gray-mid)">--</span>';
-      const colMonthly = l.monthly != null      ? fmt(l.monthly) + '元'      : '<span style="color:var(--gray-mid)">--</span>';
+      const estMonthly = calcLoanMonthly(l);
+      const colMonthly = estMonthly > 0
+        ? fmt(estMonthly) + '元<span style="font-size:9px;color:var(--gray-mid);margin-left:3px">估算</span>'
+        : '<span style="color:var(--gray-mid)">--</span>';
+      const catMap = { mortgage:'🏠 房贷', car:'🚗 车贷', credit:'🏦 信用贷', finance:'📱 消费金融' };
+      const catLabel = catMap[l.loan_category] || (l.type === 'online' ? '📱 消费金融' : '🏦 银行贷款');
+      const badgeCls = (l.loan_category === 'finance' || l.type === 'online') ? 'badge-warn' : 'badge-ok';
 
       return `
         <tr>
           <td>${l.name || '--'}${isRev ? '<span style="font-size:9px;background:#e8f4ed;color:#2a7a55;padding:1px 5px;border-radius:3px;margin-left:5px">循环授信</span>' : ''}</td>
-          <td><span class="badge ${l.type === 'online' ? 'badge-warn' : 'badge-ok'}">${
-            l.type === 'bank' ? '银行贷款' : l.type === 'online' ? '消费金融' : '其他'
-          }</span></td>
+          <td><span class="badge ${badgeCls}">${catLabel}</span></td>
           <td style="text-align:right;font-weight:600">${colLimit}</td>
           <td style="text-align:right;font-weight:600">${colBalance}</td>
           <td style="text-align:right">${colMonthly}</td>
@@ -2040,8 +2088,7 @@ async function startMatching() {
   const cards = (data.cards || []).filter(c => c.status !== '销户' && c.status !== '已销户');
   const q = calcQueryCounts(data.query_records || []);
 
-  const totalMonthly = loans.reduce((s, l) => s + Math.round((l.balance || 0) / 10), 0)
-    + cards.reduce((s, c) => s + Math.round((c.used || 0) * 0.1), 0);
+  const totalMonthly = calcTotalMonthly(loans, cards);
   const onlineCount = loans.filter(l => l.type === 'online').length;
   const totalCardLimit = cards.reduce((s, c) => s + (c.limit || 0), 0);
   const totalCardUsed = cards.reduce((s, c) => s + (c.used || 0), 0);
@@ -2104,7 +2151,7 @@ async function startMatching() {
 【客户征信数据（来自人行征信报告AI识别）】
 未结清贷款：${loans.length}笔（其中消费金融/网贷${onlineCount}笔）
 未销户信用卡：${cards.length}张
-月还款估算：${fmt(Math.round(totalMonthly))}元（贷款余额/10+信用卡已用额度×10%）
+月还款估算：${fmt(Math.round(totalMonthly))}元（房贷×0.55%/车贷×3.04%/银行信用贷×3.14%/消金×4%/信用卡已用×2%）
 负债率：${debtRatio}
 信用卡使用率：${cardUtil}%
 当前逾期：${data.overdue_current || 0}笔
@@ -2422,8 +2469,7 @@ function buildReportText() {
   const totalLoanBal  = loans.reduce((s,l)=>s+(l.balance||0),0);
   const totalCardLimit= cards.reduce((s,c)=>s+(c.limit||0),0);
   const totalCardUsed = cards.reduce((s,c)=>s+(c.used||0),0);
-  const totalMonthly  = loans.reduce((s,l)=>s+Math.round((l.balance||0)/10),0)
-    + cards.reduce((s,c)=>s+Math.round((c.used||0)*0.1),0);
+  const totalMonthly  = calcTotalMonthly(loans, cards);
 
   const productLines = products.map((p, i) =>
     `  ${i+1}. ${p.emoji||'🏦'} ${p.bank} · ${p.product}`
