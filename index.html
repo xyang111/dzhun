@@ -697,6 +697,9 @@ footer{
           <div class="sb-item"><div class="sb-val" id="sumDebtRatio" style="font-size:18px">--</div><div class="sb-label">月还款负债率</div><div class="sb-debt-hint" id="sumDebtHint" style="font-size:10px;margin-top:3px;opacity:.7"></div></div>
         </div>
 
+        <!-- 网贷机构统计栏 -->
+        <div id="onlineStatsBox" style="display:none;border-radius:10px;padding:13px 16px;margin-bottom:12px;font-size:13px;line-height:1.8;border-width:1px;border-style:solid"></div>
+
         <!-- Warn box (if any) -->
         <div class="warn-box" id="warnBox" style="display:none"></div>
 
@@ -1440,7 +1443,9 @@ function localFallbackMatch(data) {
   const hasOverdue  = (data.overdue_current || 0) > 0;
   const hasOvHist   = !!data.overdue_history_notes;
   const onlineCount = (data.loans||[]).filter(l=>l.type==='online').length;
-  const onlinePenalty = onlineCount >= 5 ? -20 : onlineCount >= 3 ? -10 : 0;
+  const _onlineL = (data.loans||[]).filter(l=>l.type==='online');
+  const onlineInstCnt = [...new Set(_onlineL.map(l=>l.name.split('-')[0]))].length;
+  const onlinePenalty = onlineInstCnt > 3 ? -20 : onlineInstCnt === 3 ? -10 : 0;
 
   // 读取用户填写的补充信息
   const userInfo     = (() => { try { return collectInfoData(); } catch(e) { return {}; } })();
@@ -1575,7 +1580,8 @@ function localFallbackMatch(data) {
     ? '存在当前逾期，所有银行产品均无法申请，请先结清'
     : q3 > 10 ? `近3月查询${q3}次严重超标，银行产品基本无法通过`
     : q3 > 5  ? `近3月查询${q3}次偏多，已超多数银行准入红线`
-    : onlineCount >= 5 ? `消费金融/网贷${onlineCount}笔，银行视为资金链紧张`
+    : onlineCount > 3 ? `网贷机构${onlineCount}家，已超银行准入红线（≤3家）`
+    : onlineCount === 3 ? `网贷机构3家，已到银行准入红线临界`
     : (!hasSocial && !provident) ? '无社保且无公积金，多数银行产品需要其中之一'
     : '';
 
@@ -1732,13 +1738,21 @@ async function startAnalysis() {
 - 不要从还款状态矩阵（N/1/2/C/*代码行）读取余额
 - 信用卡已用额度 = 账户信息块中"已用额度"字段（仅信用卡用）
 
-【账户类型判断】
-- bank（银行贷款）：仅限以下三类机构发放的贷款：
-  1. 6家国有大型商业银行：工商银行、农业银行、中国银行、建设银行、交通银行、邮政储蓄银行
-  2. 12家全国性股份制商业银行：招商银行、上海浦东发展银行（浦发银行）、中信银行、光大银行、华夏银行、中国民生银行（民生银行）、广发银行、兴业银行、平安银行、浙商银行、恒丰银行、渤海银行
-  3. 各地农村商业银行（机构名含"农商银行"或"农村商业银行"）
-- online（消费金融）：以上三类以外的所有机构，包括：其他含"银行"字样的机构（如武汉众邦银行、四川新网银行、网商银行、微众银行、亿联银行、蓝海银行、蒙商银行等民营银行/互联网银行），以及名称含"小贷/消费金融/网络/科技/互联网/分期/快贷"的机构
-- credit：信用卡账户
+【账户类型判断（严格执行，绝对不准出错）】
+
+▌ type = "bank"（银行类贷款）
+机构名称含以下任意关键字，均归为银行类，不得标记为网贷：
+"银行"、"微众"、"网商"、"振兴"、"苏商"、"韩亚"、"农商"、"农信"、"村镇银行"
+包含：六大国有行（工农中建交邮储）、12家全国股份制银行（招商/浦发/中信/光大/华夏/民生/广发/兴业/平安/浙商/恒丰/渤海）、各地农商行、微众银行、网商银行、各类村镇银行等。
+
+▌ type = "online"（网贷）—— 以下两类机构：
+① online_subtype = "consumer_finance"（消费金融类）
+  机构名称含：消费金融、招联、马上、中邮、捷信、哈银、盛银、北银
+② online_subtype = "microloan"（小额贷款类）
+  机构名称含：小额贷款、小贷、蚂蚁小贷、京东小贷、度小满小贷、美团小贷
+注意：online_subtype 字段仅用于 type=online 的账户，银行类填 null。
+
+▌ type = "credit"（信用卡账户）
 
 【贷款细分类型（loan_category）】
 对每笔贷款，根据账户名称/用途判断细分类型：
@@ -1760,6 +1774,7 @@ async function startAnalysis() {
     {
       "name": "招商银行-消费贷",
       "type": "bank",
+      "online_subtype": null,
       "loan_category": "credit",
       "issued_date": "2024-05-01",
       "is_revolving": false,
@@ -1772,6 +1787,7 @@ async function startAnalysis() {
     {
       "name": "建设银行-住房贷款",
       "type": "bank",
+      "online_subtype": null,
       "loan_category": "mortgage",
       "issued_date": "2019-03-15",
       "is_revolving": false,
@@ -1784,11 +1800,25 @@ async function startAnalysis() {
     {
       "name": "北京阳光消费金融-消费贷",
       "type": "online",
+      "online_subtype": "consumer_finance",
       "loan_category": "finance",
       "issued_date": null,
       "is_revolving": true,
       "credit_limit": 3000,
       "balance": 500,
+      "rate": null,
+      "monthly": null,
+      "status": "正常"
+    },
+    {
+      "name": "蚂蚁小贷-借呗",
+      "type": "online",
+      "online_subtype": "microloan",
+      "loan_category": "finance",
+      "issued_date": null,
+      "is_revolving": true,
+      "credit_limit": 20000,
+      "balance": 5000,
       "rate": null,
       "monthly": null,
       "status": "正常"
@@ -1933,9 +1963,11 @@ function renderResult(data) {
   document.getElementById('sumDebtRatio').style.color = 'var(--gold)';
   document.getElementById('sumDebtHint').textContent = '填写月收入后显示';
 
-  // Warn/notice box — reset first
+  // Warn/notice boxes — reset first
   document.getElementById('warnBox').style.display = 'none';
   document.getElementById('warnBox').innerHTML = '';
+  document.getElementById('onlineStatsBox').style.display = 'none';
+  document.getElementById('onlineStatsBox').innerHTML = '';
   const warns = [];
   if (data.overdue_current > 0) {
     warns.push('🔴 存在 <strong>' + data.overdue_current + ' 笔</strong>当前逾期，银行不会放款，请立即结清');
@@ -1954,8 +1986,40 @@ function renderResult(data) {
   if (q3total >= 5) warns.push('🔴 近3月审批查询 <strong>' + q3total + ' 次</strong>（贷款' + q3loans + '次+信用卡' + q3cards + '次），征信已花，建议暂停申请养3-6个月');
   else if (q3total >= 3) warns.push('⚠️ 近3月审批查询 <strong>' + q3total + ' 次</strong>（贷款' + q3loans + '次+信用卡' + q3cards + '次），偏多，部分银行可能拒贷');
 
-  const onlineCount = loans.filter(l => l.type === 'online').length;
-  if (onlineCount >= 5) warns.push('⚠️ 消费金融/网贷 <strong>' + onlineCount + ' 笔</strong>，银行视为资金链紧张');
+  // 网贷机构数统计（按机构去重）
+  const onlineLoans = loans.filter(l => l.type === 'online');
+  const onlineCount = onlineLoans.length;
+  const cfInstitutions  = [...new Set(onlineLoans.filter(l => l.online_subtype === 'consumer_finance').map(l => l.name.split('-')[0]))];
+  const mlInstitutions  = [...new Set(onlineLoans.filter(l => l.online_subtype === 'microloan').map(l => l.name.split('-')[0]))];
+  const allOnlineInst   = [...new Set(onlineLoans.map(l => l.name.split('-')[0]))];
+  const cfCount  = cfInstitutions.length;
+  const mlCount  = mlInstitutions.length;
+  const onlineInstTotal = allOnlineInst.length;
+  window._onlineInstTotal = onlineInstTotal;
+
+  // 网贷机构统计栏（独立显示，带颜色区分）
+  const osb = document.getElementById('onlineStatsBox');
+  if (onlineInstTotal > 0) {
+    const parts = [];
+    if (cfCount > 0) parts.push('消费金融 <strong>' + cfCount + ' 家</strong>（' + cfInstitutions.join('、') + '）');
+    if (mlCount > 0) parts.push('小额贷款 <strong>' + mlCount + ' 家</strong>（' + mlInstitutions.join('、') + '）');
+    const breakdown = parts.join('&nbsp;+&nbsp;');
+    const totalStr  = '网贷机构合计 <strong>' + onlineInstTotal + ' 家</strong>（银行准入红线：≤3家）';
+    if (onlineInstTotal > 3) {
+      osb.style.cssText = 'display:block;border-radius:10px;padding:13px 16px;margin-bottom:12px;font-size:13px;line-height:1.8;border:1px solid rgba(192,57,43,.3);background:#fff0f0;color:var(--red)';
+      osb.innerHTML = '🔴 ' + totalStr + '<br>' + breakdown + '<br><strong>已超红线，银行类贷款大概率拒贷，建议先结清网贷后再申请。</strong>';
+      warns.push('🔴 网贷机构数 <strong>' + onlineInstTotal + ' 家</strong>，超出银行准入红线（≤3家），银行产品通过率大幅下调');
+    } else if (onlineInstTotal === 3) {
+      osb.style.cssText = 'display:block;border-radius:10px;padding:13px 16px;margin-bottom:12px;font-size:13px;line-height:1.8;border:1px solid rgba(184,134,11,.3);background:#fff8e0;color:var(--amber)';
+      osb.innerHTML = '⚠️ ' + totalStr + '<br>' + breakdown + '<br>已到临界线，申请银行贷款存在风险，建议结清1家网贷再申请。';
+      warns.push('⚠️ 网贷机构数已到银行准入红线临界（3家），部分银行可能拒贷');
+    } else {
+      osb.style.cssText = 'display:block;border-radius:10px;padding:13px 16px;margin-bottom:12px;font-size:13px;line-height:1.8;border:1px solid rgba(42,122,85,.25);background:var(--green-light);color:var(--green)';
+      osb.innerHTML = '✅ ' + totalStr + '<br>' + breakdown + '<br>未超银行准入红线，网贷情况正常。';
+    }
+  } else {
+    osb.style.display = 'none';
+  }
 
   if (warns.length > 0) {
     document.getElementById('warnBox').style.display = 'block';
@@ -1987,9 +2051,15 @@ function renderResult(data) {
       const colMonthly = estMonthly > 0
         ? fmt(estMonthly) + '元<span style="font-size:9px;color:var(--gray-mid);margin-left:3px">估算</span>'
         : '<span style="color:var(--gray-mid)">--</span>';
-      const catMap = { mortgage:'🏠 房贷', car:'🚗 车贷', credit:'🏦 信用贷', finance:'📱 消费金融' };
-      const catLabel = catMap[l.loan_category] || (l.type === 'online' ? '📱 消费金融' : '🏦 银行贷款');
-      const badgeCls = (l.loan_category === 'finance' || l.type === 'online') ? 'badge-warn' : 'badge-ok';
+      const catMap = { mortgage:'🏠 房贷', car:'🚗 车贷', credit:'🏦 银行信用贷', finance:'📱 网贷' };
+      let catLabel, badgeCls;
+      if (l.type === 'online') {
+        catLabel   = l.online_subtype === 'microloan' ? '💰 小额贷款' : '📱 消费金融';
+        badgeCls   = 'badge-warn';
+      } else {
+        catLabel = catMap[l.loan_category] || '🏦 银行贷款';
+        badgeCls = 'badge-ok';
+      }
 
       return `
         <tr>
@@ -2089,7 +2159,12 @@ async function startMatching() {
   const q = calcQueryCounts(data.query_records || []);
 
   const totalMonthly = calcTotalMonthly(loans, cards);
-  const onlineCount = loans.filter(l => l.type === 'online').length;
+  const onlineLoansM = loans.filter(l => l.type === 'online');
+  const onlineCount  = onlineLoansM.length;  // 笔数（用于原有产品评分）
+  const onlineInstTotal = window._onlineInstTotal
+    ?? [...new Set(onlineLoansM.map(l => l.name.split('-')[0]))].length;
+  const cfCount2 = [...new Set(onlineLoansM.filter(l => l.online_subtype==='consumer_finance').map(l=>l.name.split('-')[0]))].length;
+  const mlCount2 = [...new Set(onlineLoansM.filter(l => l.online_subtype==='microloan').map(l=>l.name.split('-')[0]))].length;
   const totalCardLimit = cards.reduce((s, c) => s + (c.limit || 0), 0);
   const totalCardUsed = cards.reduce((s, c) => s + (c.used || 0), 0);
   const cardUtil = totalCardLimit > 0 ? Math.round(totalCardUsed / totalCardLimit * 100) : 0;
@@ -2149,7 +2224,8 @@ async function startMatching() {
 名下资产：${userInfo.assets}
 
 【客户征信数据（来自人行征信报告AI识别）】
-未结清贷款：${loans.length}笔（其中消费金融/网贷${onlineCount}笔）
+未结清贷款：${loans.length}笔（银行${loans.length - onlineCount}笔 | 网贷${onlineCount}笔）
+网贷机构数：合计${onlineInstTotal}家（消费金融${cfCount2}家 + 小额贷款${mlCount2}家），银行准入红线≤3家，当前状态：${onlineInstTotal > 3 ? '⚠️超标' : onlineInstTotal === 3 ? '临界' : '✅正常'}
 未销户信用卡：${cards.length}张
 月还款估算：${fmt(Math.round(totalMonthly))}元（房贷×0.55%/车贷×3.04%/银行信用贷×3.14%/消金×4%/信用卡已用×2%）
 负债率：${debtRatio}
@@ -2168,19 +2244,19 @@ ${loanDesc}
 ${cardDesc}
 
 【银行产品准入条件（已根据客户数据预判，❌标记的产品被一票否决，不得推荐）】
-${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineCount)}
+${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal)}
 
 【一票否决规则（已在上方产品标记，再次确认）】
 ① 当前逾期>0笔 → 排除所有 overdue=zero 的产品，仅保留招联消费金融
 ② 近3月查询 > 产品maxQ3 → 直接排除，通过率=0，不得出现在结果中
 ③ 近6月查询 > 产品maxQ6 → 直接排除，通过率=0，不得出现在结果中
 ④ 负债率 > 产品maxDebt → 直接排除
-⑤ 消费金融/网贷≥5笔 → 所有银行产品通过率下调20%
+⑤ 网贷机构数>3家 → 所有银行产品通过率下调20%；≤3家无影响
 
 【通过率计算（仅对未被排除的产品计算）】
 基础65 + 查询距上限远(+15) + 查询距上限较近(+5) + 查询接近上限(-10)
 无任何逾期(+10) | 公积金在缴(+8) | 国企/事业/公务员(+10) | 有房产(+8)
-网贷≥3笔(-10) | 网贷≥5笔(-20) | 信用卡使用率>80%(-10)
+网贷机构数=3家(-10) | 网贷机构数>3家(-20) | 信用卡使用率>80%(-10)
 80分以上=高概率 | 60-79=中概率 | 40-59=低概率 | <40不推荐
 
 【输出原则】
