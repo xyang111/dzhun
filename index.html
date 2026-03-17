@@ -442,6 +442,13 @@ nav{
   font-size:13px;color:var(--text-mid);line-height:1.7;
   border-left:3px solid var(--gold);
 }
+.adv-sub{border-bottom:1px solid var(--gray-light)}
+.adv-sub:last-child{border-bottom:none}
+.adv-sub-header{padding:9px 20px;font-size:12px;font-weight:700;letter-spacing:.3px}
+.adv-green{background:#f0faf4;color:var(--green)}
+.adv-red{background:#fff5f5;color:var(--red)}
+.adv-gold{background:#fffbf0;color:var(--amber)}
+.adv-sub-body{padding:10px 20px}
 
 /* FOOTER */
 footer{
@@ -1023,6 +1030,25 @@ footer{
 
             <!-- 风险等级 -->
             <div id="riskLevelBanner" class="risk-banner"></div>
+
+            <!-- 专属优化建议 -->
+            <div class="analysis-section" id="adviceSection" style="display:none;margin-bottom:14px">
+              <div class="as-header"><span class="as-icon">📊</span><span class="as-title">专属优化建议</span></div>
+              <div style="padding:0">
+                <div class="adv-sub">
+                  <div class="adv-sub-header adv-green">✅ 客户核心优点（银行风控高评分项）</div>
+                  <div class="adv-sub-body" id="adviceStrengthsBody"></div>
+                </div>
+                <div class="adv-sub">
+                  <div class="adv-sub-header adv-red">❌ 客户当前具体问题/缺点（银行风控核心扣分项）</div>
+                  <div class="adv-sub-body" id="adviceIssuesBody"></div>
+                </div>
+                <div class="adv-sub">
+                  <div class="adv-sub-header adv-gold">🎯 专业改善建议</div>
+                  <div class="adv-sub-body" id="adviceSuggestionsBody"></div>
+                </div>
+              </div>
+            </div>
 
             <!-- 征信优点 -->
             <div class="analysis-section" id="strengthsSection" style="display:none">
@@ -2462,7 +2488,18 @@ ${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal)}
       "unlock": "达标后可申请股份制银行产品"
     }
   ],
-  "post_optimization": "优化完成后，可申请招行/浦发/中信等股份制银行信用贷，预计额度XX万、利率XX%，原因：XXX"
+  "post_optimization": "优化完成后，可申请招行/浦发/中信等股份制银行信用贷，预计额度XX万、利率XX%，原因：XXX",
+  "advice": {
+    "strengths": [
+      {"point": "无逾期记录 + 厦门本地户籍", "impact": "银行判定还款意愿强且稳定性高，通过率显著提升"}
+    ],
+    "issues": [
+      {"point": "社保仅缴3个月", "impact": "银行判定工作稳定性不足，大额信用贷直接受限"}
+    ],
+    "suggestions": [
+      {"action": "持续缴纳社保至12个月", "goal": "满足股份制银行社保≥6月入门门槛", "time": "9个月", "effect": "可申请招行/浦发最高20万信用贷"}
+    ]
+  }
 }
 注意（严格执行）：
 - products最多7款，宁少勿滥，必须对齐国有大行/股份制银行/城商行/消费金融的风控差异
@@ -2470,7 +2507,10 @@ ${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal)}
 - rejected_products必须明确说明被拒的具体数据原因
 - optimization每步骤包含：step+goal+time+unlock四项，全部可落地
 - risk_level只能是：健康 / 轻微瑕疵 / 中度风险 / 高风险
-- user_info_summary严格按①-⑦格式输出客户实际填写值`;
+- user_info_summary严格按①-⑦格式输出客户实际填写值
+- advice.strengths列出2-4条客户核心优势，必须结合征信+补充信息
+- advice.issues列出2-4条当前核心问题，说明银行风控影响
+- advice.suggestions列出2-4条具体可落地改善步骤，每条包含action+goal+time+effect`;
 
   try {
     const raw = await callAI([{ role:'user', content: prompt }], 2000);
@@ -2523,6 +2563,27 @@ function renderMatchResult(r) {
   const banner = document.getElementById('riskLevelBanner');
   banner.className = 'risk-banner ' + rDef.cls;
   banner.innerHTML = `<span class="rb-icon">${rDef.icon}</span><div><div class="rb-level">${rDef.label}</div><div class="rb-desc">${r.key_risk || rDef.desc}</div></div>`;
+
+  // ── 专属优化建议 ──
+  const adv = r.advice;
+  if (adv) {
+    document.getElementById('adviceSection').style.display = 'block';
+    if ((adv.strengths || []).length > 0) {
+      document.getElementById('adviceStrengthsBody').innerHTML = adv.strengths.map(s =>
+        `<div class="as-item"><div class="as-dot as-dot-green"></div><div><div class="as-point">${s.point}</div><div class="as-impact">${s.impact}</div></div></div>`
+      ).join('');
+    }
+    if ((adv.issues || []).length > 0) {
+      document.getElementById('adviceIssuesBody').innerHTML = adv.issues.map(s =>
+        `<div class="as-item"><div class="as-dot as-dot-red"></div><div><div class="as-point">${s.point}</div><div class="as-impact">${s.impact}</div></div></div>`
+      ).join('');
+    }
+    if ((adv.suggestions || []).length > 0) {
+      document.getElementById('adviceSuggestionsBody').innerHTML = adv.suggestions.map((s, i) =>
+        `<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${s.action}</div><div class="as-impact">${s.goal}</div><div class="as-step-meta"><span class="as-step-tag">⏱ ${s.time}</span><span class="as-step-tag">✨ ${s.effect}</span></div></div></div>`
+      ).join('');
+    }
+  }
 
   // ── 征信优点 ──
   if ((r.strengths || []).length > 0) {
@@ -2956,8 +3017,9 @@ function restartAll() {
 
   // Reset analysis sections
   document.getElementById('analysisReport').style.display = 'none';
-  ['userInfoConfirmBox','strengthsSection','weaknessesSection','rejectedSection','optimizationSection','postOptSection']
+  ['userInfoConfirmBox','adviceSection','strengthsSection','weaknessesSection','rejectedSection','optimizationSection','postOptSection']
     .forEach(id => { document.getElementById(id).style.display = 'none'; });
+  ['adviceStrengthsBody','adviceIssuesBody','adviceSuggestionsBody'].forEach(id => { document.getElementById(id).innerHTML = ''; });
   window._onlineInstTotal = undefined;
 
   // Reset info form fields
