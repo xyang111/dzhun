@@ -471,6 +471,8 @@ footer{
 }
 @media(max-width:480px){
   .hero h1{letter-spacing:1px}
+  .hero-steps{gap:4px}
+  .hs-step{font-size:11px}
   .query-grid{grid-template-columns:1fr 1fr}
   .summary-bar{grid-template-columns:repeat(2,1fr);gap:10px}
   .sb-val{font-size:18px}
@@ -588,6 +590,61 @@ footer{
 @media(max-width:480px){
   .eb-row{flex-direction:column;align-items:stretch}
   .eb-btn{text-align:center}
+}
+
+/* ── MOBILE COMPREHENSIVE ── */
+@media(max-width:768px){
+  .cb-btns{width:100%}
+  .cb-btn{flex:1;text-align:center;justify-content:center}
+  .match-header{padding:18px}
+}
+@media(max-width:480px){
+  /* layout */
+  .main-section{padding:36px 14px 48px}
+
+  /* card header */
+  .card-header{padding:13px 16px}
+  .card-header-sub{display:none}
+
+  /* upload zone */
+  .upload-zone{padding:22px 14px}
+  .uz-icon{font-size:36px;margin-bottom:10px}
+  .uz-title{font-size:15px}
+  .uz-hint{font-size:12px;margin-bottom:14px}
+
+  /* match header */
+  .match-header{padding:16px}
+  .mh-title{font-size:18px}
+  .mh-count{font-size:26px}
+
+  /* product card */
+  .pc-rate{font-size:17px}
+
+  /* CTA box */
+  .cta-box{padding:18px 16px}
+  .cb-btns{width:100%;flex-direction:column}
+  .cb-btn{text-align:center;width:100%}
+
+  /* analysis sections */
+  .as-header{padding:10px 14px}
+  .as-body{padding:11px 14px}
+  .adv-sub-header{padding:8px 14px}
+  .adv-sub-body{padding:8px 14px}
+  .risk-banner{padding:12px 14px;gap:10px;margin-bottom:12px}
+  .rb-icon{font-size:22px}
+  .rb-level{font-size:15px}
+  .rb-desc{font-size:12px}
+
+  /* user info confirm card */
+  #userInfoConfirmBox{padding:11px 14px}
+
+  /* step tags */
+  .as-step-tag{margin-bottom:3px}
+  .as-step-meta{flex-wrap:wrap;gap:4px}
+
+  /* summary bar */
+  .sb-val{font-size:17px}
+  #sumDebtRatio{font-size:15px!important}
 }
 </style>
 </head>
