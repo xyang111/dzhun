@@ -1721,6 +1721,56 @@ function localFallbackMatch(data) {
     : (!hasSocial && !provident) ? '无社保且无公积金，多数银行产品需要其中之一'
     : '';
 
+  // ── 本地兜底：生成 advice 三模块 ──
+  const advStrengths = [];
+  const advIssues    = [];
+  const advSuggestions = [];
+
+  // 优点
+  if (!hasOverdue && !hasOvHist)
+    advStrengths.push({ point: '无逾期记录', impact: '银行判定还款意愿强，是核心加分项' });
+  if (provident >= 1000)
+    advStrengths.push({ point: `公积金${provident}元/月`, impact: '证明稳定就业，大幅提升银行信用贷通过率' });
+  if (hasSocial && socialMonths >= 12)
+    advStrengths.push({ point: `社保已缴${socialMonths}个月`, impact: '满足大多数银行稳定就业门槛' });
+  if (['gov','institution','state'].includes(userWorkType))
+    advStrengths.push({ point: '政府/事业/国企单位', impact: '银行最高评级职业类型，额度和利率均有优势' });
+  if (userEduRank >= 4)
+    advStrengths.push({ point: '本科及以上学历', impact: '符合部分银行学历门槛加分项' });
+  const hukouV2 = userInfo.hukou || '';
+  if (hukouV2.includes('厦门'))
+    advStrengths.push({ point: '厦门本地户籍', impact: '本地银行优先审批，降低准入门槛' });
+  if ((userInfo.assets||'').includes('房产'))
+    advStrengths.push({ point: '名下有房产', impact: '证明资产实力，银行判定还款能力更强' });
+
+  // 问题
+  if (q3 > 10)
+    advIssues.push({ point: `近3月征信查询${q3}次严重超标`, impact: '超过大多数银行≤6次准入红线，直接拒贷' });
+  else if (q3 > 5)
+    advIssues.push({ point: `近3月征信查询${q3}次偏多`, impact: '已超多数银行准入门槛，通过率大幅下降' });
+  if (onlineInstCnt > 3)
+    advIssues.push({ point: `网贷机构${onlineInstCnt}家超标`, impact: '银行判定多头借贷，风险评级降低' });
+  if (!hasSocial && !provident)
+    advIssues.push({ point: '无社保且无公积金', impact: '多数银行信用贷要求至少其中一项，直接影响准入' });
+  else if (hasSocial && socialMonths < 6)
+    advIssues.push({ point: `社保仅缴${socialMonths}个月`, impact: '不足6个月，无法满足大多数银行稳定就业要求' });
+  if (hasOverdue)
+    advIssues.push({ point: '存在当前逾期', impact: '银行绝对红线，所有银行信用贷产品均无法申请' });
+  if (income > 0 && income < 5000)
+    advIssues.push({ point: `月收入${income}元偏低`, impact: '低于多数银行最低收入门槛，额度和通过率均受限' });
+
+  // 改善建议
+  if (q3 > 5)
+    advSuggestions.push({ action: '停止一切网贷/信用卡申请3个月', goal: '让查询记录自然冷却', time: '3个月', effect: '查询降至6次以下后，股份制银行基本可申' });
+  if (onlineInstCnt > 3)
+    advSuggestions.push({ action: `结清${onlineInstCnt-2}家网贷并注销账户`, goal: '将网贷机构数降至3家以内', time: '1-2个月', effect: '消金和股份制银行准入条件达标' });
+  if (!hasSocial && !provident)
+    advSuggestions.push({ action: '入职并开始缴纳社保', goal: '积累稳定就业记录', time: '持续6个月+', effect: '满足绝大多数银行信用贷社保门槛' });
+  else if (hasSocial && socialMonths < 12)
+    advSuggestions.push({ action: `继续缴纳社保至12个月`, goal: '满足股份制银行最优等级门槛', time: `${12-socialMonths}个月`, effect: '可申请招行/浦发/平安等主流产品' });
+  if (advSuggestions.length === 0)
+    advSuggestions.push({ action: '维持当前良好征信状态，择期申请最优产品', goal: '保持查询记录低水平', time: '持续', effect: '长期保持银行高评级客户资质' });
+
   return {
     summary: sorted.length > 0
       ? `基于完整资质数据，筛选出 ${sorted.length} 款可申请产品`
@@ -1728,6 +1778,11 @@ function localFallbackMatch(data) {
     count: sorted.length,
     key_risk: keyRisk,
     products: sorted,
+    advice: {
+      strengths:   advStrengths.slice(0, 4),
+      issues:      advIssues.slice(0, 4),
+      suggestions: advSuggestions.slice(0, 4),
+    },
   };
 }
 
@@ -2513,7 +2568,7 @@ ${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal)}
 - advice.suggestions列出2-4条具体可落地改善步骤，每条包含action+goal+time+effect`;
 
   try {
-    const raw = await callAI([{ role:'user', content: prompt }], 2000);
+    const raw = await callAI([{ role:'user', content: prompt }], 3500);
     const result = extractJson(raw);
     clearInterval(mlTimer);
 
