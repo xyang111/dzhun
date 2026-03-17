@@ -471,8 +471,8 @@ footer{
 }
 @media(max-width:480px){
   .hero h1{letter-spacing:1px}
-  .hero-steps{gap:4px}
-  .hs-step{font-size:11px}
+  .hero-steps{display:grid;grid-template-columns:1fr 1fr;gap:12px 8px;justify-items:start;margin-bottom:36px}
+  .hs-step{font-size:12px;width:100%}
   .query-grid{grid-template-columns:1fr 1fr}
   .summary-bar{grid-template-columns:repeat(2,1fr);gap:10px}
   .sb-val{font-size:18px}
@@ -557,10 +557,18 @@ footer{
 .iib-val{font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .iib-idno{font-family:monospace;letter-spacing:2px;font-size:13px;color:var(--gold-light)}
 @media(max-width:700px){
-  .id-info-bar{grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px}
+  .id-info-bar{grid-template-columns:1fr 1fr;gap:8px 12px;padding:14px 16px}
   .iib-divider{display:none}
-  .iib-item{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+  .iib-item{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.07);border-radius:8px;background:rgba(255,255,255,.04)}
   .iib-item:nth-last-child(-n+2){border-bottom:none}
+  .iib-val{font-size:13px}
+}
+@media(max-width:480px){
+  .id-info-bar{grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px}
+  .iib-icon{width:26px;height:26px;font-size:14px}
+  .iib-val{font-size:12px}
+  .iib-idno{font-size:11px;letter-spacing:1px}
+  .iib-label{font-size:9px}
 }
 
 /* ── EMAIL BOX ── */
@@ -2881,7 +2889,7 @@ function maskIdNo(idNo) {
 function renderIdInfo(data) {
   const bar = document.getElementById('idInfoBar');
   if (!data.person_name && !data.id_number) return;
-  bar.style.display = 'flex';
+  bar.style.display = 'grid';
   document.getElementById('iib-name').textContent = data.person_name || '--';
   document.getElementById('iib-idno').textContent = maskIdNo(data.id_number);
   // Store full id for email report
