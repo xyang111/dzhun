@@ -262,7 +262,7 @@ nav{
 /* Summary bar */
 .summary-bar{
   background:var(--navy);border-radius:12px;padding:18px 22px;
-  display:grid;grid-template-columns:repeat(3,1fr);gap:16px;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:16px;
   margin-bottom:20px;
 }
 .sb-item{text-align:center}
@@ -400,7 +400,7 @@ footer{
 @media(max-width:768px){
   .query-grid{grid-template-columns:1fr 1fr}
   .products-grid{grid-template-columns:1fr}
-  .summary-bar{grid-template-columns:1fr 1fr 1fr}
+  .summary-bar{grid-template-columns:1fr 1fr}
   .match-header{flex-direction:column;gap:12px}
   .cta-box{flex-direction:column}
   .hs-arrow{display:none}
@@ -408,7 +408,7 @@ footer{
 @media(max-width:480px){
   .hero h1{letter-spacing:1px}
   .query-grid{grid-template-columns:1fr 1fr}
-  .summary-bar{grid-template-columns:repeat(3,1fr);gap:10px}
+  .summary-bar{grid-template-columns:repeat(2,1fr);gap:10px}
   .sb-val{font-size:18px}
   .card-body{padding:16px}
   .rs-body{padding:12px 16px}
@@ -694,6 +694,7 @@ footer{
           <div class="sb-item"><div class="sb-val" id="sumLoans">--</div><div class="sb-label">未结清贷款笔数</div></div>
           <div class="sb-item"><div class="sb-val" id="sumCards">--</div><div class="sb-label">未销户信用卡数</div></div>
           <div class="sb-item"><div class="sb-val" id="sumMonthly">--</div><div class="sb-label">月还款估算</div></div>
+          <div class="sb-item"><div class="sb-val" id="sumDebtRatio" style="font-size:18px">--</div><div class="sb-label">月还款负债率</div><div class="sb-debt-hint" id="sumDebtHint" style="font-size:10px;margin-top:3px;opacity:.7"></div></div>
         </div>
 
         <!-- Warn box (if any) -->
@@ -1242,21 +1243,6 @@ const BANK_PRODUCTS = [
     workTypes: null,  // null=不限
   },
   {
-    id: 'xmgjyh',
-    bank: '厦门国际银行', product: '小微E贷', emoji: '🌊',
-    rate: '5.5%-8%', amount: '最高200万',
-    maxQ3: 99, maxQ6: null, maxDebt: null, minIncome: 5000,
-    overdue: 'mild', social: false,
-    conditions: '营业执照≥2年；个体工商户/小微企业主；纯信用无抵押',
-    bonus: '个体工商户专属；全国罕见无抵押纯信用；查询次数要求宽松',
-    tags: ['个体工商户专属', '纯信用', '额度高'],
-    type: 'bank',
-    minSocialMonths: null,  // 最低社保月数
-    minProvident: null,  // 最低公积金月缴基数(元)
-    minEdu: 'none',  // none/high/college/bachelor/master
-    workTypes: ['self'],  // null=不限
-  },
-  {
     id: 'zljr',
     bank: '招联消费金融', product: '好期贷', emoji: '📱',
     rate: '7.2%-24%', amount: '最高20万',
@@ -1265,21 +1251,6 @@ const BANK_PRODUCTS = [
     conditions: '有稳定收入；历史逾期已还清可申请；查询次数基本不影响',
     bonus: '银行全拒后保底首选；秒批到账；持牌消费金融机构',
     tags: ['持牌机构', '查询不限', '保底首选'],
-    type: 'finance',
-    minSocialMonths: null,  // 最低社保月数
-    minProvident: null,  // 最低公积金月缴基数(元)
-    minEdu: 'none',  // none/high/college/bachelor/master
-    workTypes: null,  // null=不限
-  },
-  {
-    id: 'msjr',
-    bank: '马上消费金融', product: '安逸花', emoji: '🎯',
-    rate: '7.2%-24%', amount: '最高20万',
-    maxQ3: 99, maxQ6: null, maxDebt: 85, minIncome: 1500,
-    overdue: 'mild', social: false,
-    conditions: '有收入来源；无当前逾期即可；门槛最低',
-    bonus: '门槛最低；查询次数基本不影响；最后保底',
-    tags: ['门槛最低', '查询不限', '最后保底'],
     type: 'finance',
     minSocialMonths: null,  // 最低社保月数
     minProvident: null,  // 最低公积金月缴基数(元)
@@ -1572,8 +1543,8 @@ function localFallbackMatch(data) {
     // 负债率扣分
     const _loans2 = (data.loans||[]).filter(l=>l.status!=='结清'&&l.status!=='已结清');
   const _cards2 = (data.cards||[]).filter(c=>c.status!=='销户'&&c.status!=='已销户');
-  const _tm = _loans2.reduce((s,l)=>s+(l.is_revolving?Math.round((l.balance||0)/12):(l.monthly||0)),0)
-            + _cards2.reduce((s,c)=>s+Math.round((c.limit||0)*0.05),0);
+  const _tm = _loans2.reduce((s,l)=>s+Math.round((l.balance||0)/10),0)
+            + _cards2.reduce((s,c)=>s+Math.round((c.used||0)*0.1),0);
   const debtRatio = income > 0 && _tm > 0 ? Math.round(_tm / income * 100) : 0;
     if (p.maxDebt && debtRatio > 0 && income > 0) {
       if (debtRatio > p.maxDebt * 0.9)       score -= 15;
@@ -1907,15 +1878,16 @@ function renderResult(data) {
   // Calculate query counts from raw records (frontend, exact date math)
   const q = calcQueryCounts(data.query_records || []);
 
-  // Summary bar - use balance field (renamed from principal)
-  const totalMonthly = loans.reduce((s, l) => {
-    if (l.is_revolving) return s + Math.round((l.balance || 0) / 12);
-    return s + (l.monthly || 0);
-  }, 0) + cards.reduce((s, c) => s + Math.round((c.limit || 0) * 0.05), 0);
+  // Summary bar - 月还款 = 贷款余额/10 + 信用卡已使用额度*10%
+  const totalMonthly = loans.reduce((s, l) => s + Math.round((l.balance || 0) / 10), 0)
+    + cards.reduce((s, c) => s + Math.round((c.used || 0) * 0.1), 0);
 
   document.getElementById('sumLoans').textContent = loans.length + ' 笔';
   document.getElementById('sumCards').textContent = cards.length + ' 张';
   document.getElementById('sumMonthly').textContent = totalMonthly > 0 ? '≈ ' + fmt(Math.round(totalMonthly)) + ' 元' : '--';
+  document.getElementById('sumDebtRatio').textContent = '--';
+  document.getElementById('sumDebtRatio').style.color = 'var(--gold)';
+  document.getElementById('sumDebtHint').textContent = '填写月收入后显示';
 
   // Warn/notice box — reset first
   document.getElementById('warnBox').style.display = 'none';
@@ -2068,10 +2040,8 @@ async function startMatching() {
   const cards = (data.cards || []).filter(c => c.status !== '销户' && c.status !== '已销户');
   const q = calcQueryCounts(data.query_records || []);
 
-  const totalMonthly = loans.reduce((s, l) => {
-    if (l.is_revolving) return s + Math.round((l.balance || 0) / 12);
-    return s + (l.monthly || 0);
-  }, 0) + cards.reduce((s, c) => s + Math.round((c.limit || 0) * 0.05), 0);
+  const totalMonthly = loans.reduce((s, l) => s + Math.round((l.balance || 0) / 10), 0)
+    + cards.reduce((s, c) => s + Math.round((c.used || 0) * 0.1), 0);
   const onlineCount = loans.filter(l => l.type === 'online').length;
   const totalCardLimit = cards.reduce((s, c) => s + (c.limit || 0), 0);
   const totalCardUsed = cards.reduce((s, c) => s + (c.used || 0), 0);
@@ -2098,9 +2068,27 @@ async function startMatching() {
   // Collect user-filled info
   const userInfo = collectInfoData();
   const incomeStr     = userInfo.income ? userInfo.income + '元/月' : '未填写';
-  const debtRatio     = userInfo.income && totalMonthly > 0
-    ? Math.round(totalMonthly / userInfo.income * 100) + '%'
-    : '未知（未填收入）';
+  const debtRatioPct  = userInfo.income && totalMonthly > 0
+    ? Math.round(totalMonthly / userInfo.income * 100)
+    : null;
+  const debtRatio     = debtRatioPct != null ? debtRatioPct + '%' : '未知（未填收入）';
+
+  // Update debt ratio display in summary bar
+  if (debtRatioPct != null) {
+    const drEl   = document.getElementById('sumDebtRatio');
+    const drHint = document.getElementById('sumDebtHint');
+    drEl.textContent = debtRatioPct + '%';
+    if (debtRatioPct > 70) {
+      drEl.style.color = 'var(--red)';
+      drHint.textContent = '⚠️ 警告：负债率过高';
+    } else if (debtRatioPct >= 50) {
+      drEl.style.color = 'var(--amber)';
+      drHint.textContent = '⚡ 预警：接近风险线';
+    } else {
+      drEl.style.color = 'var(--green)';
+      drHint.textContent = '✅ 安全线以内';
+    }
+  }
 
   const prompt = `你是拥有15年经验的中国信贷产品专家，精通各大银行信贷审批逻辑和准入条件。请基于客户的真实征信数据和基本信息，严格按银行准入规则为客户匹配最优产品。
 
@@ -2116,7 +2104,7 @@ async function startMatching() {
 【客户征信数据（来自人行征信报告AI识别）】
 未结清贷款：${loans.length}笔（其中消费金融/网贷${onlineCount}笔）
 未销户信用卡：${cards.length}张
-月还款估算：${fmt(Math.round(totalMonthly))}元（贷款月供+信用卡5%折算）
+月还款估算：${fmt(Math.round(totalMonthly))}元（贷款余额/10+信用卡已用额度×10%）
 负债率：${debtRatio}
 信用卡使用率：${cardUtil}%
 当前逾期：${data.overdue_current || 0}笔
@@ -2136,7 +2124,7 @@ ${cardDesc}
 ${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineCount)}
 
 【一票否决规则（已在上方产品标记，再次确认）】
-① 当前逾期>0笔 → 排除所有 overdue=zero 的产品，仅保留招联/马上消费金融
+① 当前逾期>0笔 → 排除所有 overdue=zero 的产品，仅保留招联消费金融
 ② 近3月查询 > 产品maxQ3 → 直接排除，通过率=0，不得出现在结果中
 ③ 近6月查询 > 产品maxQ6 → 直接排除，通过率=0，不得出现在结果中
 ④ 负债率 > 产品maxDebt → 直接排除
@@ -2434,8 +2422,8 @@ function buildReportText() {
   const totalLoanBal  = loans.reduce((s,l)=>s+(l.balance||0),0);
   const totalCardLimit= cards.reduce((s,c)=>s+(c.limit||0),0);
   const totalCardUsed = cards.reduce((s,c)=>s+(c.used||0),0);
-  const totalMonthly  = loans.reduce((s,l)=>s+(l.monthly||0),0)
-    + cards.reduce((s,c)=>s+Math.round((c.limit||0)*0.05),0);
+  const totalMonthly  = loans.reduce((s,l)=>s+Math.round((l.balance||0)/10),0)
+    + cards.reduce((s,c)=>s+Math.round((c.used||0)*0.1),0);
 
   const productLines = products.map((p, i) =>
     `  ${i+1}. ${p.emoji||'🏦'} ${p.bank} · ${p.product}`
