@@ -386,6 +386,63 @@ nav{
   margin-bottom:12px;
 }
 
+/* ── ANALYSIS REPORT ── */
+.risk-banner{
+  border-radius:12px;padding:16px 20px;margin-bottom:16px;
+  display:flex;align-items:center;gap:14px;
+}
+.rb-icon{font-size:28px;flex-shrink:0}
+.rb-level{font-size:18px;font-weight:700;font-family:'Noto Serif SC',serif}
+.rb-desc{font-size:13px;opacity:.85;margin-top:3px}
+.risk-healthy  {background:var(--green-light);border:1px solid rgba(42,122,85,.3);color:var(--green)}
+.risk-mild     {background:#fff8e0;border:1px solid rgba(184,134,11,.3);color:var(--amber)}
+.risk-medium   {background:#fff3e0;border:1px solid rgba(230,126,34,.35);color:#c0601a}
+.risk-high     {background:#fff0f0;border:1px solid rgba(192,57,43,.3);color:var(--red)}
+
+.analysis-section{
+  background:var(--white);border-radius:14px;
+  border:1px solid var(--gray-light);margin-bottom:14px;overflow:hidden;
+}
+.as-header{
+  padding:13px 20px;border-bottom:1px solid var(--gray-light);
+  display:flex;align-items:center;gap:10px;background:var(--off-white);
+}
+.as-icon{font-size:16px}
+.as-title{font-size:13px;font-weight:700;color:var(--navy)}
+.as-body{padding:14px 20px}
+.as-item{
+  display:flex;gap:10px;padding:9px 0;
+  border-bottom:1px solid var(--gray-light);font-size:13px;
+}
+.as-item:last-child{border-bottom:none}
+.as-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.as-dot-green{background:var(--green)}
+.as-dot-red{background:var(--red)}
+.as-dot-amber{background:var(--amber)}
+.as-dot-navy{background:var(--navy)}
+.as-point{font-weight:600;color:var(--navy);margin-bottom:3px}
+.as-impact{color:var(--text-mid);line-height:1.6}
+.as-step-num{
+  width:22px;height:22px;border-radius:50%;background:var(--navy);
+  color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;margin-top:2px;
+}
+.as-step-meta{font-size:11px;color:var(--gray-mid);margin-top:4px}
+.as-step-tag{
+  display:inline-block;background:var(--gold-pale);color:var(--text-mid);
+  font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;margin-right:4px;
+}
+.as-redline{
+  background:#fff0f0;border-radius:7px;padding:8px 12px;
+  font-size:12px;color:var(--red);font-weight:600;margin-bottom:6px;
+  display:flex;align-items:center;gap:6px;
+}
+.as-post-opt{
+  background:var(--gold-pale);border-radius:10px;padding:14px 16px;
+  font-size:13px;color:var(--text-mid);line-height:1.7;
+  border-left:3px solid var(--gold);
+}
+
 /* FOOTER */
 footer{
   background:var(--navy);padding:40px 5vw 24px;
@@ -954,6 +1011,44 @@ footer{
           </div>
 
           <div class="products-grid" id="productsGrid"></div>
+
+          <!-- 征信全面分析报告 -->
+          <div id="analysisReport" style="display:none;margin-top:20px">
+
+            <!-- 风险等级 -->
+            <div id="riskLevelBanner" class="risk-banner"></div>
+
+            <!-- 征信优点 -->
+            <div class="analysis-section" id="strengthsSection" style="display:none">
+              <div class="as-header"><span class="as-icon">✅</span><span class="as-title">征信核心优点</span></div>
+              <div class="as-body" id="strengthsBody"></div>
+            </div>
+
+            <!-- 征信问题 -->
+            <div class="analysis-section" id="weaknessesSection" style="display:none">
+              <div class="as-header"><span class="as-icon">⚠️</span><span class="as-title">征信核心问题</span></div>
+              <div class="as-body" id="weaknessesBody"></div>
+            </div>
+
+            <!-- 不可申请产品 -->
+            <div class="analysis-section" id="rejectedSection" style="display:none">
+              <div class="as-header"><span class="as-icon">❌</span><span class="as-title">不可申请的产品类型</span></div>
+              <div class="as-body" id="rejectedBody"></div>
+            </div>
+
+            <!-- 征信优化方案 -->
+            <div class="analysis-section" id="optimizationSection" style="display:none">
+              <div class="as-header"><span class="as-icon">📋</span><span class="as-title">征信优化方案（可落地）</span></div>
+              <div class="as-body" id="optimizationBody"></div>
+            </div>
+
+            <!-- 优化后可匹配产品 -->
+            <div class="analysis-section" id="postOptSection" style="display:none">
+              <div class="as-header"><span class="as-icon">🚀</span><span class="as-title">优化后可匹配的产品</span></div>
+              <div class="as-body"><div class="as-post-opt" id="postOptBody"></div></div>
+            </div>
+
+          </div>
 
           <div class="cta-box">
             <div class="cb-left">
@@ -2212,7 +2307,7 @@ async function startMatching() {
     }
   }
 
-  const prompt = `你是拥有15年经验的中国信贷产品专家，精通各大银行信贷审批逻辑和准入条件。请基于客户的真实征信数据和基本信息，严格按银行准入规则为客户匹配最优产品。
+  const prompt = `你是具备10年银行信贷审批经验的专家+贷款产品匹配顾问，仅基于本次上传的人行征信数据完成全流程分析。所有结论必须有征信数据支撑，禁止主观臆断，禁止使用"可能、大概、也许"等模糊词汇，结论必须明确。
 
 【客户基本信息（用户填写）】
 月收入：${incomeStr}
@@ -2243,48 +2338,68 @@ ${loanDesc}
 【信用卡明细】
 ${cardDesc}
 
-【银行产品准入条件（已根据客户数据预判，❌标记的产品被一票否决，不得推荐）】
+【银行通用风控红线（必须对照客户数据逐项判断）】
+① 网贷机构数≤3家（当前：${onlineInstTotal}家）
+② 近3个月审批查询≤6次（当前：${q3}次）
+③ 无当前逾期/连三累六（当前逾期：${data.overdue_current || 0}笔）
+④ 总月供≤月收入70%（当前负债率：${debtRatio}）
+⑤ 信用卡使用率≤70%（当前：${cardUtil}%）
+
+【银行产品准入条件（已根据客户数据预判，❌标记的产品被一票否决）】
 ${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal)}
 
-【一票否决规则（已在上方产品标记，再次确认）】
+【一票否决规则】
 ① 当前逾期>0笔 → 排除所有 overdue=zero 的产品，仅保留招联消费金融
-② 近3月查询 > 产品maxQ3 → 直接排除，通过率=0，不得出现在结果中
-③ 近6月查询 > 产品maxQ6 → 直接排除，通过率=0，不得出现在结果中
+② 近3月查询 > 产品maxQ3 → 直接排除，通过率=0
+③ 近6月查询 > 产品maxQ6 → 直接排除，通过率=0
 ④ 负债率 > 产品maxDebt → 直接排除
-⑤ 网贷机构数>3家 → 所有银行产品通过率下调20%；≤3家无影响
+⑤ 网贷机构数>3家 → 所有银行产品通过率下调20%
 
-【通过率计算（仅对未被排除的产品计算）】
+【通过率计算】
 基础65 + 查询距上限远(+15) + 查询距上限较近(+5) + 查询接近上限(-10)
 无任何逾期(+10) | 公积金在缴(+8) | 国企/事业/公务员(+10) | 有房产(+8)
 网贷机构数=3家(-10) | 网贷机构数>3家(-20) | 信用卡使用率>80%(-10)
 80分以上=高概率 | 60-79=中概率 | 40-59=低概率 | <40不推荐
 
-【输出原则】
-- ❌标记的产品一律不出现在结果中
-- 宁可推2-3款真实可做的，不凑数
-- 通过率要真实，查询严重超标时明确告知养征信
-- 推荐理由结合客户实际数据，不写通用废话
-
 严格返回JSON，不含任何其他文字和markdown代码块：
 {
   "summary": "1-2句总体评估，50字内",
-  "count": 6,
-  "key_risk": "最大风险点，20字内，无则返回空字符串",
+  "count": 3,
+  "key_risk": "最大风险点20字内，无则空字符串",
+  "risk_level": "健康",
+  "strengths": [
+    {"point": "无当前逾期记录", "impact": "还款意愿强，银行审批通过率高"}
+  ],
+  "weaknesses": [
+    {"point": "近3月查询8次", "impact": "超多数银行≤6次红线，会导致审批被拒"}
+  ],
+  "redlines": ["当前无绝对红线"],
   "products": [
     {
-      "bank": "银行名",
-      "product": "产品名",
-      "rate": "利率范围",
-      "emoji": "🏦",
-      "prob": "高",
-      "probPct": 85,
-      "amount": "最高XX万",
-      "tags": ["标签1", "标签2"],
-      "reason": "30字内推荐理由"
+      "bank": "银行名", "product": "产品名", "rate": "利率范围",
+      "emoji": "🏦", "prob": "高", "probPct": 85,
+      "amount": "最高XX万", "tags": ["标签1"],
+      "reason": "30字内推荐理由，必须对应客户具体数据"
     }
-  ]
+  ],
+  "rejected_products": [
+    {"type": "国有大行信用贷", "reason": "近3月查询X次，超大行≤6次红线，直接拒贷"}
+  ],
+  "optimization": [
+    {
+      "step": "结清X家小贷并注销账户",
+      "goal": "网贷机构数从X家降至3家以内",
+      "time": "1个月",
+      "unlock": "优化后可申请股份制银行产品"
+    }
+  ],
+  "post_optimization": "优化完成后，可申请招行、浦发等股份制银行信用贷，预计额度XX万、利率XX%"
 }
-排序：通过率高优先，同等通过率利率低优先，最多7个产品`;
+注意：
+- products排序：通过率高优先，同等通过率利率低优先，最多7款；宁少勿滥
+- risk_level只能是：健康 / 轻微瑕疵 / 中度风险 / 高风险
+- weaknesses和rejected_products必须引用客户具体数据，不写通用废话
+- optimization每个步骤必须可落地，并说明优化目标和所需时间`;
 
   try {
     const raw = await callAI([{ role:'user', content: prompt }], 2000);
@@ -2312,17 +2427,65 @@ ${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal)}
 
 function renderMatchResult(r) {
   if (!r) return;
-  window._lastMatchResult = r; // store for email report
+  window._lastMatchResult = r;
   document.getElementById('matchCount').textContent = r.count || (r.products ? r.products.length : 0);
   document.getElementById('matchSub').textContent = r.summary || '基于您的征信数据匹配结果';
 
-  if (r.key_risk) {
-    const riskEl = document.createElement('div');
-    riskEl.className = 'warn-box';
-    riskEl.style.marginBottom = '16px';
-    riskEl.innerHTML = '⚠️ 主要风险：' + r.key_risk;
-    document.getElementById('productsGrid').before(riskEl);
+  // ── 风险等级 banner ──
+  const riskMap = {
+    '健康':    { cls:'risk-healthy', icon:'🟢', label:'征信状态：健康',    desc:'整体征信良好，无明显风控风险' },
+    '轻微瑕疵':{ cls:'risk-mild',    icon:'🟡', label:'征信状态：轻微瑕疵', desc:'存在轻微不足，不影响主要银行产品申请' },
+    '中度风险':{ cls:'risk-medium',  icon:'🟠', label:'征信状态：中度风险', desc:'存在影响银行审批的关键问题，需优化后再申请' },
+    '高风险':  { cls:'risk-high',    icon:'🔴', label:'征信状态：高风险',   desc:'已触碰银行硬红线，当前申请银行产品大概率拒贷' },
+  };
+  const rl   = r.risk_level || '轻微瑕疵';
+  const rDef = riskMap[rl] || riskMap['轻微瑕疵'];
+  const banner = document.getElementById('riskLevelBanner');
+  banner.className = 'risk-banner ' + rDef.cls;
+  banner.innerHTML = `<span class="rb-icon">${rDef.icon}</span><div><div class="rb-level">${rDef.label}</div><div class="rb-desc">${r.key_risk || rDef.desc}</div></div>`;
+
+  // ── 征信优点 ──
+  if ((r.strengths || []).length > 0) {
+    document.getElementById('strengthsSection').style.display = 'block';
+    document.getElementById('strengthsBody').innerHTML = r.strengths.map(s =>
+      `<div class="as-item"><div class="as-dot as-dot-green"></div><div><div class="as-point">${s.point}</div><div class="as-impact">${s.impact}</div></div></div>`
+    ).join('');
   }
+
+  // ── 征信问题 ──
+  if ((r.weaknesses || []).length > 0) {
+    document.getElementById('weaknessesSection').style.display = 'block';
+    const redlines = r.redlines || [];
+    const redHtml  = redlines.length > 0
+      ? redlines.map(x => `<div class="as-redline">🚫 绝对红线：${x}</div>`).join('') : '';
+    document.getElementById('weaknessesBody').innerHTML = redHtml + r.weaknesses.map(w =>
+      `<div class="as-item"><div class="as-dot as-dot-red"></div><div><div class="as-point">${w.point}</div><div class="as-impact">${w.impact}</div></div></div>`
+    ).join('');
+  }
+
+  // ── 不可申请产品 ──
+  if ((r.rejected_products || []).length > 0) {
+    document.getElementById('rejectedSection').style.display = 'block';
+    document.getElementById('rejectedBody').innerHTML = r.rejected_products.map(rp =>
+      `<div class="as-item"><div class="as-dot as-dot-amber"></div><div><div class="as-point">${rp.type}</div><div class="as-impact">${rp.reason}</div></div></div>`
+    ).join('');
+  }
+
+  // ── 征信优化方案 ──
+  if ((r.optimization || []).length > 0) {
+    document.getElementById('optimizationSection').style.display = 'block';
+    document.getElementById('optimizationBody').innerHTML = r.optimization.map((o, i) =>
+      `<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${o.step}</div><div class="as-impact">${o.goal}</div><div class="as-step-meta"><span class="as-step-tag">⏱ ${o.time}</span><span class="as-step-tag">🎯 ${o.unlock}</span></div></div></div>`
+    ).join('');
+  }
+
+  // ── 优化后产品 ──
+  if (r.post_optimization) {
+    document.getElementById('postOptSection').style.display = 'block';
+    document.getElementById('postOptBody').textContent = r.post_optimization;
+  }
+
+  document.getElementById('analysisReport').style.display = 'block';
 
   document.getElementById('productsGrid').innerHTML = (r.products || []).map(p => {
     const pct = p.probPct || 0;
@@ -2710,6 +2873,12 @@ function restartAll() {
   // Remove any injected risk box
   const riskBox = document.querySelector('#matchResult .warn-box');
   if (riskBox) riskBox.remove();
+
+  // Reset analysis sections
+  document.getElementById('analysisReport').style.display = 'none';
+  ['strengthsSection','weaknessesSection','rejectedSection','optimizationSection','postOptSection']
+    .forEach(id => { document.getElementById(id).style.display = 'none'; });
+  window._onlineInstTotal = undefined;
 
   // Reset info form fields
   ['if-income','if-social-months','if-provident'].forEach(id => {
