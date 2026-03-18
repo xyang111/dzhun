@@ -1197,6 +1197,12 @@ footer{
 // ═══════════════════════════════════════════
 const PROXY_URL = 'https://api.dzhun.com.cn';
 
+// HTML 转义工具（防止 AI 返回内容中含恶意标签）
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 // ═══════════════════════════════════════════
 // 产品库（唯一数据源，新增/修改产品只改这里）
 // ═══════════════════════════════════════════
@@ -2783,7 +2789,7 @@ function renderMatchResult(r) {
   const rDef = riskMap[rl] || riskMap['轻微瑕疵'];
   const banner = document.getElementById('riskLevelBanner');
   banner.className = 'risk-banner ' + rDef.cls;
-  banner.innerHTML = `<span class="rb-icon">${rDef.icon}</span><div><div class="rb-level">${rDef.label}</div><div class="rb-desc">${r.key_risk || rDef.desc}</div></div>`;
+  banner.innerHTML = `<span class="rb-icon">${rDef.icon}</span><div><div class="rb-level">${rDef.label}</div><div class="rb-desc">${esc(r.key_risk) || rDef.desc}</div></div>`;
 
   // ── 专属优化建议 ──
   const adv = r.advice;
@@ -2791,17 +2797,17 @@ function renderMatchResult(r) {
     document.getElementById('adviceSection').style.display = 'block';
     if ((adv.strengths || []).length > 0) {
       document.getElementById('adviceStrengthsBody').innerHTML = adv.strengths.map(s =>
-        `<div class="as-item"><div class="as-dot as-dot-green"></div><div><div class="as-point">${s.point}</div><div class="as-impact">${s.impact}</div></div></div>`
+        `<div class="as-item"><div class="as-dot as-dot-green"></div><div><div class="as-point">${esc(s.point)}</div><div class="as-impact">${esc(s.impact)}</div></div></div>`
       ).join('');
     }
     if ((adv.issues || []).length > 0) {
       document.getElementById('adviceIssuesBody').innerHTML = adv.issues.map(s =>
-        `<div class="as-item"><div class="as-dot as-dot-red"></div><div><div class="as-point">${s.point}</div><div class="as-impact">${s.impact}</div></div></div>`
+        `<div class="as-item"><div class="as-dot as-dot-red"></div><div><div class="as-point">${esc(s.point)}</div><div class="as-impact">${esc(s.impact)}</div></div></div>`
       ).join('');
     }
     if ((adv.suggestions || []).length > 0) {
       document.getElementById('adviceSuggestionsBody').innerHTML = adv.suggestions.map((s, i) =>
-        `<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${s.action}</div><div class="as-impact">${s.goal}</div><div class="as-step-meta"><span class="as-step-tag">⏱ ${s.time}</span><span class="as-step-tag">✨ ${s.effect}</span></div></div></div>`
+        `<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${esc(s.action)}</div><div class="as-impact">${esc(s.goal)}</div><div class="as-step-meta"><span class="as-step-tag">⏱ ${esc(s.time)}</span><span class="as-step-tag">✨ ${esc(s.effect)}</span></div></div></div>`
       ).join('');
     }
   }
@@ -2810,7 +2816,7 @@ function renderMatchResult(r) {
   if ((r.strengths || []).length > 0) {
     document.getElementById('strengthsSection').style.display = 'block';
     document.getElementById('strengthsBody').innerHTML = r.strengths.map(s =>
-      `<div class="as-item"><div class="as-dot as-dot-green"></div><div><div class="as-point">${s.point}</div><div class="as-impact">${s.impact}</div></div></div>`
+      `<div class="as-item"><div class="as-dot as-dot-green"></div><div><div class="as-point">${esc(s.point)}</div><div class="as-impact">${esc(s.impact)}</div></div></div>`
     ).join('');
   }
 
@@ -2819,9 +2825,9 @@ function renderMatchResult(r) {
     document.getElementById('weaknessesSection').style.display = 'block';
     const redlines = r.redlines || [];
     const redHtml  = redlines.length > 0
-      ? redlines.map(x => `<div class="as-redline">🚫 绝对红线：${x}</div>`).join('') : '';
+      ? redlines.map(x => `<div class="as-redline">🚫 绝对红线：${esc(x)}</div>`).join('') : '';
     document.getElementById('weaknessesBody').innerHTML = redHtml + r.weaknesses.map(w =>
-      `<div class="as-item"><div class="as-dot as-dot-red"></div><div><div class="as-point">${w.point}</div><div class="as-impact">${w.impact}</div></div></div>`
+      `<div class="as-item"><div class="as-dot as-dot-red"></div><div><div class="as-point">${esc(w.point)}</div><div class="as-impact">${esc(w.impact)}</div></div></div>`
     ).join('');
   }
 
@@ -2829,7 +2835,7 @@ function renderMatchResult(r) {
   if ((r.rejected_products || []).length > 0) {
     document.getElementById('rejectedSection').style.display = 'block';
     document.getElementById('rejectedBody').innerHTML = r.rejected_products.map(rp =>
-      `<div class="as-item"><div class="as-dot as-dot-amber"></div><div><div class="as-point">${rp.type}</div><div class="as-impact">${rp.reason}</div></div></div>`
+      `<div class="as-item"><div class="as-dot as-dot-amber"></div><div><div class="as-point">${esc(rp.type)}</div><div class="as-impact">${esc(rp.reason)}</div></div></div>`
     ).join('');
   }
 
@@ -2837,7 +2843,7 @@ function renderMatchResult(r) {
   if ((r.optimization || []).length > 0) {
     document.getElementById('optimizationSection').style.display = 'block';
     document.getElementById('optimizationBody').innerHTML = r.optimization.map((o, i) =>
-      `<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${o.step}</div><div class="as-impact">${o.goal}</div><div class="as-step-meta"><span class="as-step-tag">⏱ ${o.time}</span><span class="as-step-tag">🎯 ${o.unlock}</span></div></div></div>`
+      `<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${esc(o.step)}</div><div class="as-impact">${esc(o.goal)}</div><div class="as-step-meta"><span class="as-step-tag">⏱ ${esc(o.time)}</span><span class="as-step-tag">🎯 ${esc(o.unlock)}</span></div></div></div>`
     ).join('');
   }
 
@@ -2855,12 +2861,12 @@ function renderMatchResult(r) {
     return `
       <div class="product-card">
         <div class="pc-top">
-          <span class="pc-emoji">${p.emoji || '🏦'}</span>
+          <span class="pc-emoji">${esc(p.emoji) || '🏦'}</span>
           <div class="pc-info">
-            <div class="pc-bank">${p.bank}</div>
-            <div class="pc-product">${p.product}</div>
+            <div class="pc-bank">${esc(p.bank)}</div>
+            <div class="pc-product">${esc(p.product)}</div>
           </div>
-          <div class="pc-rate">${p.rate}</div>
+          <div class="pc-rate">${esc(p.rate)}</div>
         </div>
         <div class="pc-prob">
           <div class="pc-prob-bar">
@@ -2869,11 +2875,11 @@ function renderMatchResult(r) {
           <div class="pc-prob-val">${pct}%</div>
         </div>
         <div class="pc-tags">
-          <span class="badge ${p.prob === '高' ? 'badge-ok' : p.prob === '中' ? 'badge-warn' : 'badge-bad'}">${p.prob}概率</span>
-          ${(p.tags || []).map(t => `<span class="pc-tag">${t}</span>`).join('')}
-          <span class="pc-tag">${p.amount}</span>
+          <span class="badge ${p.prob === '高' ? 'badge-ok' : p.prob === '中' ? 'badge-warn' : 'badge-bad'}">${esc(p.prob)}概率</span>
+          ${(p.tags || []).map(t => `<span class="pc-tag">${esc(t)}</span>`).join('')}
+          <span class="pc-tag">${esc(p.amount)}</span>
         </div>
-        <div class="pc-reason">${p.reason || ''}</div>
+        <div class="pc-reason">${esc(p.reason) || ''}</div>
       </div>
     `;
   }).join('');
