@@ -549,8 +549,8 @@ footer{
 .iib-item:last-child{padding-right:0}
 .iib-divider{width:1px;height:28px;background:rgba(255,255,255,.15);flex-shrink:0}
 .iib-icon{
-  font-size:16px;flex-shrink:0;
-  width:32px;height:32px;border-radius:8px;
+  font-size:15px;flex-shrink:0;
+  width:28px;height:28px;border-radius:7px;
   background:rgba(255,255,255,.08);
   display:flex;align-items:center;justify-content:center;
 }
@@ -806,7 +806,7 @@ footer{
           </div>
           <div class="iib-divider"></div>
           <div class="iib-item">
-            <span class="iib-icon" style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.75);letter-spacing:0">年龄</span>
+            <span class="iib-icon">📅</span>
             <div>
               <div class="iib-label">实际年龄</div>
               <div class="iib-val" id="iib-age">--</div>
@@ -910,7 +910,7 @@ footer{
         <div class="result-section" id="querySection" style="display:none">
           <div class="rs-header">
             <span class="rs-icon">🔍</span>
-            <span class="rs-title">查询记录（贷款审批 / 信用卡审批 / 担保审查，已排除贷后管理）</span>
+            <span class="rs-title">查询记录（贷款审批 / 信用卡审批，已排除贷后管理）</span>
           </div>
           <div class="rs-body">
             <div class="query-grid" id="queryGrid"></div>
@@ -2426,7 +2426,7 @@ function renderResult(data) {
       { label: '贷款审批 近1月', val: q.loan_1m,       ok: v => v <= 1, warn: v => v <= 2 },
       { label: '贷款审批 近3月', val: q.loan_3m,       ok: v => v <= 2, warn: v => v <= 4 },
       { label: '信用卡审批 近3月', val: q.loan_3m_card, ok: v => v <= 2, warn: v => v <= 4 },
-      { label: '贷款+信用卡+担保 近6月', val: q.loan_6m_total, ok: v => v <= 6, warn: v => v <= 12 },
+      { label: '贷款+信用卡 近6月', val: q.loan_6m_total, ok: v => v <= 6, warn: v => v <= 12 },
     ];
     document.getElementById('queryGrid').innerHTML = items.map(item => {
       const v = item.val;
@@ -3115,7 +3115,7 @@ function buildReportText() {
 【查询记录】
 贷款审批近1月：${q.loan_1m} 次  |  近3月：${q.loan_3m} 次
 信用卡审批近3月：${q.loan_3m_card} 次
-贷款+信用卡+担保 近6月合计：${q.loan_6m_total} 次
+贷款+信用卡 近6月合计：${q.loan_6m_total} 次
 
 ━━━━━━━━━━━━━━━━
 【贷款账户明细（未结清 ${loans.length} 笔）】
