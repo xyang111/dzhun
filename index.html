@@ -2747,9 +2747,19 @@ function renderMatchResult(r) {
     const nonMortgageDebt = loans2
       .filter(l => !l.name.includes('房') && !l.name.includes('住房') && !l.name.includes('按揭'))
       .reduce((s, l) => s + (l.balance || 0), 0);
-    // 范围：下限用50倍基准，上限用工作性质倍数
-    const estLo = income * 50 - nonMortgageDebt;
-    const estHi = income * mult - nonMortgageDebt;
+
+    // 征信质量折扣
+    const q = calcQueryCounts(_recognizedData?.query_records || []);
+    const q3loans = q.loan_3m || 0;
+    const activeLoanCount = loans2.length;
+    let qualityFactor = 1;
+    if (q3loans > 10)      qualityFactor *= 0.5;
+    else if (q3loans > 6)  qualityFactor *= 0.7;
+    if (activeLoanCount >= 5) qualityFactor *= 0.8;
+
+    // 范围：下限用30倍基准，上限用工作性质倍数，均乘以征信折扣
+    const estLo = (income * 30 - nonMortgageDebt) * qualityFactor;
+    const estHi = (income * mult - nonMortgageDebt) * qualityFactor;
     const el = document.getElementById('mrEstimate');
     if (el && income > 0) {
       el.style.display = 'block';
