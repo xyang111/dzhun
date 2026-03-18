@@ -806,7 +806,7 @@ footer{
           </div>
           <div class="iib-divider"></div>
           <div class="iib-item">
-            <span class="iib-icon">🎯</span>
+            <span class="iib-icon" style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.75);letter-spacing:0">年龄</span>
             <div>
               <div class="iib-label">实际年龄</div>
               <div class="iib-val" id="iib-age">--</div>
@@ -1083,7 +1083,7 @@ footer{
             <div>
               <div class="mh-count" id="matchCount">0</div>
               <div class="mh-count-label">款匹配产品</div>
-              <div id="mrEstimate" style="display:none;margin-top:6px;font-size:13px;color:#1e3a5f;background:rgba(255,215,0,0.12);border:1px solid rgba(255,180,0,0.3);border-radius:6px;padding:6px 12px;line-height:1.6"></div>
+              <div id="mrEstimate" style="display:none;margin-top:8px;font-size:13px;font-weight:600;color:#fff;background:rgba(200,169,110,0.18);border:1px solid rgba(200,169,110,0.45);border-radius:8px;padding:8px 14px;line-height:1.6"></div>
             </div>
           </div>
 
@@ -2227,6 +2227,35 @@ function fmt(n) {
   return Number(n).toLocaleString('zh-CN');
 }
 
+function shortenBankName(name) {
+  if (!name) return '--';
+  return name
+    .replace(/中国民生银行股份有限公司/g, '民生银行')
+    .replace(/上海浦东发展银行股份有限公司/g, '浦发银行')
+    .replace(/中国农业银行股份有限公司/g, '农业银行')
+    .replace(/中国工商银行股份有限公司/g, '工商银行')
+    .replace(/中国建设银行股份有限公司/g, '建设银行')
+    .replace(/中国邮政储蓄银行股份有限公司/g, '邮储银行')
+    .replace(/交通银行股份有限公司/g, '交通银行')
+    .replace(/招商银行股份有限公司/g, '招商银行')
+    .replace(/兴业银行股份有限公司/g, '兴业银行')
+    .replace(/平安银行股份有限公司/g, '平安银行')
+    .replace(/中信银行股份有限公司/g, '中信银行')
+    .replace(/光大银行股份有限公司/g, '光大银行')
+    .replace(/华夏银行股份有限公司/g, '华夏银行')
+    .replace(/广发银行股份有限公司/g, '广发银行')
+    .replace(/浦发银行股份有限公司/g, '浦发银行')
+    .replace(/民生银行股份有限公司/g, '民生银行')
+    .replace(/北京阳光消费金融股份有限公司/g, '阳光消费金融')
+    .replace(/马上消费金融股份有限公司/g, '马上消费金融')
+    .replace(/招联消费金融有限公司/g, '招联消费金融')
+    .replace(/股份有限公司|有限责任公司|有限公司|股份公司/g, '')
+    .replace(/信用卡中心/g, '')
+    .replace(/[厦门市|厦门|上海|北京|广州|深圳|重庆|成都|武汉|南京|杭州|西安|天津|苏州|郑州|长沙|宁波|青岛|济南|福州|合肥|福建]+(市)?分行/g, '')
+    .replace(/\s+/g, '')
+    .trim();
+}
+
 function renderResult(data) {
   // Filter: remove settled loans and cancelled cards
   const loans = (data.loans || []).filter(l => l.status !== '结清' && l.status !== '已结清');
@@ -2353,7 +2382,7 @@ function renderResult(data) {
 
       return `
         <tr>
-          <td>${l.name || '--'}${isRev ? '<span style="font-size:9px;background:#e8f4ed;color:#2a7a55;padding:1px 5px;border-radius:3px;margin-left:5px">循环授信</span>' : ''}</td>
+          <td>${shortenBankName(l.name)}${isRev ? '<span style="font-size:9px;background:#e8f4ed;color:#2a7a55;padding:1px 5px;border-radius:3px;margin-left:5px">循环授信</span>' : ''}</td>
           <td><span class="badge ${badgeCls}">${catLabel}</span></td>
           <td style="text-align:right;font-weight:600">${colLimit}</td>
           <td style="text-align:right;font-weight:600">${colBalance}</td>
@@ -2374,7 +2403,7 @@ function renderResult(data) {
       const utilColor = util == null ? 'var(--text-dark)' : util <= 30 ? 'var(--green)' : util <= 70 ? 'var(--amber)' : 'var(--red)';
       return `
         <tr>
-          <td>${c.name || '--'}</td>
+          <td>${shortenBankName(c.name)}</td>
           <td style="text-align:right">${c.limit ? fmt(c.limit) + '元' : '--'}</td>
           <td style="text-align:right">${c.used != null ? fmt(c.used) + '元' : '--'}</td>
           <td style="text-align:right;font-weight:600;color:${utilColor}">${util != null ? util + '%' : '--'}</td>
@@ -2709,19 +2738,25 @@ function renderMatchResult(r) {
     const nonMortgageDebt = loans2
       .filter(l => !l.name.includes('房') && !l.name.includes('住房') && !l.name.includes('按揭'))
       .reduce((s, l) => s + (l.balance || 0), 0);
-    const estimated = income * mult - nonMortgageDebt;
+    // 范围：下限用50倍基准，上限用工作性质倍数
+    const estLo = income * 50 - nonMortgageDebt;
+    const estHi = income * mult - nonMortgageDebt;
     const el = document.getElementById('mrEstimate');
     if (el && income > 0) {
       el.style.display = 'block';
-      if (estimated < 10000) {
+      const fmt2 = v => Math.round(v / 10000) + '万';
+      if (estHi < 10000) {
         el.textContent = '💰 预估可贷额度：暂无法满足额度需求';
-      } else if (estimated > 1000000) {
+      } else if (estLo >= 1000000) {
         el.textContent = '💰 预估可贷额度：最高 100 万（需线下评估资产）';
       } else {
-        const lo = Math.round(estimated * 0.85 / 10000) * 10000;
-        const hi = Math.round(estimated * 1.15 / 10000) * 10000;
-        const fmt2 = v => (v / 10000).toFixed(0) + '万';
-        el.textContent = `💰 预估可贷额度：${fmt2(lo)}–${fmt2(hi)}（仅供参考，以银行审批为准）`;
+        const lo = Math.max(0, Math.round(Math.max(estLo, estHi * 0.4) / 10000) * 10000);
+        const hi = Math.min(1000000, Math.round(estHi / 10000) * 10000);
+        if (lo < 10000) {
+          el.textContent = `💰 预估可贷额度：最高约 ${fmt2(hi)}（仅供参考，以银行审批为准）`;
+        } else {
+          el.textContent = `💰 预估可贷额度：${fmt2(lo)}–${fmt2(hi)}（仅供参考，以银行审批为准）`;
+        }
       }
     } else if (el) {
       el.style.display = 'none';
