@@ -471,6 +471,7 @@ footer{
 }
 @media(max-width:480px){
   .hero h1{letter-spacing:1px}
+  .hero-eyebrow{letter-spacing:1px;font-size:10px;padding:6px 14px;white-space:normal;text-align:center;max-width:calc(100% - 32px)}
   .hero-steps{display:grid;grid-template-columns:1fr 1fr;gap:12px 8px;justify-items:start;margin-bottom:36px}
   .hs-step{font-size:12px;width:100%}
   .query-grid{grid-template-columns:1fr 1fr}
@@ -605,6 +606,9 @@ footer{
   .cb-btns{width:100%}
   .cb-btn{flex:1;text-align:center;justify-content:center}
   .match-header{padding:18px}
+  .idr-score-row{flex-direction:column;gap:14px;padding:18px 16px}
+  .idr-divider{display:none}
+  .idr-summary-box{border-left:none;border-top:2px solid var(--gold);border-radius:8px;padding:12px 14px}
 }
 @media(max-width:480px){
   /* layout */
@@ -937,6 +941,7 @@ footer{
         <div class="card-header-sub">帮助AI更精准匹配</div>
       </div>
       <div class="card-body">
+        <div style="text-align:center;font-size:13px;color:rgba(255,180,0,0.85);margin-bottom:14px;padding:10px 16px;background:rgba(255,180,0,0.08);border-radius:8px;border:1px solid rgba(255,180,0,0.2);">⚠️ 请填写真实信息，以便更精准地匹配适合您的产品。</div>
         <div class="info-form-grid" id="infoFormGrid">
 
           <!-- 月收入 -->
@@ -955,7 +960,6 @@ footer{
               <option value="state">国有企业 / 央企</option>
               <option value="listed">上市公司 / 500强</option>
               <option value="private">私营企业</option>
-              <option value="self">个体工商户</option>
               <option value="freelance">自由职业 / 无固定单位</option>
             </select>
           </div>
@@ -1079,6 +1083,7 @@ footer{
             <div>
               <div class="mh-count" id="matchCount">0</div>
               <div class="mh-count-label">款匹配产品</div>
+              <div id="mrEstimate" style="display:none;margin-top:6px;font-size:13px;color:#1e3a5f;background:rgba(255,215,0,0.12);border:1px solid rgba(255,180,0,0.3);border-radius:6px;padding:6px 12px;line-height:1.6"></div>
             </div>
           </div>
 
@@ -1149,8 +1154,8 @@ footer{
 
           <div class="cta-box">
             <div class="cb-left">
-              <div class="cb-title">专属顾问已收到您的报告</div>
-              <div class="cb-sub">如您需要人工协助申请通过率最高的产品，可电话咨询或添加客服微信。</div>
+              <div class="cb-title">我们并不会主动联系您</div>
+              <div class="cb-sub">如您需要人工协助分析或沟通产品，可电话联系或添加微信。</div>
             </div>
             <div class="cb-btns">
               <a href="tel:18250760433" class="cb-btn cb-btn-gold">📞 电话咨询</a>
@@ -1168,6 +1173,7 @@ footer{
             </div>
           </div>
 
+          <div style="text-align:center;font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:10px;line-height:1.6;">本网站不会保留您任何信息数据，退出网站即销毁，如需保存匹配信息请自行截图。</div>
           <button class="restart-btn" onclick="restartAll()">← 重新上传分析</button>
         </div>
       </div>
@@ -1637,7 +1643,7 @@ function localFallbackMatch(data) {
   const onlineCount = (data.loans||[]).filter(l=>l.type==='online').length;
   const _onlineL = (data.loans||[]).filter(l=>l.type==='online');
   const onlineInstCnt = [...new Set(_onlineL.map(l=>l.name.split('-')[0]))].length;
-  const onlinePenalty = onlineInstCnt > 3 ? -20 : onlineInstCnt === 3 ? -10 : 0;
+  const onlinePenalty = onlineInstCnt >= 5 ? -20 : (onlineInstCnt === 3 || onlineInstCnt === 4) ? -10 : 0;
 
   // 读取用户填写的补充信息
   const userInfo     = (() => { try { return collectInfoData(); } catch(e) { return {}; } })();
@@ -1781,8 +1787,8 @@ function localFallbackMatch(data) {
     ? '存在当前逾期，所有银行产品均无法申请，请先结清'
     : q3 > 10 ? `近3月查询${q3}次严重超标，银行产品基本无法通过`
     : q3 > 5  ? `近3月查询${q3}次偏多，已超多数银行准入红线`
-    : onlineCount > 3 ? `网贷机构${onlineCount}家，已超银行准入红线（≤3家）`
-    : onlineCount === 3 ? `网贷机构3家，已到银行准入红线临界`
+    : onlineCount >= 5 ? `网贷机构${onlineCount}家，已超银行准入红线（≤4家）`
+    : (onlineCount === 3 || onlineCount === 4) ? `网贷机构${onlineCount}家，轻度警示（银行准入建议≤2家）`
     : (!hasSocial && !provident) ? '无社保且无公积金，多数银行产品需要其中之一'
     : '';
 
@@ -1813,8 +1819,10 @@ function localFallbackMatch(data) {
     advIssues.push({ point: `近3月征信查询${q3}次严重超标`, impact: '超过大多数银行≤6次准入红线，直接拒贷' });
   else if (q3 > 5)
     advIssues.push({ point: `近3月征信查询${q3}次偏多`, impact: '已超多数银行准入门槛，通过率大幅下降' });
-  if (onlineInstCnt > 3)
-    advIssues.push({ point: `网贷机构${onlineInstCnt}家超标`, impact: '银行判定多头借贷，风险评级降低' });
+  if (onlineInstCnt >= 5)
+    advIssues.push({ point: `网贷机构${onlineInstCnt}家超标`, impact: '已超银行准入红线（≤4家），银行判定多头借贷，风险评级大幅降低' });
+  else if (onlineInstCnt === 3 || onlineInstCnt === 4)
+    advIssues.push({ point: `网贷机构${onlineInstCnt}家轻度警示`, impact: '网贷机构数偏多，部分银行可能拒贷，建议降至2家以内' });
   if (!hasSocial && !provident)
     advIssues.push({ point: '无社保且无公积金', impact: '多数银行信用贷要求至少其中一项，直接影响准入' });
   else if (hasSocial && socialMonths < 6)
@@ -1824,15 +1832,33 @@ function localFallbackMatch(data) {
   if (income > 0 && income < 5000)
     advIssues.push({ point: `月收入${income}元偏低`, impact: '低于多数银行最低收入门槛，额度和通过率均受限' });
 
+  // 信用卡使用率
+  const _advCardUtil = (() => {
+    const data2 = _recognizedData || {};
+    const cards2 = (data2.cards || []).filter(c => c.status !== '销户' && c.status !== '已销户');
+    const lim = cards2.reduce((s, c) => s + (c.limit || 0), 0);
+    const used = cards2.reduce((s, c) => s + (c.used || 0), 0);
+    return lim > 0 ? Math.round(used / lim * 100) : 0;
+  })();
+  if (_advCardUtil > 70)
+    advIssues.push({ point: `信用卡使用率${_advCardUtil}%超标`, impact: '信用卡使用率超过70%，银行审批将直接扣分，影响贷款通过率' });
+  else if (_advCardUtil > 50)
+    advIssues.push({ point: `信用卡使用率${_advCardUtil}%偏高`, impact: '信用卡使用率超过50%，建议降低至50%以下以提升审批通过率' });
+
   // 改善建议
   if (q3 > 5)
     advSuggestions.push({ action: '停止一切网贷/信用卡申请3个月', goal: '让查询记录自然冷却', time: '3个月', effect: '查询降至6次以下后，股份制银行基本可申' });
-  if (onlineInstCnt > 3)
-    advSuggestions.push({ action: `结清${onlineInstCnt-2}家网贷并注销账户`, goal: '将网贷机构数降至3家以内', time: '1-2个月', effect: '消金和股份制银行准入条件达标' });
+  if (onlineInstCnt >= 5)
+    advSuggestions.push({ action: `结清${onlineInstCnt-2}家网贷并注销账户`, goal: '将网贷机构数降至2家以内', time: '1-2个月', effect: '消金和股份制银行准入条件达标' });
+  else if (onlineInstCnt === 3 || onlineInstCnt === 4)
+    advSuggestions.push({ action: `结清${onlineInstCnt-2}家网贷并注销账户`, goal: '将网贷机构数降至2家以内', time: '1-2个月', effect: '消除轻度警示，显著提升银行审批通过率' });
   if (!hasSocial && !provident)
     advSuggestions.push({ action: '入职并开始缴纳社保', goal: '积累稳定就业记录', time: '持续6个月+', effect: '满足绝大多数银行信用贷社保门槛' });
   else if (hasSocial && socialMonths < 12)
     advSuggestions.push({ action: `继续缴纳社保至12个月`, goal: '满足股份制银行最优等级门槛', time: `${12-socialMonths}个月`, effect: '可申请招行/浦发/平安等主流产品' });
+  if (_advCardUtil > 50)
+    advSuggestions.push({ action: '降低信用卡使用率至50%以下', goal: '提升银行审批通过率', time: '1-3个月', effect: `当前使用率${_advCardUtil}%，还款部分信用卡余额，将使用率降至50%以下后银行审批评分将明显提升` });
+
   if (advSuggestions.length === 0)
     advSuggestions.push({ action: '维持当前良好征信状态，择期申请最优产品', goal: '保持查询记录低水平', time: '持续', effect: '长期保持银行高评级客户资质' });
 
@@ -1969,12 +1995,12 @@ async function startAnalysis() {
 【账户过滤规则（严格执行）】
 1. 贷款账户：只提取当前状态为"正常"或"逾期"的未结清账户。凡是"已结清"/"结清"的账户，跳过不提取，但若该账户有历史逾期记录需记入 overdue_history_notes。
 2. 信用卡账户：只提取当前状态为"正常"或"逾期"的未销户账户。凡是"销户"/"已销户"的账户，跳过不提取。
-3. 查询记录：提取"贷款审批"、"信用卡审批"、"担保资格审查"三类的每一条记录（日期+类型），"贷后管理"/"账户审核"/"本人查询"/"资信审查"/"账户维护"等全部排除，不提取。
+3. 查询记录：提取"贷款审批（含担保资格审查）"、"信用卡审批"两类的每一条记录（日期+类型），"贷后管理"/"账户审核"/"本人查询"/"资信审查"/"账户维护"等全部排除，不提取。担保资格审查记录统一归入"贷款审批"类型。
 
 【查询记录提取说明】
 不需要计算次数，只需逐条提取符合条件的查询记录，每条记录包含日期和类型。
 前端会自动按今天日期计算各窗口的次数，确保准确。
-只提取以下三类：贷款审批、信用卡审批、担保资格审查。
+只提取以下两类：贷款审批（担保资格审查归入此类）、信用卡审批。
 其他类型（贷后管理/本人查询/资信审查/账户维护等）全部跳过不提取。
 提取所有近2年内符合条件的记录，不限时间范围，前端会按需截取。
 
@@ -2180,14 +2206,14 @@ function calcQueryCounts(queryRecords) {
     if (!r.date || !r.type) return;
     const d = new Date(r.date);
     d.setHours(0, 0, 0, 0);
-    const isLoan       = r.type === '贷款审批';
-    const isCard       = r.type === '信用卡审批';
     const isGuarantee  = r.type === '担保资格审查';
+    const isLoan       = r.type === '贷款审批' || isGuarantee;
+    const isCard       = r.type === '信用卡审批';
 
     if (isLoan && d >= cutoff1m) loan_1m++;
     if (isLoan && d >= cutoff3m) loan_3m++;
     if (isCard && d >= cutoff3m) loan_3m_card++;
-    if ((isLoan || isCard || isGuarantee) && d >= cutoff6m) loan_6m_total++;
+    if ((isLoan || isCard) && d >= cutoff6m) loan_6m_total++;
   });
 
   return { loan_1m, loan_3m, loan_3m_card, loan_6m_total };
@@ -2242,6 +2268,14 @@ function renderResult(data) {
   if (q3total >= 5) warns.push('🔴 近3月审批查询 <strong>' + q3total + ' 次</strong>（贷款' + q3loans + '次+信用卡' + q3cards + '次），征信已花，建议暂停申请养3-6个月');
   else if (q3total >= 3) warns.push('⚠️ 近3月审批查询 <strong>' + q3total + ' 次</strong>（贷款' + q3loans + '次+信用卡' + q3cards + '次），偏多，部分银行可能拒贷');
 
+  // 信用卡综合使用率警告
+  const _cardLimitTotal = cards.reduce((s, c) => s + (c.limit || 0), 0);
+  const _cardUsedTotal  = cards.reduce((s, c) => s + (c.used || 0), 0);
+  const _cardUtil = _cardLimitTotal > 0 ? Math.round(_cardUsedTotal / _cardLimitTotal * 100) : 0;
+  if (_cardUtil > 70) warns.push('🔴 信用卡综合使用率 <strong>' + _cardUtil + '%</strong>，超过70%警戒线，银行审批将直接降分或拒贷');
+  else if (_cardUtil > 50) warns.push('⚠️ 信用卡综合使用率 <strong>' + _cardUtil + '%</strong>，超过50%预警线，建议降低至50%以下');
+  else if (_cardUtil > 0) warns.push('✅ 信用卡综合使用率 <strong>' + _cardUtil + '%</strong>，处于安全范围');
+
   // 网贷机构数统计（按机构去重）
   const onlineLoans = loans.filter(l => l.type === 'online');
   const onlineCount = onlineLoans.length;
@@ -2260,15 +2294,15 @@ function renderResult(data) {
     if (cfCount > 0) parts.push('消费金融 <strong>' + cfCount + ' 家</strong>（' + cfInstitutions.join('、') + '）');
     if (mlCount > 0) parts.push('小额贷款 <strong>' + mlCount + ' 家</strong>（' + mlInstitutions.join('、') + '）');
     const breakdown = parts.join('&nbsp;+&nbsp;');
-    const totalStr  = '网贷机构合计 <strong>' + onlineInstTotal + ' 家</strong>（银行准入红线：≤3家）';
-    if (onlineInstTotal > 3) {
+    const totalStr  = '网贷机构合计 <strong>' + onlineInstTotal + ' 家</strong>（银行准入红线：≤4家）';
+    if (onlineInstTotal >= 5) {
       osb.style.cssText = 'display:block;border-radius:10px;padding:13px 16px;margin-bottom:12px;font-size:13px;line-height:1.8;border:1px solid rgba(192,57,43,.3);background:#fff0f0;color:var(--red)';
       osb.innerHTML = '🔴 ' + totalStr + '<br>' + breakdown + '<br><strong>已超红线，银行类贷款大概率拒贷，建议先结清网贷后再申请。</strong>';
-      warns.push('🔴 网贷机构数 <strong>' + onlineInstTotal + ' 家</strong>，超出银行准入红线（≤3家），银行产品通过率大幅下调');
-    } else if (onlineInstTotal === 3) {
+      warns.push('🔴 网贷机构数 <strong>' + onlineInstTotal + ' 家</strong>，超出银行准入红线（≤4家），银行产品通过率大幅下调');
+    } else if (onlineInstTotal === 3 || onlineInstTotal === 4) {
       osb.style.cssText = 'display:block;border-radius:10px;padding:13px 16px;margin-bottom:12px;font-size:13px;line-height:1.8;border:1px solid rgba(184,134,11,.3);background:#fff8e0;color:var(--amber)';
-      osb.innerHTML = '⚠️ ' + totalStr + '<br>' + breakdown + '<br>已到临界线，申请银行贷款存在风险，建议结清1家网贷再申请。';
-      warns.push('⚠️ 网贷机构数已到银行准入红线临界（3家），部分银行可能拒贷');
+      osb.innerHTML = '⚠️ ' + totalStr + '<br>' + breakdown + '<br>轻度警示，申请银行贷款存在风险，建议结清至2家以内再申请。';
+      warns.push('⚠️ 网贷机构数 <strong>' + onlineInstTotal + ' 家</strong>，轻度警示，部分银行可能拒贷');
     } else {
       osb.style.cssText = 'display:block;border-radius:10px;padding:13px 16px;margin-bottom:12px;font-size:13px;line-height:1.8;border:1px solid rgba(42,122,85,.25);background:var(--green-light);color:var(--green)';
       osb.innerHTML = '✅ ' + totalStr + '<br>' + breakdown + '<br>未超银行准入红线，网贷情况正常。';
@@ -2534,7 +2568,7 @@ ${scoreItems.join('\n')}
 【第二部分：征信核心数据】
 ═══════════════════════════════════
 未结清贷款：${loans.length}笔（银行${loans.length - onlineCount}笔 | 网贷${onlineCount}笔）
-网贷机构数：合计${onlineInstTotal}家（消费金融${cfCount2}家 + 小额贷款${mlCount2}家）→ 银行红线≤3家，当前：${onlineInstTotal > 3 ? '⚠️超标' : onlineInstTotal === 3 ? '⚠️临界' : '✅正常'}
+网贷机构数：合计${onlineInstTotal}家（消费金融${cfCount2}家 + 小额贷款${mlCount2}家）→ 银行红线≤4家，当前：${onlineInstTotal >= 5 ? '⚠️超标' : (onlineInstTotal === 3 || onlineInstTotal === 4) ? '⚠️轻度警示' : '✅正常'}
 未销户信用卡：${cards.length}张
 月还款估算：${fmt(Math.round(totalMonthly))}元（本估算为银行审批参考值，非合同精确值）
 负债率：${debtRatio}（银行红线≤70%）
@@ -2555,7 +2589,7 @@ ${cardDesc}
 ═══════════════════════════════════
 【第三部分：风控红线逐项对照】
 ═══════════════════════════════════
-① 网贷机构数≤3家 → 当前${onlineInstTotal}家 → ${onlineInstTotal > 3 ? '❌超标（直接拒贷）' : onlineInstTotal === 3 ? '⚠️临界' : '✅达标'}
+① 网贷机构数≤4家 → 当前${onlineInstTotal}家 → ${onlineInstTotal >= 5 ? '❌超标（直接拒贷）' : (onlineInstTotal === 3 || onlineInstTotal === 4) ? '⚠️轻度警示' : '✅达标'}
 ② 近3月查询≤6次 → 当前${q3}次 → ${q3 > 6 ? '❌超标' : q3 >= 5 ? '⚠️接近红线' : '✅达标'}
 ③ 无当前逾期 → ${(data.overdue_current||0) > 0 ? '❌有' + data.overdue_current + '笔逾期（绝对红线）' : '✅无逾期'}
 ④ 负债率≤70% → ${debtRatio} → ${debtRatioPct != null ? (debtRatioPct > 70 ? '❌超标' : debtRatioPct >= 60 ? '⚠️偏高' : '✅达标') : '待计算'}
@@ -2572,7 +2606,7 @@ ${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal)}
 本科及以上(+5) | 大专(+2) | 厦门户籍(+5) | 福建省内(+2) | 省外(-3)
 社保≥12月(+5) | 社保6-11月(+2) | 社保<6月(-3) | 无社保(-5)
 月收入≥10000(+5) | 月收入5000-9999(+2) | 月收入<5000(-5)
-网贷机构=3家(-10) | 网贷机构>3家(-20) | 信用卡使用率>80%(-10)
+网贷机构3-4家(-10) | 网贷机构≥5家(-20) | 信用卡使用率>70%(-10)
 80分以上=高概率 | 60-79=中概率 | 40-59=低概率 | <40不推荐
 
 严格返回JSON，不含任何其他文字和markdown代码块：
@@ -2603,7 +2637,7 @@ ${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal)}
   "optimization": [
     {
       "step": "结清X家小贷并注销账户",
-      "goal": "网贷机构数从X家降至3家以内",
+      "goal": "网贷机构数从X家降至2家以内",
       "time": "1个月",
       "unlock": "达标后可申请股份制银行产品"
     }
@@ -2661,6 +2695,38 @@ function renderMatchResult(r) {
   window._lastMatchResult = r;
   document.getElementById('matchCount').textContent = r.count || (r.products ? r.products.length : 0);
   document.getElementById('matchSub').textContent = r.summary || '基于您的征信数据匹配结果';
+
+  // 预估可贷额度
+  (function() {
+    const income = parseFloat(document.getElementById('if-income')?.value) || 0;
+    const work   = (document.getElementById('if-work')?.value || '');
+    const workMult = {
+      'gov': 95, 'institution': 90, 'state': 80, 'listed': 70, 'private': 60, 'freelance': 50,
+    };
+    let mult = workMult[work] || 50;
+    const data2 = _recognizedData || {};
+    const loans2 = (data2.loans || []).filter(l => l.status !== '结清' && l.status !== '已结清');
+    const nonMortgageDebt = loans2
+      .filter(l => !l.name.includes('房') && !l.name.includes('住房') && !l.name.includes('按揭'))
+      .reduce((s, l) => s + (l.balance || 0), 0);
+    const estimated = income * mult - nonMortgageDebt;
+    const el = document.getElementById('mrEstimate');
+    if (el && income > 0) {
+      el.style.display = 'block';
+      if (estimated < 10000) {
+        el.textContent = '💰 预估可贷额度：暂无法满足额度需求';
+      } else if (estimated > 1000000) {
+        el.textContent = '💰 预估可贷额度：最高 100 万（需线下评估资产）';
+      } else {
+        const lo = Math.round(estimated * 0.85 / 10000) * 10000;
+        const hi = Math.round(estimated * 1.15 / 10000) * 10000;
+        const fmt2 = v => (v / 10000).toFixed(0) + '万';
+        el.textContent = `💰 预估可贷额度：${fmt2(lo)}–${fmt2(hi)}（仅供参考，以银行审批为准）`;
+      }
+    } else if (el) {
+      el.style.display = 'none';
+    }
+  })();
 
   // ── 客户补充信息确认卡 ──
   const uiSum = r.user_info_summary;
