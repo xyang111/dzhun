@@ -1,94 +1,121 @@
 /**
- * 贷准 API Proxy — Cloudflare Worker
+ * 贷准 · Cloudflare Worker — Anthropic API 代理 + Resend 报告推送
  *
- * 部署步骤：
- * 1. Cloudflare Dashboard → Workers & Pages → Create Worker
- * 2. 粘贴此文件内容，点击 Deploy
- * 3. 进入 Worker → Settings → Variables，添加环境变量：
- *    ANTHROPIC_API_KEY = sk-ant-xxxxxxxx（你的真实密钥）
- * 4. 在 Workers → Routes 里将 api.dzhun.com.cn/* 绑定到此 Worker
- *
- * 安全机制：
- * - Referer / Origin 校验：只接受来自 dzhun.com.cn 的请求
- * - API 密钥保存在 Worker 环境变量中，不暴露给前端
- * - 支持 /v1/messages（AI 分析）和 /report（邮件报告）两条路由
+ * 环境变量（在 Worker → Settings → Variables 中配置，均选 Encrypt）：
+ *   ANTHROPIC_API_KEY  — Anthropic sk-ant-xxx 密钥
+ *   RESEND_API_KEY     — Resend re_xxx 密钥（旧 key 已泄露，请在 Resend 后台重新生成）
  */
 
+const REPORT_TO_EMAIL = '651047968@qq.com';
+const REPORT_FROM     = 'report@dzhun.com.cn';
 const ALLOWED_ORIGINS = ['https://dzhun.com.cn', 'https://www.dzhun.com.cn'];
-const ANTHROPIC_API   = 'https://api.anthropic.com';
 
-export default {
-  async fetch(request, env) {
-    // ── CORS 预检 ──
-    if (request.method === 'OPTIONS') {
-      return corsResponse(null, 204);
+addEventListener('fetch', event => {
+  event.respondWith(handleRequest(event.request));
+});
+
+async function handleRequest(request) {
+  // ── CORS 预检 ──
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders(request) });
+  }
+
+  if (request.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405, headers: corsHeaders(request) });
+  }
+
+  // ── Origin / Referer 校验 ──
+  const origin  = request.headers.get('Origin')  || '';
+  const referer = request.headers.get('Referer') || '';
+  const allowed = ALLOWED_ORIGINS.some(o => origin === o || referer.startsWith(o));
+  if (!allowed) {
+    return jsonResp({ error: 'Forbidden' }, 403, request);
+  }
+
+  const url = new URL(request.url);
+
+  // ── 路由：/report → Resend 发邮件 ──
+  if (url.pathname === '/report') {
+    let body;
+    try { body = await request.json(); } catch(e) {
+      return jsonResp({ ok: false, error: 'Invalid JSON' }, 400, request);
     }
 
-    // ── Referer / Origin 校验 ──
-    const origin   = request.headers.get('Origin')  || '';
-    const referer  = request.headers.get('Referer') || '';
-    const allowed  = ALLOWED_ORIGINS.some(o => origin === o || referer.startsWith(o));
+    const name    = body['客户姓名'] || '未知客户';
+    const time    = body['提交时间'] || new Date().toLocaleString('zh-CN');
+    const report  = body['完整报告'] || '（无内容）';
+    const subject = `贷准报告 · ${name} · ${time}`;
 
-    if (!allowed) {
-      return corsResponse(JSON.stringify({ error: 'Forbidden' }), 403);
+    const resendKey = RESEND_API_KEY;
+    if (!resendKey) return jsonResp({ ok: false, error: 'Resend key not configured' }, 500, request);
+
+    try {
+      const resendResp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ from: REPORT_FROM, to: REPORT_TO_EMAIL, subject, text: report }),
+      });
+
+      const data = await resendResp.json();
+      const ok   = resendResp.status === 200 || resendResp.status === 201;
+      return jsonResp({ ok, ...data }, ok ? 200 : 502, request);
+
+    } catch(e) {
+      return jsonResp({ ok: false, error: e.message }, 502, request);
     }
+  }
 
-    const url = new URL(request.url);
+  // ── 默认路由：转发 Claude API ──
+  const apiKey = ANTHROPIC_API_KEY;
+  if (!apiKey) return jsonResp({ error: { message: 'API key not configured.' } }, 500, request);
 
-    // ── 路由：/report（邮件转发，原样透传，不涉及 Anthropic） ──
-    if (url.pathname === '/report') {
-      // 如果你用 Worker 转发报告邮件，在这里处理；
-      // 目前仅返回占位响应，不影响现有 EmailJS 逻辑。
-      return corsResponse(JSON.stringify({ ok: true }), 200);
-    }
+  let body;
+  try { body = await request.json(); } catch(e) {
+    return jsonResp({ error: { message: 'Invalid JSON: ' + e.message } }, 400, request);
+  }
 
-    // ── 路由：/v1/messages（转发给 Anthropic） ──
-    const apiKey = env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return corsResponse(JSON.stringify({ error: 'API key not configured' }), 500);
-    }
+  body.model = 'claude-sonnet-4-20250514';
+  if (!body.max_tokens || body.max_tokens > 8000) body.max_tokens = 8000;
 
-    // 重写目标 URL
-    const targetUrl = ANTHROPIC_API + url.pathname + url.search;
-
-    // 复制原始请求头，替换鉴权信息
-    const headers = new Headers(request.headers);
-    headers.set('x-api-key', apiKey);
-    headers.set('anthropic-version', headers.get('anthropic-version') || '2023-06-01');
-    headers.delete('host');
-    headers.delete('cf-connecting-ip');
-    headers.delete('cf-ipcountry');
-    headers.delete('cf-ray');
-    headers.delete('cf-visitor');
-
-    const upstream = await fetch(targetUrl, {
-      method:  request.method,
-      headers: headers,
-      body:    request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
+        'x-api-key': apiKey,
+      },
+      body: JSON.stringify(body),
     });
 
-    // 将 Anthropic 响应返回，附加 CORS 头
-    const respHeaders = new Headers(upstream.headers);
-    addCorsHeaders(respHeaders, origin);
-    return new Response(upstream.body, {
-      status:  upstream.status,
-      headers: respHeaders,
-    });
-  },
-};
+    const data = await resp.json();
+    return jsonResp(data, resp.status, request);
+
+  } catch(e) {
+    return jsonResp({ error: { message: 'Upstream error: ' + e.message } }, 502, request);
+  }
+}
 
 // ── 工具函数 ──
 
-function addCorsHeaders(headers, origin) {
-  const allow = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  headers.set('Access-Control-Allow-Origin', allow);
-  headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  headers.set('Access-Control-Allow-Headers', 'Content-Type, x-api-key, anthropic-version');
-  headers.set('Vary', 'Origin');
+function corsHeaders(request) {
+  const origin = request.headers.get('Origin') || '';
+  const allow  = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin':  allow,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age':       '86400',
+    'Vary': 'Origin',
+  };
 }
 
-function corsResponse(body, status) {
-  const headers = new Headers({ 'Content-Type': 'application/json' });
-  addCorsHeaders(headers, ALLOWED_ORIGINS[0]);
-  return new Response(body, { status, headers });
+function jsonResp(data, status, request) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders(request), 'Content-Type': 'application/json' },
+  });
 }
