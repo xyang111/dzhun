@@ -864,7 +864,7 @@ footer{
                     <th style="text-align:right">授信额度</th>
                     <th style="text-align:right">余额</th>
                     <th style="text-align:right">月还款</th>
-                    <th style="text-align:right">年利率</th>
+                    <th style="text-align:center">开立日期</th>
                     <th style="text-align:center">状态</th>
                   </tr>
                 </thead>
@@ -2339,6 +2339,10 @@ function shortenBankName(name) {
     .replace(/股份有限公司|有限责任公司|有限公司|股份公司/g, '')
     .replace(/信用卡中心/g, '')
     .replace(/[厦门市|厦门|上海|北京|广州|深圳|重庆|成都|武汉|南京|杭州|西安|天津|苏州|郑州|长沙|宁波|青岛|济南|福州|合肥|福建]+(市)?分行/g, '')
+    .replace(/其他个人消费贷款/g, '个消')
+    .replace(/个人消费贷款/g, '个消')
+    .replace(/个人经营性贷款/g, '个经')
+    .replace(/个人经营贷款/g, '个经')
     .replace(/\s+/g, '')
     .trim();
 }
@@ -2507,7 +2511,7 @@ function renderResult(data) {
       <th style="text-align:right">授信额度</th>
       <th style="text-align:right">余额</th>
       <th style="text-align:right">月还款</th>
-      <th style="text-align:right">年利率</th>
+      <th style="text-align:center">开立日期</th>
       <th style="text-align:center">状态</th>
     `;
 
@@ -2530,6 +2534,12 @@ function renderResult(data) {
         badgeCls = 'badge-ok';
       }
 
+      const issuedFmt = (() => {
+        if (!l.issued_date) return '<span style="color:var(--gray-mid)">--</span>';
+        const d = new Date(l.issued_date);
+        if (isNaN(d)) return '<span style="color:var(--gray-mid)">--</span>';
+        return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+      })();
       return `
         <tr>
           <td>${shortenBankName(l.name)}${isRev ? '<span style="font-size:9px;background:#e8f4ed;color:#2a7a55;padding:1px 5px;border-radius:3px;margin-left:5px">循环授信</span>' : ''}</td>
@@ -2537,7 +2547,7 @@ function renderResult(data) {
           <td style="text-align:right;font-weight:600">${colLimit}</td>
           <td style="text-align:right;font-weight:600">${colBalance}</td>
           <td style="text-align:right">${colMonthly}</td>
-
+          <td style="text-align:center;font-size:12px;color:var(--text-mid)">${issuedFmt}</td>
           <td style="text-align:center"><span class="badge ${l.status === '正常' ? 'badge-ok' : 'badge-bad'}">${l.status || '--'}</span></td>
         </tr>
       `;
