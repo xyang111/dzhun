@@ -3278,10 +3278,23 @@ function buildReportText() {
 
   const loanLines = loans.map((l, i) => {
     const isRev = l.is_revolving;
-    return `  ${i+1}. ${l.name}${isRev?' [循环授信]':''}`
-      + `\n     授信额度: ${l.credit_limit != null ? fmt(l.credit_limit)+'元' : '--'}`
+    const catMap = { mortgage:'房贷', car:'车贷', credit:'银行信用贷', finance:'消费金融' };
+    const typeLabel = l.type === 'online'
+      ? (l.online_subtype === 'microloan' ? '小额贷款' : '消费金融')
+      : (catMap[l.loan_category] || '银行贷款');
+    const issuedStr = (() => {
+      if (!l.issued_date) return '--';
+      const d = new Date(l.issued_date);
+      return isNaN(d) ? '--' : `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+    })();
+    const estM = calcLoanMonthly(l);
+    const monthlyStr = estM > 0 ? fmt(estM)+'元(估)' : (l.monthly != null ? fmt(l.monthly)+'元' : '--');
+    return `  ${i+1}. ${shortenBankName(l.name)}${isRev?' [循环授信]':''}`
+      + ` | ${typeLabel}`
+      + ` | 授信: ${l.credit_limit != null ? fmt(l.credit_limit)+'元' : '--'}`
       + ` | 余额: ${l.balance != null ? fmt(l.balance)+'元' : '--'}`
-      + ` | 月还款: ${l.monthly != null ? fmt(l.monthly)+'元' : '--'}`
+      + ` | 月还款: ${monthlyStr}`
+      + ` | 开立: ${issuedStr}`
       + ` | 状态: ${l.status || '--'}`;
   }).join('\n') || '  无未结清贷款';
 
@@ -3330,7 +3343,7 @@ function buildReportText() {
 未结清贷款：${loans.length} 笔  |  未销户信用卡：${cards.length} 张
 贷款余额合计：${fmt(totalLoanBal)} 元
 信用卡总额度：${fmt(totalCardLimit)} 元  |  已用：${fmt(totalCardUsed)} 元
-月还款估算：${fmt(Math.round(totalMonthly))} 元
+月还款估算：${fmt(Math.round(totalMonthly))} 元${userInfo.income > 0 ? `  |  负债率：${Math.round(totalMonthly / userInfo.income * 100)}%（月收入 ${fmt(userInfo.income)} 元）` : ''}
 历史逾期：${data.overdue_history_notes || '无'}
 
 【查询记录】
