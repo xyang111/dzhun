@@ -1887,12 +1887,31 @@ function localFallbackMatch(data) {
   if (advSuggestions.length === 0)
     advSuggestions.push({ action: '维持当前良好征信状态，择期申请最优产品', goal: '保持查询记录低水平', time: '持续', effect: '长期保持银行高评级客户资质' });
 
+  // risk_level 前端计算（与prompt判定标准完全对齐）
+  let riskLevel = '健康';
+  const _cards3 = (_recognizedData?.cards||[]).filter(c=>c.status!=='销户');
+  const _cLim3 = _cards3.reduce((s,c)=>s+(c.limit||0),0);
+  const _cUse3 = _cards3.reduce((s,c)=>s+(c.used||0),0);
+  const _cUtil3 = _cLim3 > 0 ? Math.round(_cUse3/_cLim3*100) : 0;
+  const _loans3 = (data.loans||[]).filter(l=>l.status!=='结清'&&l.status!=='已结清');
+  const _tm3 = calcTotalMonthly(_loans3, _cards3);
+  const _dr3 = (userInfo.income||0) > 0 ? Math.round(_tm3/(userInfo.income)*100) : 0;
+
+  if (hasOverdue || q3 > 12 || onlineInstCnt >= 5 || _cUtil3 > 100 || _dr3 > 80) {
+    riskLevel = '高风险';
+  } else if (q3 >= 7 || onlineInstCnt >= 3 || _cUtil3 > 80 || _dr3 > 60 || (!hasSocial && !provident)) {
+    riskLevel = '中度风险';
+  } else if (q3 >= 4 || onlineInstCnt >= 1 || _cUtil3 > 70 || _dr3 > 50 || (hasSocial && socialMonths < 6)) {
+    riskLevel = '轻微瑕疵';
+  }
+
   return {
     summary: sorted.length > 0
       ? `基于完整资质数据，筛选出 ${sorted.length} 款可申请产品`
       : '当前资质暂无可匹配产品，建议补充社保/公积金后再申请',
     count: sorted.length,
     key_risk: keyRisk,
+    risk_level: riskLevel,
     products: sorted,
     advice: {
       strengths:   advStrengths.slice(0, 4),
@@ -2795,7 +2814,39 @@ ${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal)}
 - strengths/weaknesses每条必须同时引用征信+补充信息，格式"XXX（征信）+ XXX（补充）"
 - rejected_products必须明确说明被拒的具体数据原因
 - optimization每步骤包含：step+goal+time+unlock四项，全部可落地
-- risk_level只能是：健康 / 轻微瑕疵 / 中度风险 / 高风险
+- risk_level判定标准（严格按以下规则，满足任一条件即取对应等级，优先取最高等级）：
+
+  🔴【高风险】—— 满足以下任一：
+  · 存在当前逾期（overdue_current > 0）
+  · 近3月查询合计 > 12次
+  · 网贷/消费金融机构数 ≥ 5家
+  · 有连三（连续3个月逾期）或累六（24月内累计逾期≥6次）记录
+  · 信用卡使用率 > 100%（疑似套现）
+  · 负债率 > 80%
+
+  🟠【中度风险】—— 不触发高风险，但满足以下任一：
+  · 近3月查询合计 7–12次
+  · 网贷/消费金融机构数 3–4家
+  · 历史逾期记录中有单次逾期 > 30天（已结清）
+  · 负债率 60%–80%
+  · 信用卡使用率 > 80%
+  · 无社保且无公积金（无任何稳定就业证明）
+
+  🟡【轻微瑕疵】—— 不触发中度及以上，但满足以下任一：
+  · 近3月查询合计 4–6次
+  · 网贷/消费金融机构数 1–2家
+  · 历史逾期记录中单次逾期 ≤ 30天（已结清 ≥ 6个月）
+  · 负债率 50%–60%
+  · 信用卡使用率 70%–80%
+  · 社保缴纳 < 6个月
+
+  🟢【健康】—— 以上全部不触发：
+  · 无任何逾期记录
+  · 近3月查询 ≤ 3次
+  · 网贷机构数 0家
+  · 负债率 < 50%
+  · 信用卡使用率 ≤ 70%
+  · 社保 ≥ 6个月或公积金在缴
 - user_info_summary严格按①-⑦格式输出客户实际填写值
 - advice.strengths列出2-4条客户核心优势，必须结合征信+补充信息
 - advice.issues列出2-4条当前核心问题，说明银行风控影响
