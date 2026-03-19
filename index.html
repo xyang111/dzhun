@@ -778,6 +778,15 @@ footer{
   <!-- STEP 3: RECOGNITION RESULT -->
   <div id="resultArea" style="display:none">
 
+    <!-- 调试区：OCR提取原始数据 -->
+    <div id="ocrDebugCard" style="display:none;margin-bottom:16px;background:#1a1a2e;border:1px solid rgba(200,169,110,.25);border-radius:12px;overflow:hidden">
+      <div style="padding:10px 16px;background:rgba(200,169,110,.08);display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="document.getElementById('ocrDebugBody').style.display=document.getElementById('ocrDebugBody').style.display==='none'?'block':'none'">
+        <span style="font-size:12px;font-weight:700;color:#c8a96e">🔍 AI识别原始数据（调试）</span>
+        <span style="font-size:11px;color:rgba(200,169,110,.6)">点击展开/收起</span>
+      </div>
+      <div id="ocrDebugBody" style="display:none;padding:12px 16px;font-size:11px;line-height:1.8;color:#aaa;font-family:monospace"></div>
+    </div>
+
     <div class="upload-card">
       <div class="card-header">
         <div class="card-header-num">2</div>
@@ -1160,7 +1169,7 @@ footer{
               <div class="cb-sub">如您需要人工协助分析或沟通产品，可电话联系或添加微信。</div>
             </div>
             <div class="cb-btns">
-              <a href="tel:18250760433" class="cb-btn cb-btn-gold">📞 电话咨询</a>
+              <a id="contactPhoneBtn" href="#" class="cb-btn cb-btn-gold">📞 电话咨询</a>
               <button class="cb-btn cb-btn-outline" onclick="showQrModal()">💬 添加微信</button>
             </div>
           </div>
@@ -1170,7 +1179,8 @@ footer{
             <div class="qr-modal">
               <div class="qr-modal-title">添加客服微信</div>
               <div class="qr-modal-sub">扫码添加，人工协助申请</div>
-              <img src="qr.jpg" alt="客服微信二维码">
+              <img src="qr.jpg" alt="客服微信二维码" onerror="this.style.display='none';document.getElementById('qrFallback').style.display='block'">
+              <div id="qrFallback" style="display:none;padding:20px;text-align:center;color:#666;font-size:13px">二维码加载失败，请拨打电话<br><strong id="qrPhoneNum" style="font-size:16px;color:#0a1628"></strong></div>
               <button class="qr-modal-close" onclick="hideQrModal()">关闭</button>
             </div>
           </div>
@@ -1197,7 +1207,14 @@ footer{
 // ═══════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════
-const PROXY_URL = 'https://api.dzhun.com.cn';
+const PROXY_URL     = 'https://api.dzhun.com.cn';
+const CONTACT_PHONE = '18250760433';  // 联系电话（全站统一修改这里）
+
+// HTML 转义工具（防止 AI 返回内容中含恶意标签）
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 
 // HTML 转义工具（防止 AI 返回内容中含恶意标签）
 function esc(s) {
@@ -1902,7 +1919,11 @@ function calcLoanMonthly(loan) {
   let isOld = false;
   if (loan.issued_date) {
     const issued = new Date(loan.issued_date);
-    const cutoff = new Date();
+    // 用报告日期作为基准，没有则降级用今天
+    const baseDate = _recognizedData?.report_date
+      ? new Date(_recognizedData.report_date)
+      : new Date();
+    const cutoff = new Date(baseDate);
     cutoff.setFullYear(cutoff.getFullYear() - 2);
     isOld = issued < cutoff;
   }
@@ -1915,7 +1936,8 @@ function calcLoanMonthly(loan) {
 
 function calcTotalMonthly(loans, cards) {
   const loanPart = loans.reduce((s, l) => s + calcLoanMonthly(l), 0);
-  const cardPart = cards.reduce((s, c) => s + Math.round((c.used || 0) * 0.02), 0);
+  // 银行审批口径：信用卡按【授信额度×5%】折算月供，不是已用额度
+  const cardPart = cards.reduce((s, c) => s + Math.round((c.limit || 0) * 0.05), 0);
   return loanPart + cardPart;
 }
 
@@ -2019,8 +2041,9 @@ async function startAnalysis() {
   · 普通贷款：balance = 剩余本金余额
   · 循环授信：balance = 当前已借出未还的金额（征信上显示的"余额"字段）
   · 注意：不是"已用额度"这个概念，就是征信上显示的"余额"
-- monthly（月还款）：每月还款金额，循环授信通常为null
+- monthly（月还款）：每月还款金额，简版征信通常无此数据填null，循环授信填null
 - is_revolving：循环授信类（美团/西岸/京东/阳光消费金融等）设为true，普通期限贷款设为false
+注意：不需要提取rate（利率）字段，简版征信不显示利率，不要猜测，JSON示例中的rate字段也请忽略
 
 【详版征信金额识别规则】
 - balance/余额 = 账户信息表格中"余额"行的数值，单位：元，万元×10000
@@ -2070,8 +2093,7 @@ async function startAnalysis() {
       "is_revolving": false,
       "credit_limit": 50000,
       "balance": 50000,
-      "rate": 4.35,
-      "monthly": 1500,
+      "monthly": null,
       "status": "正常"
     },
     {
@@ -2083,8 +2105,7 @@ async function startAnalysis() {
       "is_revolving": false,
       "credit_limit": 800000,
       "balance": 620000,
-      "rate": 3.7,
-      "monthly": 3800,
+      "monthly": null,
       "status": "正常"
     },
     {
@@ -2096,7 +2117,6 @@ async function startAnalysis() {
       "is_revolving": true,
       "credit_limit": 3000,
       "balance": 500,
-      "rate": null,
       "monthly": null,
       "status": "正常"
     },
@@ -2109,7 +2129,6 @@ async function startAnalysis() {
       "is_revolving": true,
       "credit_limit": 20000,
       "balance": 5000,
-      "rate": null,
       "monthly": null,
       "status": "正常"
     }
@@ -2186,7 +2205,21 @@ async function startAnalysis() {
     document.getElementById('uploadCard').style.display = 'block';
     document.getElementById('analyzeBtn').disabled = false;
     document.getElementById('analyzeBtnText').textContent = '🔬 重新分析';
-    alert('识别失败：' + e.message + '\n\n请检查：\n1. 文件是否为人行征信报告\n2. PDF是否超过20MB（建议压缩）\n3. 图片是否清晰可读');
+
+    let errMsg = e.message || '';
+    let userMsg = '';
+    if (e.name === 'AbortError' || errMsg === 'signal is aborted without reason') {
+      userMsg = '识别超时（超过120秒）\n\n可能原因：\n• PDF文件过大，建议压缩至5MB以内\n• 当前网络较慢，请稍后重试';
+    } else if (errMsg === 'Failed to fetch' || errMsg.includes('fetch') || errMsg.includes('network') || errMsg.includes('NetworkError')) {
+      userMsg = '网络连接失败\n\n可能原因：\n• 网络不稳定，请检查网络后重试\n• 服务暂时不可用，请稍候1-2分钟再试';
+    } else if (errMsg.includes('HTTP 4') || errMsg.includes('HTTP 5')) {
+      userMsg = '服务器返回错误：' + errMsg + '\n\n请稍候片刻后重试';
+    } else if (errMsg.includes('未能识别') || errMsg.includes('征信数据')) {
+      userMsg = '未能识别到征信数据\n\n请确认：\n• 上传的是人行个人信用报告\n• 图片/PDF 清晰可读，非加密文件';
+    } else {
+      userMsg = '识别失败：' + errMsg + '\n\n请稍后重试，如持续失败请联系客服';
+    }
+    alert(userMsg);
   }
 }
 
@@ -2194,20 +2227,22 @@ async function startAnalysis() {
 // ═══════════════════════════════════════════
 // QUERY COUNT CALCULATOR (frontend, exact)
 // ═══════════════════════════════════════════
-function calcQueryCounts(queryRecords) {
-  // Base: today's date at midnight
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+function calcQueryCounts(queryRecords, baseDate) {
+  // 优先用征信报告日期作为基准，没有则用今天
+  // baseDate 可外部传入，或自动读取已识别数据的报告日期
+  const reportDateStr = baseDate || _recognizedData?.report_date;
+  const base = reportDateStr ? new Date(reportDateStr) : new Date();
+  base.setHours(0, 0, 0, 0);
 
-  const daysAgo = (n) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() - n);
+  const monthsAgo = (m) => {
+    const d = new Date(base);
+    d.setMonth(d.getMonth() - m);
     return d;
   };
 
-  const cutoff1m  = daysAgo(30);
-  const cutoff3m  = daysAgo(90);
-  const cutoff6m  = daysAgo(180);
+  const cutoff1m  = monthsAgo(1);
+  const cutoff3m  = monthsAgo(3);
+  const cutoff6m  = monthsAgo(6);
 
   let loan_1m = 0, loan_3m = 0, loan_3m_card = 0, loan_6m_total = 0;
 
@@ -2266,6 +2301,69 @@ function shortenBankName(name) {
 }
 
 function renderResult(data) {
+  // ── 调试区：显示OCR原始提取数据 ──
+  try {
+    const dbgCard = document.getElementById('ocrDebugCard');
+    const dbgBody = document.getElementById('ocrDebugBody');
+    if (dbgCard && dbgBody) {
+      const loans_all = data.loans || [];
+      const cards_all = data.cards || [];
+      const qr = data.query_records || [];
+      const q = calcQueryCounts(qr);
+      const settled = (data.loans||[]).filter(l=>l.status==='结清'||l.status==='已结清').length;
+      const cancelled = (data.cards||[]).filter(c=>c.status==='销户'||c.status==='已销户').length;
+
+      let html = `<div style="color:#c8a96e;margin-bottom:6px">`;
+      html += `📋 报告日期：${data.report_date||'未识别'} &nbsp;|&nbsp; `;
+      html += `姓名：${data.person_name||'未识别'} &nbsp;|&nbsp; `;
+      html += `提取贷款 ${loans_all.length} 笔（已过滤结清 ${settled} 笔）&nbsp;|&nbsp; `;
+      html += `信用卡 ${cards_all.length} 张（已过滤销户 ${cancelled} 张）&nbsp;|&nbsp; `;
+      html += `查询记录 ${qr.length} 条</div>`;
+
+      html += `<div style="color:#c8a96e;margin-bottom:4px">📊 查询统计（前端计算）：`;
+      html += `近1月贷款 <b style="color:#fff">${q.loan_1m}</b> 次 &nbsp;|&nbsp; `;
+      html += `近3月贷款 <b style="color:#fff">${q.loan_3m}</b> 次 &nbsp;|&nbsp; `;
+      html += `近3月信用卡 <b style="color:#fff">${q.loan_3m_card}</b> 次 &nbsp;|&nbsp; `;
+      html += `近6月合计 <b style="color:#fff">${q.loan_6m_total}</b> 次</div>`;
+
+      if (loans_all.length > 0) {
+        html += `<div style="color:#c8a96e;margin-top:8px;margin-bottom:4px">💳 贷款明细（含已结清）：</div>`;
+        loans_all.forEach((l,i) => {
+          const settled_mark = (l.status==='结清'||l.status==='已结清') ? ' <span style="color:#666">[已结清-已过滤]</span>' : '';
+          const rev_mark = l.is_revolving ? ' <span style="color:#4ade80">[循环]</span>' : '';
+          html += `<div style="padding:2px 0;border-bottom:1px solid rgba(255,255,255,.05)">`;
+          html += `${i+1}. ${l.name}${rev_mark}${settled_mark}<br>`;
+          html += `&nbsp;&nbsp;授信：${l.credit_limit!=null?l.credit_limit.toLocaleString()+'元':'?'} &nbsp;`;
+          html += `余额：${l.balance!=null?l.balance.toLocaleString()+'元':'?'} &nbsp;`;
+          html += `月供：${l.monthly!=null?l.monthly.toLocaleString()+'元':'--'} &nbsp;`;
+          html += `类型：${l.loan_category||l.type||'?'} &nbsp;`;
+          html += `状态：<span style="color:${l.status==='正常'?'#4ade80':'#f87171'}">${l.status||'?'}</span>`;
+          html += `</div>`;
+        });
+      }
+
+      if (cards_all.length > 0) {
+        html += `<div style="color:#c8a96e;margin-top:8px;margin-bottom:4px">🏦 信用卡明细（含已销户）：</div>`;
+        cards_all.forEach((c,i) => {
+          const cancel_mark = (c.status==='销户'||c.status==='已销户') ? ' <span style="color:#666">[已销户-已过滤]</span>' : '';
+          const util = c.limit>0 ? Math.round((c.used||0)/c.limit*100) : null;
+          html += `<div>${i+1}. ${c.name}${cancel_mark} &nbsp; `;
+          html += `额度：${c.limit!=null?c.limit.toLocaleString()+'元':'?'} &nbsp;`;
+          html += `已用：${c.used!=null?c.used.toLocaleString()+'元':'?'} &nbsp;`;
+          html += `使用率：${util!=null?util+'%':'?'}</div>`;
+        });
+      }
+
+      if (data.overdue_history_notes) {
+        html += `<div style="color:#f87171;margin-top:8px">⚠️ 逾期记录：${data.overdue_history_notes}</div>`;
+      }
+      html += `<div style="color:#666;margin-top:8px;font-size:10px">备注：${data.notes||'无'}</div>`;
+
+      dbgBody.innerHTML = html;
+      dbgCard.style.display = 'block';
+    }
+  } catch(e) { console.warn('调试区渲染失败', e); }
+
   // Filter: remove settled loans and cancelled cards
   const loans = (data.loans || []).filter(l => l.status !== '结清' && l.status !== '已结清');
   const cards = (data.cards || []).filter(c => c.status !== '销户' && c.status !== '已销户');
@@ -2396,7 +2494,7 @@ function renderResult(data) {
           <td style="text-align:right;font-weight:600">${colLimit}</td>
           <td style="text-align:right;font-weight:600">${colBalance}</td>
           <td style="text-align:right">${colMonthly}</td>
-          <td style="text-align:right">${l.rate ? l.rate + '%' : '<span style=\"color:var(--gray-mid)\">--</span>'}</td>
+
           <td style="text-align:center"><span class="badge ${l.status === '正常' ? 'badge-ok' : 'badge-bad'}">${l.status || '--'}</span></td>
         </tr>
       `;
@@ -2506,8 +2604,7 @@ async function startMatching() {
     const limitStr   = l.credit_limit != null ? fmt(l.credit_limit)+'元' : '--';
     const balStr     = l.balance != null      ? fmt(l.balance)+'元'      : '--';
     const monthlyStr = l.monthly != null      ? fmt(l.monthly)+'元'      : '--';
-    const rateStr    = l.rate != null         ? l.rate+'%'               : '--';
-    return `${i+1}. ${l.name}${l.is_revolving?' [循环授信]':''}：授信额度${limitStr}，余额${balStr}，月还款${monthlyStr}，年利率${rateStr}，状态：${l.status || '正常'}`;
+    return `${i+1}. ${l.name}${l.is_revolving?' [循环授信]':''}：授信额度${limitStr}，余额${balStr}，月还款${monthlyStr}，状态：${l.status || '正常'}`;
   }).join('\n') || '无贷款账户';
 
   const cardDesc = cards.map((c, i) => {
@@ -2744,18 +2841,27 @@ function renderMatchResult(r) {
     let mult = workMult[work] || 50;
     const data2 = _recognizedData || {};
     const loans2 = (data2.loans || []).filter(l => l.status !== '结清' && l.status !== '已结清');
+    // 用loan_category过滤房贷更精准（兜底再用name关键词）
     const nonMortgageDebt = loans2
-      .filter(l => !l.name.includes('房') && !l.name.includes('住房') && !l.name.includes('按揭'))
+      .filter(l => l.loan_category !== 'mortgage'
+        && !l.name.includes('房') && !l.name.includes('住房') && !l.name.includes('按揭'))
       .reduce((s, l) => s + (l.balance || 0), 0);
 
     // 征信质量折扣
     const q = calcQueryCounts(_recognizedData?.query_records || []);
     const q3loans = q.loan_3m || 0;
     const activeLoanCount = loans2.length;
+    // 信用卡使用率
+    const cards2 = (_recognizedData?.cards || []).filter(c => c.status !== '销户');
+    const _cLimit = cards2.reduce((s,c)=>s+(c.limit||0),0);
+    const _cUsed  = cards2.reduce((s,c)=>s+(c.used||0),0);
+    const _cUtil  = _cLimit > 0 ? Math.round(_cUsed/_cLimit*100) : 0;
     let qualityFactor = 1;
     if (q3loans > 10)      qualityFactor *= 0.5;
     else if (q3loans > 6)  qualityFactor *= 0.7;
     if (activeLoanCount >= 5) qualityFactor *= 0.8;
+    if (_cUtil > 90)       qualityFactor *= 0.7;   // 信用卡严重透支
+    else if (_cUtil > 70)  qualityFactor *= 0.85;  // 信用卡偏高
 
     // 范围：下限用30倍基准，上限用工作性质倍数，均乘以征信折扣
     const estLo = (income * 30 - nonMortgageDebt) * qualityFactor;
@@ -2868,7 +2974,25 @@ function renderMatchResult(r) {
 
   document.getElementById('analysisReport').style.display = 'block';
 
-  document.getElementById('productsGrid').innerHTML = (r.products || []).map(p => {
+  // 问题8：products为空时显示引导文案
+  const _products = r.products || [];
+  if (_products.length === 0) {
+    const _keyRisk = r.key_risk || '';
+    const _noMatchReason = _keyRisk
+      ? `当前无法匹配产品：${_keyRisk}`
+      : '当前资质暂无可直接申请的银行产品';
+    document.getElementById('productsGrid').innerHTML = `
+      <div style="text-align:center;padding:32px 20px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px dashed rgba(255,255,255,0.15)">
+        <div style="font-size:32px;margin-bottom:12px">📋</div>
+        <div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:8px">${esc(_noMatchReason)}</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.5);line-height:1.8;margin-bottom:16px">
+          请查看下方「专属优化建议」，了解如何改善征信资质<br>
+          或联系顾问获取人工评估方案
+        </div>
+        <a href="tel:${CONTACT_PHONE}" style="display:inline-block;background:var(--gold);color:var(--navy);padding:10px 24px;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none">📞 联系顾问</a>
+      </div>`;
+  }
+  document.getElementById('productsGrid').innerHTML += (_products.length === 0 ? '' : _products.map(p => {
     const pct = p.probPct || 0;
     const barColor = pct >= 75 ? 'var(--green)' : pct >= 55 ? 'var(--gold)' : 'var(--red)';
     return `
@@ -2895,7 +3019,7 @@ function renderMatchResult(r) {
         <div class="pc-reason">${esc(p.reason) || ''}</div>
       </div>
     `;
-  }).join('');
+  }).join(''));
 
   document.getElementById('matchResult').style.display = 'block';
   document.getElementById('matchResult').scrollIntoView({ behavior:'smooth', block:'start' });
@@ -3073,7 +3197,6 @@ function buildReportText() {
       + `\n     授信额度: ${l.credit_limit != null ? fmt(l.credit_limit)+'元' : '--'}`
       + ` | 余额: ${l.balance != null ? fmt(l.balance)+'元' : '--'}`
       + ` | 月还款: ${l.monthly != null ? fmt(l.monthly)+'元' : '--'}`
-      + ` | 年利率: ${l.rate ? l.rate+'%' : '--'}`
       + ` | 状态: ${l.status || '--'}`;
   }).join('\n') || '  无未结清贷款';
 
@@ -3211,6 +3334,17 @@ function hideQrModal(e) {
     document.getElementById('qrOverlay').classList.remove('show');
   }
 }
+
+// 初始化：动态设置联系电话
+function initContactPhone() {
+  // 电话按钮
+  const btn = document.getElementById('contactPhoneBtn');
+  if (btn) { btn.href = 'tel:' + CONTACT_PHONE; }
+  // 二维码备用文字
+  const qrPhone = document.getElementById('qrPhoneNum');
+  if (qrPhone) { qrPhone.textContent = CONTACT_PHONE; }
+}
+document.addEventListener('DOMContentLoaded', initContactPhone);
 
 function restartAll() {
   _fileBase64 = null; _fileMediaType = null; _recognizedData = null;
