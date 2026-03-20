@@ -1064,6 +1064,9 @@ footer{
     </div>
 
     <!-- STEP 4: MATCHING -->
+          <div id="incomeWarnBanner" style="display:none;margin-bottom:12px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;font-size:13px;color:#856404">
+            ⚠️ <strong>提示：未填写月收入</strong>，系统无法计算负债率，部分超负债上限的产品可能仍会显示——建议返回补充月收入后重新分析，结果将更准确。
+          </div>
     <div class="upload-card" id="matchingCard" style="display:none">
       <div class="card-header">
         <div class="card-header-num">4</div>
@@ -1257,8 +1260,11 @@ function esc(s) {
 //   rate        利率范围（显示用）
 //   amount      最高额度（显示用）
 //   maxQ3       近3月查询上限（硬性红线，超过直接排除）
+//   maxQ1       近1月查询上限（null=不限）
 //   maxQ6       近6月查询上限（null=不限）
 //   maxDebt     负债率上限 % （null=不限）
+//   minAge      最低年龄（null=不限）
+//   maxAge      最高年龄（null=不限）
 //   minIncome   最低月收入 元 （null=不限）
 //   overdue     'zero'=零逾期 | 'mild'=历史≤30天已结清可接受 | 'any'=宽松
 //   social      true=需要社保/公积金 | false=不要求
@@ -1361,7 +1367,7 @@ const BANK_PRODUCTS = [
     id: 'zsyh',
     bank: '招商银行', product: '闪电贷', emoji: '💳',
     rate: '2.68%-18%', amount: '最高50万',
-    maxQ3: 4, maxQ6: null, maxDebt: 65, minIncome: 5000,
+    maxQ3: 4, maxQ1: 2, maxQ6: null, maxDebt: 65, minIncome: 5000,
     overdue: 'zero', social: false,
     conditions: '无当前逾期；近1月查询≤2次；近3月查询≤4次；负债率≤65%',
     bonus: '招行代发/AUM≥2万利率更低；公积金高基数显著提额',
@@ -1518,6 +1524,7 @@ const BANK_PRODUCTS = [
     bank: '海翔小贷', product: '信用贷', emoji: '🦅',
     rate: '利率面议', amount: '10-100万',
     maxQ3: 99, maxQ6: null, maxDebt: 80, minIncome: null,
+    minAge: 22, maxAge: 55,
     overdue: 'zero', social: true,
     conditions: '上班族，单位不限，优质单位通过率高；需省内户籍，外省户籍需持有厦门房产或年报税收入30万以上；年龄22-55周岁；无当前逾期；1年内3个1或逾期有2不准入；2年内10个1或逾期有3不准入；2年内有展期记录不准入；近一年有提取公积金不准入；负债绝对值（含外担保）大于800万不准入；房产抵押典当或私人借款不准入',
     bonus: '优质单位/职级高/报税收入高/资产净值高/公积金余额高/可双签/家庭条件好/稳定副业收入均可提额；10-30万可最高40%先息；30-100万等额本金',
@@ -1534,7 +1541,8 @@ const BANK_PRODUCTS = [
     id: 'nbyh',
     bank: '南银法巴银行', product: '诚易贷', emoji: '🏦',
     rate: '7.2%-18.8%', amount: '最高30万（夫妻各自申请）',
-    maxQ3: 9, maxQ6: 15, maxDebt: null, minIncome: null,
+    maxQ3: 9, maxQ1: 5, maxQ6: 15, maxDebt: null, minIncome: null,
+    minAge: 22, maxAge: 56,
     overdue: 'mild', social: true,
     conditions: '年龄22-56周岁；本地户籍：个税/公积金/社保≥6个月；外地户籍：≥12个月（本地有房按本地要求）；个税/公积金/社保缴纳全国均可，工作或居住在厦门即可；近1月查询≤5次，近2月≤7次，近3月≤9次，半年≤15次；当前不能逾期，历史总逾期次数≤12次，历史无M2，信用卡逾期100元内可豁免；无冻结/止付/呆账/代偿/资产处置',
     bonus: '硕士/博士利率7.2%-9%最低；本科+公积金月缴≥2千利率9%-12%；22-30周岁本科个税/公积金/社保3个月即可；查询要求最宽松，半年≤15次',
@@ -1551,7 +1559,8 @@ const BANK_PRODUCTS = [
     id: 'zyxf',
     bank: '中邮消费金融', product: '消费贷', emoji: '📬',
     rate: '18%-23.76%', amount: '最高20万',
-    maxQ3: 9, maxQ6: null, maxDebt: null, minIncome: null,
+    maxQ3: 9, maxQ1: 3, maxQ6: null, maxDebt: null, minIncome: null,
+    minAge: 20, maxAge: 55,
     overdue: 'mild', social: true,
     conditions: '年龄20-55周岁；本单位满6个月，缴金单位无占股；负债符合其一：①公积金基数×50倍≥信贷余额 ②社保取基数×50倍≥信贷余额 ③个税取近一年平均值×50倍≥信贷余额；当前无逾期，近1年无M2+，近2年无M3+，历史无M4+；近1月本人查询<4次，近3月信贷查询≤9次',
     bonus: '负债要求三选一非常灵活；公积金/社保/个税任一满足即可；查询宽松近3月≤9次',
@@ -1569,6 +1578,7 @@ const BANK_PRODUCTS = [
     bank: '中银消费金融', product: '消费贷', emoji: '🏛',
     rate: '14.98%-22.98%', amount: '最高20万',
     maxQ3: 7, maxQ6: null, maxDebt: null, minIncome: null,
+    minAge: 20, maxAge: 55,
     overdue: 'mild', social: true,
     conditions: '年龄20-55周岁；上班族，有卡发工资流水；本地户口：社保现单位连续满半年，月缴/季缴均可；外地户口：社保现单位连续满1年；大专及以上学历；2个月机构查询≤5次，3个月机构查询≤7次（含担保资格审查/贷款审批/信用卡审批）；无当前逾期，3个月无M2，2年无M4，M1≤11次，M2≤3次；信用卡使用率≤90%，近3月不能有逾期；至少有一笔正常还款6个月以上',
     bonus: '社保基数5000+大专学历利率最低14.98%；旧系统持全球前200大学国境外学历可进；有按揭房+社保基数5000利率低至14.98%；夫妻可各自申请合计40万',
@@ -1586,6 +1596,7 @@ const BANK_PRODUCTS = [
     bank: '兴业消费金融', product: '消费贷', emoji: '💼',
     rate: '8.88%-16.8%', amount: '5-20万（夫妻40万）',
     maxQ3: 10, maxQ6: null, maxDebt: null, minIncome: 5000,
+    minAge: 22, maxAge: 60,
     overdue: 'mild', social: true,
     conditions: '年龄22-60周岁；A类上班族：社保6个月以上，月工资5000以上；A1类二选一：①研究生及以上学历 ②本科+本地商品房或消金省会城市商品房；A2类三选一：①本科学历 ②本地商品房 ③卡超厦门两倍社平工资(15000)；近3月查询≤10次，近1月自查≤2次；无当前逾期，兴消还款不可逾期；不接受白户（无借款和信用卡）',
     bonus: 'A1类irr年化8.88%或10.8%最低利率；研究生学历直接最优利率；全款房客户20%认定额度；厦门本地社保6个月即可进件',
@@ -1602,7 +1613,8 @@ const BANK_PRODUCTS = [
     id: 'lyh',
     bank: '陆易花', product: '薪产品', emoji: '🌸',
     rate: '利率面议', amount: '2-20万循环额度',
-    maxQ3: 9, maxQ6: null, maxDebt: 100, minIncome: null,
+    maxQ3: 9, maxQ1: 4, maxQ6: null, maxDebt: 100, minIncome: null,
+    minAge: 22, maxAge: 55,
     overdue: 'mild', social: true,
     conditions: '年龄22-55周岁；上班族（不含企业法人/股东/个体工商户）；企业缴社保（个人缴不要）；单位连续缴纳社保或公积金≥6个月；打卡工资：个税/社保近6月平均≥3000元，或公积金近6月缴纳基数平均≥1780元；无当前逾期（200元以下可申请），2年内无逾期30天以上；近1月查询次数<5次，近3月查询机构<9次；月负债>3万通过率降低，月负债>5万通过率极低；不接受白户；不接受军警/公检法/律所/夜总会/同业；GPS校验：业务员所在城市需与客户一致',
     bonus: '循环额度最灵活；可线上操作；6期内EPO 1.5%；支持12/24/36期，出额20万可选48期；换单位只需保证连续缴纳即可',
@@ -1616,7 +1628,7 @@ const BANK_PRODUCTS = [
 ];
 
 // ── 动态生成 AI prompt 用的产品库文本 ──
-function buildProductLibText(q3, q6, hasOverdue, onlineCount) {
+function buildProductLibText(q3, q6, hasOverdue, onlineCount, q1) {
   // 读取用户补充信息，用于预判
   const userInfo     = (() => { try { return collectInfoData(); } catch(e) { return {}; } })();
   const income       = userInfo.income || 0;
@@ -1637,11 +1649,25 @@ function buildProductLibText(q3, q6, hasOverdue, onlineCount) {
   };
   const userWorkType = workTypeMap[userInfo.work || ''] || 'private';
 
+  // 负债率（用于一票否决判断）
+  const debtRatioPctLib = (() => {
+    if (!income) return null;
+    const ls = (_recognizedData?.loans || []).filter(l => l.status !== '结清' && l.status !== '已结清');
+    const cs = (_recognizedData?.cards || []).filter(c => c.status !== '销户' && c.status !== '已销户');
+    const tm = calcTotalMonthly(ls, cs);
+    return tm > 0 ? Math.round(tm / income * 100) : 0;
+  })();
+  // 年龄
+  const _ageLib = calcAgeFromId(window._personIdNo || '');
+
   return BANK_PRODUCTS.map(p => {
     // 一票否决判断（含新字段）
     const q3Fail       = q3 > p.maxQ3;
+    const q1Fail       = p.maxQ1 != null && (q1 || 0) > p.maxQ1;
     const q6Fail       = p.maxQ6 !== null && q6 > p.maxQ6;
     const overdFail    = hasOverdue && p.overdue === 'zero';
+    const debtFail     = p.maxDebt && income > 0 && debtRatioPctLib != null && debtRatioPctLib > p.maxDebt;
+    const ageFail      = (_ageLib && p.minAge && _ageLib < p.minAge) || (_ageLib && p.maxAge && _ageLib > p.maxAge);
     const incomeFail   = p.minIncome && income > 0 && income < p.minIncome;
     const hasProvident2 = provident > 0;
     const socialFail   = p.social && (!hasSocial && !hasProvident2)
@@ -1649,12 +1675,15 @@ function buildProductLibText(q3, q6, hasOverdue, onlineCount) {
     const provFail     = p.minProvident && userInfo.provident !== null && provident < p.minProvident;
     const eduFail      = p.minEdu && p.minEdu !== 'none' && userEduRank > 0 && userEduRank < (minEduRank[p.minEdu]||0);
     const workFail     = p.workTypes && p.workTypes.length > 0 && !p.workTypes.includes(userWorkType);
-    const rejected     = q3Fail || q6Fail || overdFail || incomeFail || socialFail || provFail || eduFail || workFail;
+    const rejected     = q3Fail || q1Fail || q6Fail || overdFail || debtFail || ageFail || incomeFail || socialFail || provFail || eduFail || workFail;
 
     let rejectReason = '';
     if (q3Fail)     rejectReason += ' 近3月查询' + q3 + '次超上限' + p.maxQ3 + '次';
+    if (q1Fail)     rejectReason += ' 近1月查询' + (q1||0) + '次超上限' + p.maxQ1 + '次';
     if (q6Fail)     rejectReason += ' 近6月查询' + q6 + '次超上限' + p.maxQ6 + '次';
     if (overdFail)  rejectReason += ' 有当前逾期';
+    if (debtFail)   rejectReason += ' 负债率' + debtRatioPctLib + '%超上限' + p.maxDebt + '%';
+    if (ageFail)    rejectReason += ' 年龄' + _ageLib + '岁不在要求范围' + (p.minAge||'') + '-' + (p.maxAge||'') + '岁';
     if (incomeFail) rejectReason += ' 月收入' + income + '元低于最低要求' + p.minIncome + '元';
     if (socialFail) rejectReason += ' 社保不足' + p.minSocialMonths + '个月';
     if (provFail)   rejectReason += ' 公积金月缴' + provident + '元低于要求' + p.minProvident + '元';
@@ -1685,14 +1714,17 @@ function buildProductLibText(q3, q6, hasOverdue, onlineCount) {
 // ── 本地兜底匹配（AI失败时使用，逻辑与产品库完全同步）──
 function localFallbackMatch(data) {
   const q           = calcQueryCounts(data.query_records || []);
+  const q1          = q.loan_1m || 0;
   const q3          = (q.loan_3m || 0) + (q.loan_3m_card || 0);
   const q6          = q.loan_6m_total || 0;
   const hasOverdue  = (data.overdue_current || 0) > 0;
   const hasOvHist   = !!data.overdue_history_notes;
-  const onlineCount = (data.loans||[]).filter(l=>l.type==='online').length;
+  const onlineCount = (data.loans||[]).filter(l=>l.type==='online').length; // 笔数（评分用）
   const _onlineL = (data.loans||[]).filter(l=>l.type==='online');
-  const onlineInstCnt = [...new Set(_onlineL.map(l=>l.name.split('-')[0]))].length;
+  const onlineInstCnt = [...new Set(_onlineL.map(l=>l.name.split('-')[0]))].length; // 机构数（准入用）
   const onlinePenalty = onlineInstCnt >= 5 ? -20 : (onlineInstCnt === 3 || onlineInstCnt === 4) ? -10 : 0;
+  // 年龄（从征信身份证算）
+  const _age = calcAgeFromId(window._personIdNo || '');
 
   // 读取用户填写的补充信息
   const userInfo     = (() => { try { return collectInfoData(); } catch(e) { return {}; } })();
@@ -1715,13 +1747,27 @@ function localFallbackMatch(data) {
   };
   const userWorkType = workTypeMap[workVal] || 'private';
 
+  // 负债率（提前计算，供一票否决使用）
+  const _loansForDebt = (data.loans||[]).filter(l=>l.status!=='结清'&&l.status!=='已结清');
+  const _cardsForDebt = (data.cards||[]).filter(c=>c.status!=='销户'&&c.status!=='已销户');
+  const _tmForDebt = calcTotalMonthly(_loansForDebt, _cardsForDebt);
+  const debtRatio = income > 0 && _tmForDebt > 0 ? Math.round(_tmForDebt / income * 100) : 0;
+
   const products = [];
 
   BANK_PRODUCTS.forEach(p => {
     // ── 一票否决：征信硬性条件 ──
     if (hasOverdue && p.overdue === 'zero') return;
     if (q3 > p.maxQ3) return;
+    if (p.maxQ1 != null && q1 > p.maxQ1) return;
     if (p.maxQ6 !== null && q6 > p.maxQ6) return;
+
+    // ── 一票否决：年龄 ──
+    if (_age && p.minAge && _age < p.minAge) return;
+    if (_age && p.maxAge && _age > p.maxAge) return;
+
+    // ── 一票否决：负债率（有收入才判断）──
+    if (p.maxDebt && income > 0 && debtRatio > p.maxDebt) return;
 
     // ── 一票否决：收入不足 ──
     if (p.minIncome && income > 0 && income < p.minIncome) return;
@@ -1801,13 +1847,9 @@ function localFallbackMatch(data) {
     if (assetsV.includes('房产'))    score += 8;
     else if (assetsV.includes('车辆')) score += 4;
 
-    // 负债率扣分
-    const _loans2 = (data.loans||[]).filter(l=>l.status!=='结清'&&l.status!=='已结清');
-  const _cards2 = (data.cards||[]).filter(c=>c.status!=='销户'&&c.status!=='已销户');
-  const _tm = calcTotalMonthly(_loans2, _cards2);
-  const debtRatio = income > 0 && _tm > 0 ? Math.round(_tm / income * 100) : 0;
+    // 负债率扣分（超过上限已在一票否决中排除，这里只做接近上限的扣分）
     if (p.maxDebt && debtRatio > 0 && income > 0) {
-      if (debtRatio > p.maxDebt * 0.9)       score -= 15;
+      if (debtRatio > p.maxDebt * 0.9)       score -= 10;
       else if (debtRatio > p.maxDebt * 0.7)  score -= 5;
     }
 
@@ -1836,8 +1878,10 @@ function localFallbackMatch(data) {
     ? '存在当前逾期，所有银行产品均无法申请，请先结清'
     : q3 > 10 ? `近3月查询${q3}次严重超标，银行产品基本无法通过`
     : q3 > 5  ? `近3月查询${q3}次偏多，已超多数银行准入红线`
-    : onlineCount >= 5 ? `网贷机构${onlineCount}家，已超银行准入红线（≤4家）`
-    : (onlineCount === 3 || onlineCount === 4) ? `网贷机构${onlineCount}家，轻度警示（银行准入建议≤2家）`
+    : q1 > 5  ? `近1月查询${q1}次偏多，已超多数银行近1月查询红线`
+    : onlineInstCnt >= 5 ? `网贷机构${onlineInstCnt}家，已超银行准入红线（≤4家）`
+    : (onlineInstCnt === 3 || onlineInstCnt === 4) ? `网贷机构${onlineInstCnt}家，轻度警示（银行准入建议≤2家）`
+    : debtRatio > 80 ? `负债率${debtRatio}%严重超标，多数银行无法通过负债率审核`
     : (!hasSocial && !provident) ? '无社保且无公积金，多数银行产品需要其中之一'
     : '';
 
@@ -1958,6 +2002,8 @@ let _recognizedData = null; // {loans, cards, queries, summary}
 function calcLoanMonthly(loan) {
   const bal = loan.balance || 0;
   if (bal <= 0) return 0;
+  // 循环授信随借随还，银行按余额×1%保守折算
+  if (loan.is_revolving) return Math.round(bal * 0.01);
   const cat = loan.loan_category || (loan.type === 'online' ? 'finance' : 'credit');
   let isOld = false;
   if (loan.issued_date) {
@@ -1979,8 +2025,8 @@ function calcLoanMonthly(loan) {
 
 function calcTotalMonthly(loans, cards) {
   const loanPart = loans.reduce((s, l) => s + calcLoanMonthly(l), 0);
-  // 银行审批口径：信用卡按【授信额度×5%】折算月供，不是已用额度
-  const cardPart = cards.reduce((s, c) => s + Math.round((c.limit || 0) * 0.05), 0);
+  // 银行审批口径：信用卡按【已用额度×2%】折算月供（银行实际通用口径）
+  const cardPart = cards.reduce((s, c) => s + Math.round((c.used || 0) * 0.02), 0);
   return loanPart + cardPart;
 }
 
@@ -2407,7 +2453,9 @@ function renderResult(data) {
       html += `<div style="color:#666;margin-top:8px;font-size:10px">备注：${data.notes||'无'}</div>`;
 
       dbgBody.innerHTML = html;
-      dbgCard.style.display = 'block';
+      if (new URLSearchParams(window.location.search).has('debug')) {
+        dbgCard.style.display = 'block';
+      }
     }
   } catch(e) { console.warn('调试区渲染失败', e); }
 
@@ -2616,6 +2664,7 @@ function renderResult(data) {
 async function startMatching() {
   document.getElementById('infoCard').style.display = 'none';  // hide info form
   document.getElementById('matchingCard').style.display = 'block';
+  document.getElementById('incomeWarnBanner').style.display = 'none'; // reset
   document.getElementById('matchingCard').scrollIntoView({ behavior:'smooth', block:'start' });
 
   // Animate steps
@@ -2638,6 +2687,14 @@ async function startMatching() {
   const q = calcQueryCounts(data.query_records || []);
 
   const totalMonthly = calcTotalMonthly(loans, cards);
+
+  // 月收入未填时警告（无法计算负债率，maxDebt检查全部失效）
+  const _incomeCheck = (() => { try { return collectInfoData().income || 0; } catch(e) { return 0; } })();
+  if (_incomeCheck === 0 && (loans.length > 0 || cards.length > 0)) {
+    const _warn = document.getElementById('incomeWarnBanner');
+    if (_warn) _warn.style.display = 'block';
+  }
+
   const onlineLoansM = loans.filter(l => l.type === 'online');
   const onlineCount  = onlineLoansM.length;  // 笔数（用于原有产品评分）
   const onlineInstTotal = window._onlineInstTotal
@@ -2766,7 +2823,7 @@ ${scoreItems.join('\n')}
 
 【查询记录（已过滤贷后管理/本人查询）】
 近1月贷款审批：${q.loan_1m || 0}次 | 近3月贷款：${q3loans}次 | 近3月信用卡：${q3cards}次
-近3月合计：${q3}次（红线≤6次） | 近6月合计：${q6}次
+近3月合计：${q3}次（各产品红线不同：最严4次/一般6次/宽松9次） | 近6月合计：${q6}次
 
 【贷款明细】
 ${loanDesc}
@@ -2778,14 +2835,14 @@ ${cardDesc}
 【第三部分：风控红线逐项对照】
 ═══════════════════════════════════
 ① 网贷机构数≤4家 → 当前${onlineInstTotal}家 → ${onlineInstTotal >= 5 ? '❌超标（直接拒贷）' : (onlineInstTotal === 3 || onlineInstTotal === 4) ? '⚠️轻度警示' : '✅达标'}
-② 近3月查询≤6次 → 当前${q3}次 → ${q3 > 6 ? '❌超标' : q3 >= 5 ? '⚠️接近红线' : '✅达标'}
+② 近3月查询（招行/厦门农商≤4次，光大≤5次，一般银行≤6次）→ 当前${q3}次 → ${q3 > 9 ? '❌超标（全线拒贷）' : q3 > 6 ? '⚠️严重超标（仅消金/宽松银行可申）' : q3 >= 5 ? '⚠️接近红线（招行/农商已超）' : '✅达标'}
 ③ 无当前逾期 → ${(data.overdue_current||0) > 0 ? '❌有' + data.overdue_current + '笔逾期（绝对红线）' : '✅无逾期'}
 ④ 负债率≤70% → ${debtRatio} → ${debtRatioPct != null ? (debtRatioPct > 70 ? '❌超标' : debtRatioPct >= 60 ? '⚠️偏高' : '✅达标') : '待计算'}
 ⑤ 信用卡使用率≤70% → ${cardUtil}% → ${cardUtil > 70 ? '❌超标' : cardUtil >= 60 ? '⚠️偏高' : '✅达标'}
 ⑥ 社保缴交≥12月（多数银行） → ${socialMonths >= 12 ? '✅' + socialMonths + '月达标' : socialMonths > 0 ? '⚠️仅' + socialMonths + '月' : '❌无社保（减分项）'}
 
 【银行产品准入预判（❌标记=一票否决）】
-${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal)}
+${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal, q.loan_1m||0)}
 
 【通过率计算规则】
 基础分65 + 查询充裕(+15) | 查询宽松(+5) | 查询偏多(-10)
