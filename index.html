@@ -1243,12 +1243,6 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-// HTML 转义工具（防止 AI 返回内容中含恶意标签）
-function esc(s) {
-  if (s === null || s === undefined) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-
 // ═══════════════════════════════════════════
 // 产品库（唯一数据源，新增/修改产品只改这里）
 // ═══════════════════════════════════════════
@@ -2131,11 +2125,6 @@ async function startAnalysis() {
 - is_revolving：循环授信类（美团/西岸/京东/阳光消费金融等）设为true，普通期限贷款设为false
 注意：不需要提取rate（利率）字段，简版征信不显示利率，不要猜测，JSON示例中的rate字段也请忽略
 
-【详版征信金额识别规则】
-- balance/余额 = 账户信息表格中"余额"行的数值，单位：元，万元×10000
-- credit_limit = 账户信息表格中"授信额度"或"贷款金额"行的数值
-- 不要从还款状态矩阵（N/1/2/C/*代码行）读取余额
-- 信用卡已用额度 = 账户信息块中"已用额度"字段（仅信用卡用）
 
 【账户类型判断（严格执行，绝对不准出错）】
 
@@ -3325,7 +3314,6 @@ function renderTableFooters(loans, cards) {
 // ═══════════════════════════════════════════
 // AUTO REPORT → WORKER /report → RESEND
 // ═══════════════════════════════════════════
-const FORMSPREE_URL  = 'https://formspree.io/f/mpqypayz'; // 保留备用
 const REPORT_URL     = PROXY_URL + '/report';              // Worker 报告路由
 
 function buildReportText() {
@@ -3533,7 +3521,6 @@ document.addEventListener('DOMContentLoaded', initContactPhone);
 
 function restartAll() {
   _fileBase64 = null; _fileMediaType = null; _recognizedData = null;
-  window._finalReportSubmitted = false;
 
   // Reset file input
   document.getElementById('fileInput').value = '';
