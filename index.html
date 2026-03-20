@@ -1660,37 +1660,29 @@ function buildProductLibText(q3, q6, hasOverdue, onlineCount, q1) {
   // 年龄
   const _ageLib = calcAgeFromId(window._personIdNo || '');
 
-  return BANK_PRODUCTS.map(p => {
-    // 一票否决判断（含新字段）
-    const q3Fail       = q3 > p.maxQ3;
-    const q1Fail       = p.maxQ1 != null && (q1 || 0) > p.maxQ1;
-    const q6Fail       = p.maxQ6 !== null && q6 > p.maxQ6;
-    const overdFail    = hasOverdue && p.overdue === 'zero';
-    const debtFail     = p.maxDebt && income > 0 && debtRatioPctLib != null && debtRatioPctLib > p.maxDebt;
-    const ageFail      = (_ageLib && p.minAge && _ageLib < p.minAge) || (_ageLib && p.maxAge && _ageLib > p.maxAge);
-    const incomeFail   = p.minIncome && income > 0 && income < p.minIncome;
+  // 一票否决函数（复用于过滤 + 摘要）
+  const isRejected = p => {
     const hasProvident2 = provident > 0;
-    const socialFail   = p.social && (!hasSocial && !hasProvident2)
-                      || (p.social && p.minSocialMonths && hasSocial && socialMonths < p.minSocialMonths);
-    const provFail     = p.minProvident && userInfo.provident !== null && provident < p.minProvident;
-    const eduFail      = p.minEdu && p.minEdu !== 'none' && userEduRank > 0 && userEduRank < (minEduRank[p.minEdu]||0);
-    const workFail     = p.workTypes && p.workTypes.length > 0 && !p.workTypes.includes(userWorkType);
-    const rejected     = q3Fail || q1Fail || q6Fail || overdFail || debtFail || ageFail || incomeFail || socialFail || provFail || eduFail || workFail;
+    return (q3 > p.maxQ3)
+      || (p.maxQ1 != null && (q1 || 0) > p.maxQ1)
+      || (p.maxQ6 !== null && q6 > p.maxQ6)
+      || (hasOverdue && p.overdue === 'zero')
+      || (p.maxDebt && income > 0 && debtRatioPctLib != null && debtRatioPctLib > p.maxDebt)
+      || ((_ageLib && p.minAge && _ageLib < p.minAge) || (_ageLib && p.maxAge && _ageLib > p.maxAge))
+      || (p.minIncome && income > 0 && income < p.minIncome)
+      || (p.social && (!hasSocial && !hasProvident2))
+      || (p.social && p.minSocialMonths && hasSocial && socialMonths < p.minSocialMonths)
+      || (p.minProvident && userInfo.provident !== null && provident < p.minProvident)
+      || (p.minEdu && p.minEdu !== 'none' && userEduRank > 0 && userEduRank < (minEduRank[p.minEdu]||0))
+      || (p.workTypes && p.workTypes.length > 0 && !p.workTypes.includes(userWorkType));
+  };
 
-    let rejectReason = '';
-    if (q3Fail)     rejectReason += ' 近3月查询' + q3 + '次超上限' + p.maxQ3 + '次';
-    if (q1Fail)     rejectReason += ' 近1月查询' + (q1||0) + '次超上限' + p.maxQ1 + '次';
-    if (q6Fail)     rejectReason += ' 近6月查询' + q6 + '次超上限' + p.maxQ6 + '次';
-    if (overdFail)  rejectReason += ' 有当前逾期';
-    if (debtFail)   rejectReason += ' 负债率' + debtRatioPctLib + '%超上限' + p.maxDebt + '%';
-    if (ageFail)    rejectReason += ' 年龄' + _ageLib + '岁不在要求范围' + (p.minAge||'') + '-' + (p.maxAge||'') + '岁';
-    if (incomeFail) rejectReason += ' 月收入' + income + '元低于最低要求' + p.minIncome + '元';
-    if (socialFail) rejectReason += ' 社保不足' + p.minSocialMonths + '个月';
-    if (provFail)   rejectReason += ' 公积金月缴' + provident + '元低于要求' + p.minProvident + '元';
-    if (eduFail)    rejectReason += ' 学历未达要求';
-    if (workFail)   rejectReason += ' 职业类型不符';
+  const eligible = BANK_PRODUCTS.filter(p => !isRejected(p));
+  const skipped  = BANK_PRODUCTS.length - eligible.length;
 
-    const status  = rejected ? ('❌【不可申请】' + rejectReason.trim()) : '✅【可申请】';
+  const header = `【产品库已预过滤】系统前端已剔除${skipped}款一票否决产品，以下${eligible.length}款均为本客户可申请产品，请直接评分排序，无需再做准入判断。\n`;
+
+  const productLines = eligible.map(p => {
     const q3limit = p.maxQ3 === 99 ? '不限' : p.maxQ3 + '次';
     const q6limit = p.maxQ6 ? (' | 近6月上限：' + p.maxQ6 + '次') : '';
     const debtLmt = p.maxDebt ? p.maxDebt + '%' : '不限';
@@ -1702,13 +1694,15 @@ function buildProductLibText(q3, q6, hasOverdue, onlineCount, q1) {
     const eduReq  = (p.minEdu && p.minEdu !== 'none') ? (' | 学历≥' + {college:'大专',bachelor:'本科',master:'硕士'}[p.minEdu]) : '';
 
     return p.emoji + p.bank + '-' + p.product + '\n'
-      + '  ' + status + '\n'
+      + '  ✅【可申请】\n'
       + '  利率：' + p.rate + ' | 最高：' + p.amount
         + ' | 近3月查询上限：' + q3limit + q6limit + '\n'
       + '  逾期要求：' + ovReq + ' | 负债率上限：' + debtLmt + incReq + socReq + pvdReq + eduReq + '\n'
       + '  准入条件：' + p.conditions + '\n'
       + '  加分项：' + p.bonus;
   }).join('\n\n');
+
+  return header + (eligible.length > 0 ? productLines : '（无可申请产品，请在匹配结果中说明原因）');
 }
 
 // ── 本地兜底匹配（AI失败时使用，逻辑与产品库完全同步）──
@@ -2855,7 +2849,7 @@ ${cardDesc}
 ⑤ 信用卡使用率≤70% → ${cardUtil}% → ${cardUtil > 70 ? '❌超标' : cardUtil >= 60 ? '⚠️偏高' : '✅达标'}
 ⑥ 社保缴交≥12月（多数银行） → ${socialMonths >= 12 ? '✅' + socialMonths + '月达标' : socialMonths > 0 ? '⚠️仅' + socialMonths + '月' : '❌无社保（减分项）'}
 
-【银行产品准入预判（❌标记=一票否决）】
+【银行可申请产品（已预过滤，以下产品均已通过前端一票否决检查）】
 ${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal, q.loan_1m||0)}
 
 【通过率计算规则】
