@@ -2004,7 +2004,10 @@ function calcLoanMonthly(loan) {
   if (bal <= 0) return 0;
   // 循环授信随借随还，银行按余额×1%保守折算
   if (loan.is_revolving) return Math.round(bal * 0.01);
-  const cat = loan.loan_category || (loan.type === 'online' ? 'finance' : 'credit');
+  // online_bank（互联网助贷银行）系数与消费金融相同
+  const cat = loan.online_subtype === 'online_bank'
+    ? 'finance'
+    : loan.loan_category || (loan.type === 'online' ? 'finance' : 'credit');
   let isOld = false;
   if (loan.issued_date) {
     const issued = new Date(loan.issued_date);
@@ -2144,14 +2147,19 @@ async function startAnalysis() {
 
 ▌ type = "bank"（银行类贷款）
 机构名称含以下任意关键字，均归为银行类，不得标记为网贷：
-"银行"、"微众"、"网商"、"振兴"、"苏商"、"韩亚"、"农商"、"农信"、"村镇银行"
+"银行"、"韩亚"、"农商"、"农信"、"村镇银行"
 包含：六大国有行（工农中建交邮储）、12家全国股份制银行（招商/浦发/中信/光大/华夏/民生/广发/兴业/平安/浙商/恒丰/渤海）、各地农商行、微众银行、网商银行、各类村镇银行等。
+⚠️ 注意：以下机构名称虽含"银行"字样，但属于互联网助贷银行，必须归入 type="online"（见下方 online_bank 规则），不得归为 bank：
+众邦、通商银行、蓝海银行、三湘银行、苏宁银行、富民银行、亿联银行、振兴银行、苏商银行、新网银行
 
-▌ type = "online"（网贷）—— 以下两类机构：
+▌ type = "online"（网贷）—— 以下三类机构：
 ① online_subtype = "consumer_finance"（消费金融类）
   机构名称含：消费金融、招联、马上、中邮、捷信、哈银、盛银、北银
 ② online_subtype = "microloan"（小额贷款类）
   机构名称含：小额贷款、小贷、蚂蚁小贷、京东小贷、度小满小贷、美团小贷
+③ online_subtype = "online_bank"（互联网助贷银行）
+  机构名称含以下任意：众邦、通商银行、蓝海银行、三湘银行、苏宁银行、富民银行、亿联银行、振兴银行、苏商银行、新网银行
+  这类机构持有银行牌照但以助贷为主（蚂蚁/京东/度小满等平台引流），银行风控将其等同网贷处理，计入网贷机构总数。
 注意：online_subtype 字段仅用于 type=online 的账户，银行类填 null。
 
 ▌ type = "credit"（信用卡账户）
@@ -2512,9 +2520,11 @@ function renderResult(data) {
   const onlineCount = onlineLoans.length;
   const cfInstitutions  = [...new Set(onlineLoans.filter(l => l.online_subtype === 'consumer_finance').map(l => l.name.split('-')[0]))];
   const mlInstitutions  = [...new Set(onlineLoans.filter(l => l.online_subtype === 'microloan').map(l => l.name.split('-')[0]))];
+  const obInstitutions  = [...new Set(onlineLoans.filter(l => l.online_subtype === 'online_bank').map(l => l.name.split('-')[0]))];
   const allOnlineInst   = [...new Set(onlineLoans.map(l => l.name.split('-')[0]))];
   const cfCount  = cfInstitutions.length;
   const mlCount  = mlInstitutions.length;
+  const obCount  = obInstitutions.length;
   const onlineInstTotal = allOnlineInst.length;
   window._onlineInstTotal = onlineInstTotal;
 
@@ -2524,6 +2534,7 @@ function renderResult(data) {
     const parts = [];
     if (cfCount > 0) parts.push('消费金融 <strong>' + cfCount + ' 家</strong>（' + cfInstitutions.join('、') + '）');
     if (mlCount > 0) parts.push('小额贷款 <strong>' + mlCount + ' 家</strong>（' + mlInstitutions.join('、') + '）');
+    if (obCount > 0) parts.push('助贷银行 <strong>' + obCount + ' 家</strong>（' + obInstitutions.join('、') + '）');
     const breakdown = parts.join('&nbsp;+&nbsp;');
     const totalStr  = '网贷机构合计 <strong>' + onlineInstTotal + ' 家</strong>（银行准入红线：≤4家）';
     if (onlineInstTotal >= 5) {
@@ -2575,7 +2586,9 @@ function renderResult(data) {
       const catMap = { mortgage:'🏠 房贷', car:'🚗 车贷', credit:'🏦 银行信用贷', finance:'📱 网贷' };
       let catLabel, badgeCls;
       if (l.type === 'online') {
-        catLabel   = l.online_subtype === 'microloan' ? '💰 小额贷款' : '📱 消费金融';
+        catLabel   = l.online_subtype === 'microloan' ? '💰 小额贷款'
+                   : l.online_subtype === 'online_bank' ? '🏦 助贷银行'
+                   : '📱 消费金融';
         badgeCls   = 'badge-warn';
       } else {
         catLabel = catMap[l.loan_category] || '🏦 银行贷款';
@@ -2701,6 +2714,7 @@ async function startMatching() {
     ?? [...new Set(onlineLoansM.map(l => l.name.split('-')[0]))].length;
   const cfCount2 = [...new Set(onlineLoansM.filter(l => l.online_subtype==='consumer_finance').map(l=>l.name.split('-')[0]))].length;
   const mlCount2 = [...new Set(onlineLoansM.filter(l => l.online_subtype==='microloan').map(l=>l.name.split('-')[0]))].length;
+  const obCount2 = [...new Set(onlineLoansM.filter(l => l.online_subtype==='online_bank').map(l=>l.name.split('-')[0]))].length;
   const totalCardLimit = cards.reduce((s, c) => s + (c.limit || 0), 0);
   const totalCardUsed = cards.reduce((s, c) => s + (c.used || 0), 0);
   const cardUtil = totalCardLimit > 0 ? Math.round(totalCardUsed / totalCardLimit * 100) : 0;
@@ -2813,7 +2827,7 @@ ${scoreItems.join('\n')}
 【第二部分：征信核心数据】
 ═══════════════════════════════════
 未结清贷款：${loans.length}笔（银行${loans.length - onlineCount}笔 | 网贷${onlineCount}笔）
-网贷机构数：合计${onlineInstTotal}家（消费金融${cfCount2}家 + 小额贷款${mlCount2}家）→ 银行红线≤4家，当前：${onlineInstTotal >= 5 ? '⚠️超标' : (onlineInstTotal === 3 || onlineInstTotal === 4) ? '⚠️轻度警示' : '✅正常'}
+网贷机构数：合计${onlineInstTotal}家（消费金融${cfCount2}家 + 小额贷款${mlCount2}家 + 助贷银行${obCount2}家）→ 银行红线≤4家，当前：${onlineInstTotal >= 5 ? '⚠️超标' : (onlineInstTotal === 3 || onlineInstTotal === 4) ? '⚠️轻度警示' : '✅正常'}
 未销户信用卡：${cards.length}张
 月还款估算：${fmt(Math.round(totalMonthly))}元（本估算为银行审批参考值，非合同精确值）
 负债率：${debtRatio}（银行红线≤70%）
@@ -3337,7 +3351,7 @@ function buildReportText() {
     const isRev = l.is_revolving;
     const catMap = { mortgage:'房贷', car:'车贷', credit:'银行信用贷', finance:'消费金融' };
     const typeLabel = l.type === 'online'
-      ? (l.online_subtype === 'microloan' ? '小额贷款' : '消费金融')
+      ? (l.online_subtype === 'microloan' ? '小额贷款' : l.online_subtype === 'online_bank' ? '助贷银行' : '消费金融')
       : (catMap[l.loan_category] || '银行贷款');
     const issuedStr = (() => {
       if (!l.issued_date) return '--';
