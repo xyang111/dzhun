@@ -3640,9 +3640,6 @@ async function choosePay(channel) {
     document.getElementById('payLinkWrap').style.display = 'block';
     document.getElementById('payStep2Title').textContent = '等待支付确认';
 
-    // Mock 模式：显示「模拟确认支付」按钮
-    const mockBtn = document.getElementById('payMockConfirm');
-    if (mockBtn) mockBtn.style.display = _payUrl.includes('_mock_pay=1') ? 'block' : 'none';
 
     // 打开支付页
     const opened = window.open(_payUrl, '_blank');
@@ -3657,13 +3654,6 @@ async function choosePay(channel) {
     document.getElementById('payStep1').style.display = 'block';
     document.getElementById('payStep2').style.display = 'none';
   }
-}
-
-async function mockConfirmPay() {
-  if (!_payOrderId) return;
-  try {
-    await fetch(PROXY_URL + '/pay/dev-confirm/' + _payOrderId);
-  } catch(e) { /* ignore */ }
 }
 
 async function pollPayStatus() {
@@ -3718,9 +3708,6 @@ async function pollPayStatus() {
       <div id="payLinkWrap" style="display:none;margin-bottom:12px">
         <a id="payLinkBtn" href="#" target="_blank" style="font-size:13px;color:var(--gold);text-decoration:underline">重新打开支付页面</a>
       </div>
-      <!-- 测试专用：真实商户号配置后自动消失 -->
-      <button id="payMockConfirm" onclick="mockConfirmPay()" style="display:none;margin-bottom:12px;background:var(--gold-pale);border:1px solid var(--gold);border-radius:8px;padding:10px 24px;font-size:13px;font-weight:700;color:var(--navy);cursor:pointer;font-family:inherit">🧪 模拟确认支付（测试）</button>
-      <br>
       <button onclick="cancelPay()" style="background:none;border:1px solid var(--gray-light);border-radius:8px;padding:8px 20px;font-size:13px;color:var(--gray-mid);cursor:pointer;font-family:inherit">取消</button>
     </div>
 
