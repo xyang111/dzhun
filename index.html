@@ -450,6 +450,41 @@ nav{
 .adv-gold{background:#fffbf0;color:var(--amber)}
 .adv-sub-body{padding:10px 20px}
 
+/* ── PAYMENT MODAL ── */
+.pay-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);
+  z-index:2000;align-items:center;justify-content:center;
+}
+.pay-overlay.show{display:flex}
+.pay-modal{
+  background:#fff;border-radius:20px;padding:36px 28px 28px;
+  max-width:360px;width:92%;text-align:center;
+  box-shadow:0 24px 80px rgba(0,0,0,.45);position:relative;
+}
+.pay-close{
+  position:absolute;top:14px;right:16px;background:none;border:none;
+  font-size:22px;color:var(--gray-mid);cursor:pointer;line-height:1;padding:2px 4px;
+}
+.pay-close:hover{color:var(--navy)}
+.pay-price{
+  font-family:'Noto Serif SC',serif;font-size:44px;font-weight:700;
+  color:var(--navy);letter-spacing:-1px;margin:8px 0 4px;
+}
+.pay-btn-row{display:flex;gap:12px;margin:20px 0 12px}
+.pay-btn{
+  flex:1;border:none;border-radius:10px;padding:15px 0;
+  font-size:15px;font-weight:700;cursor:pointer;
+  font-family:'Noto Sans SC',sans-serif;transition:opacity .2s;
+}
+.pay-btn:hover{opacity:.88}
+.pay-btn-wechat{background:#07c160;color:#fff}
+.pay-btn-alipay{background:#1677ff;color:#fff}
+.pay-spinner{
+  width:40px;height:40px;border:3px solid var(--gray-light);
+  border-top-color:var(--gold);border-radius:50%;
+  animation:spin 1s linear infinite;margin:8px auto 16px;
+}
+
 /* FOOTER */
 footer{
   background:var(--navy);padding:40px 5vw 24px;
@@ -2603,6 +2638,13 @@ function renderResult(data) {
 // STEP 2: PRODUCT MATCHING
 // ═══════════════════════════════════════════
 async function startMatching() {
+  // ── 支付门控 ──
+  const payToken = sessionStorage.getItem('_payToken');
+  if (!payToken) {
+    showPayModal(() => startMatching());
+    return;
+  }
+
   document.getElementById('infoCard').style.display = 'none';  // hide info form
   document.getElementById('matchingCard').style.display = 'block';
   document.getElementById('incomeWarnBanner').style.display = 'none'; // reset
@@ -2896,6 +2938,7 @@ ${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal, q.lo
   } catch(e) {
     clearInterval(mlTimer);
     document.getElementById('matchingLoading').style.display = 'none';
+    if (e.message === 'PAYMENT_REQUIRED') return; // 支付弹窗已弹出，静默退出
     renderMatchResult(localFallbackMatch(data));
   }
 }
@@ -3383,15 +3426,22 @@ function extractJson(text) {
 }
 
 async function callAI(messages, max_tokens = 2000) {
+  const payToken = sessionStorage.getItem('_payToken') || '';
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120000);
   const resp = await fetch(PROXY_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     signal: controller.signal,
-    body: JSON.stringify({ model:'claude-sonnet-4-20250514', messages, max_tokens }),
+    body: JSON.stringify({ model:'claude-sonnet-4-20250514', messages, max_tokens, _pay_token: payToken }),
   });
   clearTimeout(timeout);
+  // 支付凭证失效，触发重新付费
+  if (resp.status === 402) {
+    sessionStorage.removeItem('_payToken');
+    showPayModal(() => startMatching());
+    throw new Error('PAYMENT_REQUIRED');
+  }
   const respText = await resp.text();
   if (!respText || !respText.trim()) throw new Error('服务器返回空响应');
   if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -3535,6 +3585,139 @@ function rematch() {
   window._reportSent = false;
   document.getElementById('infoCard').scrollIntoView({ behavior:'smooth', block:'start' });
 }
+
+// ═══════════════════════════════════════════
+// PAYMENT
+// ═══════════════════════════════════════════
+
+let _payCallback = null;
+let _pollTimer   = null;
+let _payOrderId  = null;
+let _payUrl      = null;
+
+function showPayModal(callback) {
+  _payCallback = callback;
+  const overlay = document.getElementById('payOverlay');
+  overlay.classList.add('show');
+  document.getElementById('payStep1').style.display = 'block';
+  document.getElementById('payStep2').style.display = 'none';
+  document.getElementById('payStep3').style.display = 'none';
+}
+
+function closePayModal() {
+  clearInterval(_pollTimer);
+  document.getElementById('payOverlay').classList.remove('show');
+}
+
+function cancelPay() {
+  clearInterval(_pollTimer);
+  _payOrderId = null;
+  _payUrl     = null;
+  document.getElementById('payStep1').style.display = 'block';
+  document.getElementById('payStep2').style.display = 'none';
+}
+
+async function choosePay(channel) {
+  document.getElementById('payStep1').style.display = 'none';
+  document.getElementById('payStep2').style.display = 'block';
+  document.getElementById('payStep2Title').textContent = '正在创建订单…';
+  document.getElementById('payLinkWrap').style.display = 'none';
+
+  try {
+    const resp = await fetch(PROXY_URL + '/pay/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channel, amount: 990 }),
+    });
+    const data = await resp.json();
+    if (!data.orderId) throw new Error(data.error || '创建订单失败');
+
+    _payOrderId = data.orderId;
+    _payUrl     = data.payUrl;
+
+    document.getElementById('payLinkBtn').href        = _payUrl;
+    document.getElementById('payLinkBtn').textContent = channel === 'wechat' ? '重新打开微信支付' : '重新打开支付宝';
+    document.getElementById('payLinkWrap').style.display = 'block';
+    document.getElementById('payStep2Title').textContent = '等待支付确认';
+
+    // 打开支付页
+    const opened = window.open(_payUrl, '_blank');
+    if (!opened) window.location.href = _payUrl; // 弹窗被拦截时直接跳转
+
+    // 开始轮询
+    clearInterval(_pollTimer);
+    _pollTimer = setInterval(pollPayStatus, 2000);
+
+  } catch(e) {
+    alert('创建支付订单失败：' + e.message);
+    document.getElementById('payStep1').style.display = 'block';
+    document.getElementById('payStep2').style.display = 'none';
+  }
+}
+
+async function pollPayStatus() {
+  if (!_payOrderId) return;
+  try {
+    const resp = await fetch(PROXY_URL + '/pay/status/' + _payOrderId);
+    const data = await resp.json();
+    if (data.status === 'paid' && data.token) {
+      clearInterval(_pollTimer);
+      sessionStorage.setItem('_payToken', data.token);
+      document.getElementById('payStep2').style.display = 'none';
+      document.getElementById('payStep3').style.display = 'block';
+      setTimeout(() => {
+        closePayModal();
+        if (_payCallback) { _payCallback(); _payCallback = null; }
+      }, 1200);
+    }
+  } catch(e) { /* 忽略轮询错误 */ }
+}
+
 </script>
+
+<!-- PAYMENT MODAL -->
+<div class="pay-overlay" id="payOverlay">
+  <div class="pay-modal">
+    <button class="pay-close" onclick="closePayModal()">×</button>
+
+    <!-- Step 1: 选择支付方式 -->
+    <div id="payStep1">
+      <div style="font-size:38px;margin-bottom:10px">🔒</div>
+      <div style="font-size:17px;font-weight:700;color:var(--navy);margin-bottom:4px">查看AI产品匹配结果</div>
+      <div style="font-size:12px;color:var(--gray-mid);line-height:1.8;margin-bottom:6px">
+        征信识别结果免费查看<br>匹配产品 · 通过率分析 · 优化建议 · 单次付费
+      </div>
+      <div class="pay-price">¥<span style="font-size:44px">9.9</span></div>
+      <div class="pay-btn-row">
+        <button class="pay-btn pay-btn-wechat" onclick="choosePay('wechat')">微信支付</button>
+        <button class="pay-btn pay-btn-alipay" onclick="choosePay('alipay')">支付宝</button>
+      </div>
+      <div style="font-size:11px;color:var(--gray-mid);line-height:1.7">
+        付费后24小时内可多次重新匹配<br>代理商客户同等定价
+      </div>
+    </div>
+
+    <!-- Step 2: 等待支付 -->
+    <div id="payStep2" style="display:none">
+      <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px" id="payStep2Title">等待支付确认</div>
+      <div style="font-size:12px;color:var(--gray-mid);margin-bottom:12px;line-height:1.8">
+        已为您打开支付页面<br>完成支付后此页面将自动跳转
+      </div>
+      <div class="pay-spinner"></div>
+      <div id="payLinkWrap" style="display:none;margin-bottom:12px">
+        <a id="payLinkBtn" href="#" target="_blank" style="font-size:13px;color:var(--gold);text-decoration:underline">重新打开支付页面</a>
+      </div>
+      <button onclick="cancelPay()" style="background:none;border:1px solid var(--gray-light);border-radius:8px;padding:8px 20px;font-size:13px;color:var(--gray-mid);cursor:pointer;font-family:inherit">取消</button>
+    </div>
+
+    <!-- Step 3: 支付成功 -->
+    <div id="payStep3" style="display:none">
+      <div style="font-size:48px;margin-bottom:12px">✅</div>
+      <div style="font-size:18px;font-weight:700;color:var(--green);margin-bottom:6px">支付成功</div>
+      <div style="font-size:13px;color:var(--gray-mid)">正在生成匹配结果…</div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
