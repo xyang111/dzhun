@@ -27,7 +27,11 @@
 
 const REPORT_TO_EMAIL = '651047968@qq.com';
 const REPORT_FROM     = 'report@dzhun.com.cn';
-const ALLOWED_ORIGINS = ['https://dzhun.com.cn', 'https://www.dzhun.com.cn'];
+const ALLOWED_ORIGINS = [
+  'https://dzhun.com.cn', 'https://www.dzhun.com.cn',
+  'http://dzhun.com.cn',  'http://www.dzhun.com.cn',
+  'http://8.136.1.233',   'https://8.136.1.233',       // 备案期间 IP 直连
+];
 const PRODUCT_PRICE   = 990;   // ¥9.90 单位：分
 
 export default {
