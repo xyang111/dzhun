@@ -56,6 +56,15 @@ export default {
       return handlePayStatus(request, env, path);
     }
 
+    // ── 测试专用：模拟支付确认（仅在未配置真实商户号时有效）──
+    if (request.method === 'GET' && path.startsWith('/pay/dev-confirm/')) {
+      const isMock = !env.WECHAT_APPID || env.WECHAT_APPID.startsWith('TODO');
+      if (!isMock) return jsonResp({ error: '仅测试环境可用' }, 403, request);
+      const orderId = path.replace('/pay/dev-confirm/', '').split('?')[0];
+      await markOrderPaid(env, orderId);
+      return jsonResp({ ok: true }, 200, request);
+    }
+
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405, headers: corsHeaders(request) });
     }
