@@ -385,7 +385,7 @@ async function handleClaude(request, env) {
 
   // 强制模型与 token 上限
   body.model = 'claude-sonnet-4-20250514';
-  if (!body.max_tokens || body.max_tokens > 8000) body.max_tokens = 8000;
+  if (!body.max_tokens || body.max_tokens > 2000) body.max_tokens = 2000;
 
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
