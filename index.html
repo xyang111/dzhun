@@ -2387,7 +2387,7 @@ async function startAnalysis() {
     let userMsg = '';
     if (e.name === 'AbortError' || errMsg === 'signal is aborted without reason') {
       userMsg = '识别超时（超过120秒）\n\n可能原因：\n• PDF文件过大，建议压缩至5MB以内\n• 当前网络较慢，请稍后重试';
-    } else if (errMsg === 'Failed to fetch' || errMsg.includes('fetch') || errMsg.includes('network') || errMsg.includes('NetworkError')) {
+    } else if (errMsg === 'Failed to fetch' || errMsg === 'Load failed' || errMsg.includes('fetch') || errMsg.includes('network') || errMsg.includes('NetworkError')) {
       userMsg = '网络连接失败\n\n可能原因：\n• 网络不稳定，请检查网络后重试\n• 服务暂时不可用，请稍候1-2分钟再试';
     } else if (errMsg.includes('HTTP 4') || errMsg.includes('HTTP 5')) {
       userMsg = '服务器返回错误：' + errMsg + '\n\n请稍候片刻后重试';
