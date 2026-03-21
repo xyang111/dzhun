@@ -2334,16 +2334,29 @@ async function startAnalysis() {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120000);
 
-    const raw = await fetchSSE({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
-      temperature: 0,
-      messages: [{ role: 'user', content: [..._fileBlocks, { type:'text', text: prompt }] }]
-    }, controller.signal);
+    const resp = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        temperature: 0,
+        messages: [{ role: 'user', content: [..._fileBlocks, { type:'text', text: prompt }] }]
+      })
+    });
     clearTimeout(timeout);
     clearInterval(stepTimer);
 
-    if (!raw || !raw.trim()) throw new Error('服务器返回空响应，请压缩PDF后重试');
+    const respText = await resp.text();
+    if (!respText || !respText.trim()) throw new Error('服务器返回空响应，请压缩PDF后重试');
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+    let data;
+    try { data = JSON.parse(respText); } catch(e) { throw new Error('响应格式异常，请重试'); }
+    if (data.error) throw new Error(data.error.message || 'API错误');
+
+    const raw = (data.content || []).map(b => b.text || '').join('');
     const extracted = extractJson(raw);
     if (!extracted) throw new Error('未能识别到征信数据，请确认是人行征信报告');
 
@@ -3461,71 +3474,29 @@ function extractJson(text) {
   return null;
 }
 
-// 读取 Anthropic SSE 流，返回拼接后的完整文本
-async function fetchSSE(reqBody, signal) {
-  const resp = await fetch(PROXY_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    signal,
-    body: JSON.stringify(reqBody),
-  });
-
-  // 非 2xx：Worker 返回的是 JSON 错误（支付凭证失效等）
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => '');
-    let msg = `HTTP ${resp.status}`, code = '';
-    try { const d = JSON.parse(text); if (d.error) { msg = d.error.message || msg; code = d.error.code || ''; } } catch(_) {}
-    const err = new Error(msg);
-    err.httpStatus = resp.status; err.code = code;
-    throw err;
-  }
-
-  // 读取 SSE 流
-  const reader = resp.body.getReader();
-  const decoder = new TextDecoder();
-  let raw = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    raw += decoder.decode(value, { stream: true });
-  }
-
-  // 从 content_block_delta 事件拼接文本
-  let text = '';
-  for (const line of raw.split('\n')) {
-    if (!line.startsWith('data: ')) continue;
-    const json = line.slice(6).trim();
-    if (!json || json === '[DONE]') continue;
-    try {
-      const evt = JSON.parse(json);
-      if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
-        text += evt.delta.text;
-      }
-    } catch(_) {}
-  }
-  return text;
-}
-
 async function callAI(messages, max_tokens = 2000) {
   const payToken = sessionStorage.getItem('_payToken') || '';
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120000);
-  try {
-    const text = await fetchSSE(
-      { model:'claude-sonnet-4-20250514', messages, max_tokens, _pay_token: payToken },
-      controller.signal
-    );
-    clearTimeout(timeout);
-    return text.replace(/```json[^`]*```|```/g, '').trim();
-  } catch(e) {
-    clearTimeout(timeout);
-    if (e.httpStatus === 402 || e.code === 'PAYMENT_REQUIRED') {
-      sessionStorage.removeItem('_payToken');
-      showPayModal(() => startMatching());
-      throw new Error('PAYMENT_REQUIRED');
-    }
-    throw e;
+  const resp = await fetch(PROXY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    signal: controller.signal,
+    body: JSON.stringify({ model:'claude-sonnet-4-20250514', messages, max_tokens, _pay_token: payToken }),
+  });
+  clearTimeout(timeout);
+  // 支付凭证失效，触发重新付费
+  if (resp.status === 402) {
+    sessionStorage.removeItem('_payToken');
+    showPayModal(() => startMatching());
+    throw new Error('PAYMENT_REQUIRED');
   }
+  const respText = await resp.text();
+  if (!respText || !respText.trim()) throw new Error('服务器返回空响应');
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  let data; try { data = JSON.parse(respText); } catch(e) { throw new Error('响应格式异常'); }
+  if (data.error) throw new Error(data.error.message || 'API错误');
+  return (data.content || []).map(b => b.text || '').join('').replace(/```json[^`]*```|```/g, '').trim();
 }
 
 function showQrModal() {
