@@ -778,15 +778,6 @@ footer{
   <!-- STEP 3: RECOGNITION RESULT -->
   <div id="resultArea" style="display:none">
 
-    <!-- 调试区：OCR提取原始数据 -->
-    <div id="ocrDebugCard" style="display:none;margin-bottom:16px;background:#1a1a2e;border:1px solid rgba(200,169,110,.25);border-radius:12px;overflow:hidden">
-      <div style="padding:10px 16px;background:rgba(200,169,110,.08);display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="document.getElementById('ocrDebugBody').style.display=document.getElementById('ocrDebugBody').style.display==='none'?'block':'none'">
-        <span style="font-size:12px;font-weight:700;color:#c8a96e">🔍 AI识别原始数据（调试）</span>
-        <span style="font-size:11px;color:rgba(200,169,110,.6)">点击展开/收起</span>
-      </div>
-      <div id="ocrDebugBody" style="display:none;padding:12px 16px;font-size:11px;line-height:1.8;color:#aaa;font-family:monospace"></div>
-    </div>
-
     <div class="upload-card">
       <div class="card-header">
         <div class="card-header-num">2</div>
@@ -1134,18 +1125,6 @@ footer{
               </div>
             </div>
 
-            <!-- 征信优点 -->
-            <div class="analysis-section" id="strengthsSection" style="display:none">
-              <div class="as-header"><span class="as-icon">✅</span><span class="as-title">征信核心优点</span></div>
-              <div class="as-body" id="strengthsBody"></div>
-            </div>
-
-            <!-- 征信问题 -->
-            <div class="analysis-section" id="weaknessesSection" style="display:none">
-              <div class="as-header"><span class="as-icon">⚠️</span><span class="as-title">征信核心问题</span></div>
-              <div class="as-body" id="weaknessesBody"></div>
-            </div>
-
             <!-- 不可申请产品 -->
             <div class="analysis-section" id="rejectedSection" style="display:none">
               <div class="as-header"><span class="as-icon">❌</span><span class="as-title">不可申请的产品类型</span></div>
@@ -1189,7 +1168,10 @@ footer{
           </div>
 
           <div style="text-align:center;font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:10px;line-height:1.6;">本网站不会保留您任何信息数据，退出网站即销毁，如需保存匹配信息请自行截图。</div>
-          <button class="restart-btn" onclick="restartAll()">← 重新上传分析</button>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px">
+            <button class="restart-btn" style="margin:0" onclick="rematch()">✏️ 修改信息重新匹配</button>
+            <button class="restart-btn" style="margin:0" onclick="restartAll()">← 重新上传分析</button>
+          </div>
         </div>
       </div>
     </div>
@@ -2039,21 +2021,49 @@ function handleFile(f) {
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    _fileBase64 = e.target.result.split(',')[1];
-    _fileMediaType = f.type || (f.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
-
-    // Update UI
-    document.getElementById('fileInfo').classList.add('show');
-    document.getElementById('fileIcon').textContent = _fileMediaType.includes('pdf') ? '📑' : '🖼️';
-    document.getElementById('fileName').textContent = f.name.length > 30 ? f.name.substring(0,28)+'…' : f.name;
-    document.getElementById('fileSize').textContent = (f.size/1024).toFixed(0) + ' KB';
-
-    document.getElementById('analyzeBtn').disabled = false;
-    document.getElementById('analyzeBtnText').textContent = '🔬 开始AI识别分析';
-  };
-  reader.readAsDataURL(f);
+  const isImage = f.type.startsWith('image/');
+  if (isImage) {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_W = 1600, MAX_H = 2400;
+        let w = img.width, h = img.height;
+        if (w > MAX_W || h > MAX_H) {
+          const r = Math.min(MAX_W / w, MAX_H / h);
+          w = Math.round(w * r); h = Math.round(h * r);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        _fileBase64 = dataUrl.split(',')[1];
+        _fileMediaType = 'image/jpeg';
+        const sizeKB = Math.round(_fileBase64.length * 0.75 / 1024);
+        document.getElementById('fileInfo').classList.add('show');
+        document.getElementById('fileIcon').textContent = '🖼️';
+        document.getElementById('fileName').textContent = f.name.length > 30 ? f.name.substring(0,28)+'…' : f.name;
+        document.getElementById('fileSize').textContent = sizeKB + ' KB（已压缩）';
+        document.getElementById('analyzeBtn').disabled = false;
+        document.getElementById('analyzeBtnText').textContent = '🔬 开始AI识别分析';
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(f);
+  } else {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      _fileBase64 = e.target.result.split(',')[1];
+      _fileMediaType = f.type || (f.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
+      document.getElementById('fileInfo').classList.add('show');
+      document.getElementById('fileIcon').textContent = '📑';
+      document.getElementById('fileName').textContent = f.name.length > 30 ? f.name.substring(0,28)+'…' : f.name;
+      document.getElementById('fileSize').textContent = (f.size/1024).toFixed(0) + ' KB';
+      document.getElementById('analyzeBtn').disabled = false;
+      document.getElementById('analyzeBtnText').textContent = '🔬 开始AI识别分析';
+    };
+    reader.readAsDataURL(f);
+  }
 }
 
 function clearFile() {
@@ -2375,7 +2385,7 @@ function shortenBankName(name) {
     .replace(/招联消费金融有限公司/g, '招联消费金融')
     .replace(/股份有限公司|有限责任公司|有限公司|股份公司/g, '')
     .replace(/信用卡中心/g, '')
-    .replace(/[厦门市|厦门|上海|北京|广州|深圳|重庆|成都|武汉|南京|杭州|西安|天津|苏州|郑州|长沙|宁波|青岛|济南|福州|合肥|福建]+(市)?分行/g, '')
+    .replace(/(?:厦门市|厦门|上海|北京|广州|深圳|重庆|成都|武汉|南京|杭州|西安|天津|苏州|郑州|长沙|宁波|青岛|济南|福州|合肥|福建)(?:市)?分行/g, '')
     .replace(/其他个人消费贷款/g, '个消')
     .replace(/个人消费贷款/g, '个消')
     .replace(/个人经营性贷款/g, '个经')
@@ -2385,71 +2395,6 @@ function shortenBankName(name) {
 }
 
 function renderResult(data) {
-  // ── 调试区：显示OCR原始提取数据 ──
-  try {
-    const dbgCard = document.getElementById('ocrDebugCard');
-    const dbgBody = document.getElementById('ocrDebugBody');
-    if (dbgCard && dbgBody) {
-      const loans_all = data.loans || [];
-      const cards_all = data.cards || [];
-      const qr = data.query_records || [];
-      const q = calcQueryCounts(qr);
-      const settled = (data.loans||[]).filter(l=>l.status==='结清'||l.status==='已结清').length;
-      const cancelled = (data.cards||[]).filter(c=>c.status==='销户'||c.status==='已销户').length;
-
-      let html = `<div style="color:#c8a96e;margin-bottom:6px">`;
-      html += `📋 报告日期：${data.report_date||'未识别'} &nbsp;|&nbsp; `;
-      html += `姓名：${data.person_name||'未识别'} &nbsp;|&nbsp; `;
-      html += `提取贷款 ${loans_all.length} 笔（已过滤结清 ${settled} 笔）&nbsp;|&nbsp; `;
-      html += `信用卡 ${cards_all.length} 张（已过滤销户 ${cancelled} 张）&nbsp;|&nbsp; `;
-      html += `查询记录 ${qr.length} 条</div>`;
-
-      html += `<div style="color:#c8a96e;margin-bottom:4px">📊 查询统计（前端计算）：`;
-      html += `近1月贷款 <b style="color:#fff">${q.loan_1m}</b> 次 &nbsp;|&nbsp; `;
-      html += `近3月贷款 <b style="color:#fff">${q.loan_3m}</b> 次 &nbsp;|&nbsp; `;
-      html += `近3月信用卡 <b style="color:#fff">${q.loan_3m_card}</b> 次 &nbsp;|&nbsp; `;
-      html += `近6月合计 <b style="color:#fff">${q.loan_6m_total}</b> 次</div>`;
-
-      if (loans_all.length > 0) {
-        html += `<div style="color:#c8a96e;margin-top:8px;margin-bottom:4px">💳 贷款明细（含已结清）：</div>`;
-        loans_all.forEach((l,i) => {
-          const settled_mark = (l.status==='结清'||l.status==='已结清') ? ' <span style="color:#666">[已结清-已过滤]</span>' : '';
-          const rev_mark = l.is_revolving ? ' <span style="color:#4ade80">[循环]</span>' : '';
-          html += `<div style="padding:2px 0;border-bottom:1px solid rgba(255,255,255,.05)">`;
-          html += `${i+1}. ${l.name}${rev_mark}${settled_mark}<br>`;
-          html += `&nbsp;&nbsp;授信：${l.credit_limit!=null?l.credit_limit.toLocaleString()+'元':'?'} &nbsp;`;
-          html += `余额：${l.balance!=null?l.balance.toLocaleString()+'元':'?'} &nbsp;`;
-          html += `月供：${l.monthly!=null?l.monthly.toLocaleString()+'元':'--'} &nbsp;`;
-          html += `类型：${l.loan_category||l.type||'?'} &nbsp;`;
-          html += `状态：<span style="color:${l.status==='正常'?'#4ade80':'#f87171'}">${l.status||'?'}</span>`;
-          html += `</div>`;
-        });
-      }
-
-      if (cards_all.length > 0) {
-        html += `<div style="color:#c8a96e;margin-top:8px;margin-bottom:4px">🏦 信用卡明细（含已销户）：</div>`;
-        cards_all.forEach((c,i) => {
-          const cancel_mark = (c.status==='销户'||c.status==='已销户') ? ' <span style="color:#666">[已销户-已过滤]</span>' : '';
-          const util = c.limit>0 ? Math.round((c.used||0)/c.limit*100) : null;
-          html += `<div>${i+1}. ${c.name}${cancel_mark} &nbsp; `;
-          html += `额度：${c.limit!=null?c.limit.toLocaleString()+'元':'?'} &nbsp;`;
-          html += `已用：${c.used!=null?c.used.toLocaleString()+'元':'?'} &nbsp;`;
-          html += `使用率：${util!=null?util+'%':'?'}</div>`;
-        });
-      }
-
-      if (data.overdue_history_notes) {
-        html += `<div style="color:#f87171;margin-top:8px">⚠️ 逾期记录：${data.overdue_history_notes}</div>`;
-      }
-      html += `<div style="color:#666;margin-top:8px;font-size:10px">备注：${data.notes||'无'}</div>`;
-
-      dbgBody.innerHTML = html;
-      if (new URLSearchParams(window.location.search).has('debug')) {
-        dbgCard.style.display = 'block';
-      }
-    }
-  } catch(e) { console.warn('调试区渲染失败', e); }
-
   // Filter: remove settled loans and cancelled cards
   const loans = (data.loans || []).filter(l => l.status !== '结清' && l.status !== '已结清');
   const cards = (data.cards || []).filter(c => c.status !== '销户' && c.status !== '已销户');
@@ -2813,7 +2758,7 @@ ${scoreItems.join('\n')}
 网贷机构数：合计${onlineInstTotal}家（消费金融${cfCount2}家 + 小额贷款${mlCount2}家 + 助贷银行${obCount2}家）→ 银行红线≤4家，当前：${onlineInstTotal >= 5 ? '⚠️超标' : (onlineInstTotal === 3 || onlineInstTotal === 4) ? '⚠️轻度警示' : '✅正常'}
 未销户信用卡：${cards.length}张
 月还款估算：${fmt(Math.round(totalMonthly))}元（本估算为银行审批参考值，非合同精确值）
-负债率：${debtRatio}（银行红线≤70%）
+负债率：${debtRatio}（各产品负债率上限不同，已在下方产品库标注）
 信用卡使用率：${cardUtil}%（银行红线≤70%）
 当前逾期：${data.overdue_current || 0}笔
 历史逾期：${data.overdue_history_notes || '无'}
@@ -2834,7 +2779,7 @@ ${cardDesc}
 ① 网贷机构数≤4家 → 当前${onlineInstTotal}家 → ${onlineInstTotal >= 5 ? '❌超标（直接拒贷）' : (onlineInstTotal === 3 || onlineInstTotal === 4) ? '⚠️轻度警示' : '✅达标'}
 ② 近3月查询（招行/厦门农商≤4次，光大≤5次，一般银行≤6次）→ 当前${q3}次 → ${q3 > 9 ? '❌超标（全线拒贷）' : q3 > 6 ? '⚠️严重超标（仅消金/宽松银行可申）' : q3 >= 5 ? '⚠️接近红线（招行/农商已超）' : '✅达标'}
 ③ 无当前逾期 → ${(data.overdue_current||0) > 0 ? '❌有' + data.overdue_current + '笔逾期（绝对红线）' : '✅无逾期'}
-④ 负债率≤70% → ${debtRatio} → ${debtRatioPct != null ? (debtRatioPct > 70 ? '❌超标' : debtRatioPct >= 60 ? '⚠️偏高' : '✅达标') : '待计算'}
+④ 负债率（各产品上限50%–80%）→ ${debtRatio} → ${debtRatioPct != null ? (debtRatioPct > 80 ? '❌超标（全线拒贷）' : debtRatioPct > 70 ? '⚠️超出严格产品红线（见产品库）' : debtRatioPct >= 60 ? '⚠️偏高（注意各产品阈值）' : '✅达标') : '待计算'}
 ⑤ 信用卡使用率≤70% → ${cardUtil}% → ${cardUtil > 70 ? '❌超标' : cardUtil >= 60 ? '⚠️偏高' : '✅达标'}
 ⑥ 社保缴交≥12月（多数银行） → ${socialMonths >= 12 ? '✅' + socialMonths + '月达标' : socialMonths > 0 ? '⚠️仅' + socialMonths + '月' : '❌无社保（减分项）'}
 
@@ -2858,12 +2803,6 @@ ${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal, q.lo
   "key_risk": "最大风险点25字内，征信+补充信息综合判断，无则空字符串",
   "risk_level": "健康",
   "user_info_summary": ["① 学历：本科","② 月工资：8000元","③ 社保：已缴18个月","④ 公积金：1200元/月","⑤ 资产：厦门自有房","⑥ 户籍：厦门本地","⑦ 单位：私营企业"],
-  "strengths": [
-    {"point": "无逾期记录（征信）+ 厦门本地户籍（补充）", "impact": "银行判定还款意愿+稳定性双优，通过率显著提升"}
-  ],
-  "weaknesses": [
-    {"point": "社保仅缴3个月（补充）", "impact": "银行判定工作稳定性不足，大额信用贷直接受限"}
-  ],
   "redlines": ["当前无绝对红线"],
   "products": [
     {
@@ -2899,7 +2838,6 @@ ${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal, q.lo
 }
 注意（严格执行）：
 - products最多7款，宁少勿滥，必须对齐国有大行/股份制银行/城商行/消费金融的风控差异
-- strengths/weaknesses每条必须同时引用征信+补充信息，格式"XXX（征信）+ XXX（补充）"
 - rejected_products必须明确说明被拒的具体数据原因
 - optimization每步骤包含：step+goal+time+unlock四项，全部可落地
 - risk_level判定标准（严格按以下规则，满足任一条件即取对应等级，优先取最高等级）：
@@ -3068,25 +3006,6 @@ function renderMatchResult(r) {
         `<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${esc(s.action)}</div><div class="as-impact">${esc(s.goal)}</div><div class="as-step-meta"><span class="as-step-tag">⏱ ${esc(s.time)}</span><span class="as-step-tag">✨ ${esc(s.effect)}</span></div></div></div>`
       ).join('');
     }
-  }
-
-  // ── 征信优点 ──
-  if ((r.strengths || []).length > 0) {
-    document.getElementById('strengthsSection').style.display = 'block';
-    document.getElementById('strengthsBody').innerHTML = r.strengths.map(s =>
-      `<div class="as-item"><div class="as-dot as-dot-green"></div><div><div class="as-point">${esc(s.point)}</div><div class="as-impact">${esc(s.impact)}</div></div></div>`
-    ).join('');
-  }
-
-  // ── 征信问题 ──
-  if ((r.weaknesses || []).length > 0) {
-    document.getElementById('weaknessesSection').style.display = 'block';
-    const redlines = r.redlines || [];
-    const redHtml  = redlines.length > 0
-      ? redlines.map(x => `<div class="as-redline">🚫 绝对红线：${esc(x)}</div>`).join('') : '';
-    document.getElementById('weaknessesBody').innerHTML = redHtml + r.weaknesses.map(w =>
-      `<div class="as-item"><div class="as-dot as-dot-red"></div><div><div class="as-point">${esc(w.point)}</div><div class="as-impact">${esc(w.impact)}</div></div></div>`
-    ).join('');
   }
 
   // ── 不可申请产品 ──
@@ -3563,7 +3482,7 @@ function restartAll() {
 
   // Reset analysis sections
   document.getElementById('analysisReport').style.display = 'none';
-  ['userInfoConfirmBox','adviceSection','strengthsSection','weaknessesSection','rejectedSection','optimizationSection','postOptSection']
+  ['userInfoConfirmBox','adviceSection','rejectedSection','optimizationSection','postOptSection']
     .forEach(id => { document.getElementById(id).style.display = 'none'; });
   ['adviceStrengthsBody','adviceIssuesBody','adviceSuggestionsBody'].forEach(id => { document.getElementById(id).innerHTML = ''; });
   window._onlineInstTotal = undefined;
@@ -3599,6 +3518,22 @@ function restartAll() {
   document.getElementById('readingCard').style.display = 'none';
   document.getElementById('uploadCard').style.display = 'block';
   document.getElementById('upload-section').scrollIntoView({ behavior:'smooth' });
+}
+
+function rematch() {
+  document.getElementById('matchResult').style.display = 'none';
+  document.getElementById('matchingCard').style.display = 'none';
+  document.getElementById('infoCard').style.display = 'block';
+  ['ml1','ml2','ml3','ml4'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active','done');
+  });
+  const ml1 = document.getElementById('ml1');
+  if (ml1) ml1.classList.add('active');
+  document.getElementById('productsGrid').innerHTML = '';
+  document.getElementById('analysisReport').style.display = 'none';
+  window._reportSent = false;
+  document.getElementById('infoCard').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 </script>
 </body>
