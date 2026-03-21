@@ -748,7 +748,7 @@ footer{
         ondragleave="this.classList.remove('dragover')"
         ondrop="handleDrop(event)"
         onclick="document.getElementById('fileInput').click()">
-        <input type="file" id="fileInput" accept=".pdf,image/*" style="display:none" onchange="handleFile(this.files[0])">
+        <input type="file" id="fileInput" accept=".pdf,image/*" multiple style="display:none" onchange="handleFiles(this.files)">
         <span class="uz-icon">📑</span>
         <div class="uz-title">拖拽或点击上传征信报告</div>
         <div class="uz-hint">
@@ -1995,8 +1995,7 @@ function localFallbackMatch(data) {
 }
 
 // State
-let _fileBase64 = null;
-let _fileMediaType = null;
+let _fileBlocks = [];       // array of API content blocks (image or document)
 let _recognizedData = null; // {loans, cards, queries, summary}
 
 // ═══════════════════════════════════════════
@@ -2044,25 +2043,99 @@ function calcTotalMonthly(loans, cards) {
 function handleDrop(e) {
   e.preventDefault();
   document.getElementById('uploadZone').classList.remove('dragover');
-  const f = e.dataTransfer.files[0];
-  if (f) handleFile(f);
+  if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
 }
 
-function handleFile(f) {
-  if (!f) return;
+function handleFiles(files) {
+  if (!files || !files.length) return;
+  const arr = Array.from(files);
+
+  // Check if any file is a PDF (use filename as primary check, MIME as fallback)
+  const isPdfByName = (f) => f.name.toLowerCase().endsWith('.pdf');
+  const isPdfByType = (f) => f.type && f.type.includes('pdf');
+  const isPdf = (f) => isPdfByName(f) || isPdfByType(f);
+
+  const pdfFile = arr.find(isPdf);
+  if (pdfFile) {
+    _processPdf(pdfFile);
+    return;
+  }
+
+  // All images
+  _processImages(arr.filter(f => f.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(f.name)));
+}
+
+function _processPdf(f) {
   const maxMB = 20;
   if (f.size > maxMB * 1024 * 1024) {
     alert(`文件过大（${(f.size/1024/1024).toFixed(1)}MB），请压缩至 ${maxMB}MB 以内后重试`);
     return;
   }
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const result = ev.target.result;
+    if (!result || result.indexOf(',') === -1) {
+      alert('PDF 读取失败，请确认文件已完整下载到本机（iCloud 中的文件需先下载后再上传）');
+      return;
+    }
+    const base64 = result.split(',')[1];
+    if (!base64 || base64.length < 100) {
+      alert('PDF 文件内容为空或损坏，请重新下载后再试');
+      return;
+    }
+    _fileBlocks = [{ type:'document', source:{ type:'base64', media_type:'application/pdf', data: base64 } }];
+    document.getElementById('fileInfo').classList.add('show');
+    document.getElementById('fileIcon').textContent = '📑';
+    document.getElementById('fileName').textContent = f.name.length > 30 ? f.name.substring(0,28)+'…' : f.name;
+    document.getElementById('fileSize').textContent = (f.size/1024).toFixed(0) + ' KB';
+    document.getElementById('analyzeBtn').disabled = false;
+    document.getElementById('analyzeBtnText').textContent = '🔬 开始AI识别分析';
+  };
+  reader.onerror = () => {
+    alert('文件读取失败，iOS 用户请确认：\n• PDF 已下载到本机（不是 iCloud 中的云文件）\n• 文件未损坏，可正常打开');
+  };
+  reader.readAsDataURL(f);
+}
 
-  const isImage = f.type.startsWith('image/');
-  if (isImage) {
+function _processImages(files) {
+  if (!files.length) { alert('不支持的文件格式，请上传 PDF 或图片'); return; }
+  const maxMB = 20;
+  const totalSize = files.reduce((s, f) => s + f.size, 0);
+  if (totalSize > maxMB * 1024 * 1024) {
+    alert(`文件总大小过大（${(totalSize/1024/1024).toFixed(1)}MB），请压缩至 ${maxMB}MB 以内后重试`);
+    return;
+  }
+
+  const MAX_W = 1600, MAX_H = 2400;
+  let pending = files.length;
+  const blocks = new Array(files.length);
+
+  let failed = 0;
+  function onOneDone() {
+    if (pending > 0) return;
+    const validBlocks = blocks.filter(Boolean);
+    if (!validBlocks.length) {
+      alert('图片读取全部失败，请重新选择后再试');
+      return;
+    }
+    if (failed > 0) alert(`${failed}张图片读取失败，已跳过，将用剩余${validBlocks.length}张分析`);
+    _fileBlocks = validBlocks;
+    const totalKB = validBlocks.reduce((s, b) => s + Math.round(b.source.data.length * 0.75 / 1024), 0);
+    document.getElementById('fileInfo').classList.add('show');
+    document.getElementById('fileIcon').textContent = '🖼️';
+    document.getElementById('fileName').textContent = validBlocks.length > 1
+      ? `${validBlocks.length}张截图`
+      : (files[0].name.length > 30 ? files[0].name.substring(0,28)+'…' : files[0].name);
+    document.getElementById('fileSize').textContent = totalKB + ' KB（已压缩）';
+    document.getElementById('analyzeBtn').disabled = false;
+    document.getElementById('analyzeBtnText').textContent = '🔬 开始AI识别分析';
+  }
+
+  files.forEach((f, i) => {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const img = new Image();
       img.onload = () => {
-        const MAX_W = 1600, MAX_H = 2400;
         let w = img.width, h = img.height;
         if (w > MAX_W || h > MAX_H) {
           const r = Math.min(MAX_W / w, MAX_H / h);
@@ -2071,38 +2144,21 @@ function handleFile(f) {
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-        _fileBase64 = dataUrl.split(',')[1];
-        _fileMediaType = 'image/jpeg';
-        const sizeKB = Math.round(_fileBase64.length * 0.75 / 1024);
-        document.getElementById('fileInfo').classList.add('show');
-        document.getElementById('fileIcon').textContent = '🖼️';
-        document.getElementById('fileName').textContent = f.name.length > 30 ? f.name.substring(0,28)+'…' : f.name;
-        document.getElementById('fileSize').textContent = sizeKB + ' KB（已压缩）';
-        document.getElementById('analyzeBtn').disabled = false;
-        document.getElementById('analyzeBtnText').textContent = '🔬 开始AI识别分析';
+        const base64 = canvas.toDataURL('image/jpeg', 0.82).split(',')[1];
+        blocks[i] = { type:'image', source:{ type:'base64', media_type:'image/jpeg', data: base64 } };
+        pending--;
+        onOneDone();
       };
+      img.onerror = () => { failed++; pending--; onOneDone(); };
       img.src = ev.target.result;
     };
+    reader.onerror = () => { failed++; pending--; onOneDone(); };
     reader.readAsDataURL(f);
-  } else {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      _fileBase64 = e.target.result.split(',')[1];
-      _fileMediaType = f.type || (f.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
-      document.getElementById('fileInfo').classList.add('show');
-      document.getElementById('fileIcon').textContent = '📑';
-      document.getElementById('fileName').textContent = f.name.length > 30 ? f.name.substring(0,28)+'…' : f.name;
-      document.getElementById('fileSize').textContent = (f.size/1024).toFixed(0) + ' KB';
-      document.getElementById('analyzeBtn').disabled = false;
-      document.getElementById('analyzeBtnText').textContent = '🔬 开始AI识别分析';
-    };
-    reader.readAsDataURL(f);
-  }
+  });
 }
 
 function clearFile() {
-  _fileBase64 = null; _fileMediaType = null;
+  _fileBlocks = [];
   document.getElementById('fileInfo').classList.remove('show');
   document.getElementById('fileInput').value = '';
   document.getElementById('analyzeBtn').disabled = true;
@@ -2113,7 +2169,7 @@ function clearFile() {
 // STEP 1: RECOGNITION
 // ═══════════════════════════════════════════
 async function startAnalysis() {
-  if (!_fileBase64) return;
+  if (!_fileBlocks.length) return;
 
   // Show reading card
   document.getElementById('uploadCard').style.display = 'none';
@@ -2134,10 +2190,6 @@ async function startAnalysis() {
     }
   }, 3000);
 
-  const isPdf = _fileMediaType.includes('pdf');
-  const fileBlock = isPdf
-    ? { type:'document', source:{ type:'base64', media_type:'application/pdf', data:_fileBase64 } }
-    : { type:'image', source:{ type:'base64', media_type:_fileMediaType, data:_fileBase64 } };
 
   const prompt = `你是银行信贷审核员，精通人行征信报告（简版和详版）。请仔细识别并提取报告中的账户信息和查询记录。
 
@@ -2288,11 +2340,11 @@ async function startAnalysis() {
       signal: controller.signal,
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
+        max_tokens: 4000,
         temperature: 0,
         messages: [{
           role: 'user',
-          content: [fileBlock, { type:'text', text: prompt }]
+          content: [..._fileBlocks, { type:'text', text: prompt }]
         }]
       })
     });
@@ -3489,7 +3541,7 @@ function initContactPhone() {
 document.addEventListener('DOMContentLoaded', initContactPhone);
 
 function restartAll() {
-  _fileBase64 = null; _fileMediaType = null; _recognizedData = null;
+  _fileBlocks = []; _recognizedData = null;
 
   // Reset file input
   document.getElementById('fileInput').value = '';
