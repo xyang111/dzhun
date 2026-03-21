@@ -1,0 +1,17 @@
+name             = "dzhun"
+main             = "worker.js"
+compatibility_date = "2024-09-23"
+
+# KV 命名空间：存储支付订单和 pay token
+# 使用前先创建：wrangler kv:namespace create ORDERS
+# 把生成的 id 填入下方
+[[kv_namespaces]]
+binding = "ORDERS"
+id      = "TODO_替换为wrangler_kv_namespace_create_ORDERS生成的id"
+
+# 环境变量通过 Cloudflare Dashboard → Worker → Settings → Variables 配置（加密存储）
+# 不要写在这里，防止密钥泄露到 git：
+#   ANTHROPIC_API_KEY
+#   RESEND_API_KEY
+#   WECHAT_APPID / WECHAT_MCH_ID / WECHAT_SERIAL / WECHAT_PRIV_KEY / WECHAT_API_V3_KEY
+#   ALIPAY_APP_ID / ALIPAY_PRIV_KEY / ALIPAY_PUB_KEY
