@@ -2584,12 +2584,16 @@ function renderCreditScore(data,ui) {
 
 function calcBlastRisk(qRecords,baseDate) {
   if (!Array.isArray(qRecords)) qRecords = [];
-  const base = baseDate?new Date(baseDate):new Date();
-  const ago  = d=>{const t=new Date(base);t.setDate(t.getDate()-d);return t;};
+  // 使用报告日期作为基准（与calcQueryCounts保持一致）
+  const base = baseDate ? new Date(baseDate) : new Date();
+  base.setHours(0,0,0,0);
+  // 月份计算（与calcQueryCounts完全一致，避免30天vs1个月的误差）
+  const monthsAgo = m => { const d=new Date(base); d.setMonth(d.getMonth()-m); return d; };
+  const daysAgo   = d => { const t=new Date(base); t.setDate(t.getDate()-d); return t; };
   const filt = (qRecords||[]).filter(q=>q.type==='贷款审批'||q.type==='信用卡审批');
-  const q7   = filt.filter(q=>new Date(q.date)>=ago(7)).length;
-  const q30  = filt.filter(q=>new Date(q.date)>=ago(30)).length;
-  const q90  = filt.filter(q=>new Date(q.date)>=ago(90)).length;
+  const q7   = filt.filter(q=>new Date(q.date)>=daysAgo(7)).length;
+  const q30  = filt.filter(q=>new Date(q.date)>=monthsAgo(1)).length;  // 1个月（不是30天）
+  const q90  = filt.filter(q=>new Date(q.date)>=monthsAgo(3)).length;  // 3个月（不是90天）
   const conc = q90>0?Math.round(q30/q90*100):0;
   let risk=100;
   risk-=q7*15;
@@ -2960,6 +2964,7 @@ online_subtype 仅用于 type=online，银行类填 null。
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120000);
 
+    setStep(1); // rs2：提取贷款/信用卡账户
     const resp = await fetch(PROXY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2971,9 +2976,9 @@ online_subtype 仅用于 type=online，银行类填 null。
         messages: [{ role: 'user', content: [..._fileBlocks, { type:'text', text: prompt }] }]
       })
     });
-    setStep(2); // rs3：AI分析返回
     clearTimeout(timeout);
     clearInterval(stepTimer);
+    setStep(2); // rs3：过滤结清/销户/贷后查询
 
     const respText = await resp.text();
     if (!respText || !respText.trim()) throw new Error('服务器返回空响应，请压缩PDF后重试');
@@ -2984,6 +2989,7 @@ online_subtype 仅用于 type=online，银行类填 null。
     if (data.error) throw new Error(data.error.message || 'API错误');
 
     const raw = (data.content || []).map(b => b.text || '').join('');
+    setStep(3); // rs4：汇总有效负债与查询数据
     const extracted = extractJson(raw);
     if (!extracted) throw new Error('未能识别到征信数据，请确认是人行征信报告');
 
@@ -2995,6 +3001,7 @@ online_subtype 仅用于 type=online，银行类填 null。
       document.getElementById(id).classList.add('done');
     });
 
+    setStep(4); // rs5：准备AI产品匹配（完成）
     setTimeout(() => {
       document.getElementById('readingCard').style.display = 'none';
       renderResult(extracted);
