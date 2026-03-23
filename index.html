@@ -308,7 +308,12 @@ nav{
 .pc-prob-val{font-size:12px;font-weight:700;color:var(--navy);flex-shrink:0;width:36px;text-align:right}
 .pc-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .pc-tag{font-size:10px;padding:3px 8px;border-radius:4px;background:var(--gold-pale);color:var(--text-mid);font-weight:600}
-.pc-reason{font-size:12px;color:var(--text-mid);line-height:1.6;border-top:1px solid var(--gray-light);padding-top:10px}
+.pc-reason{font-size:12px;color:var(--text-mid);line-height:1.6;border-top:1px solid var(--gray-light);padding-top:10px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+.pc-reason-text{flex:1}
+.pc-reason-toggle{font-size:10px;color:var(--text-dim);flex-shrink:0;margin-top:2px;user-select:none;transition:transform .2s}
+.pc-reason-toggle.open{transform:rotate(180deg)}
+.pc-reason-detail{font-size:11.5px;color:var(--text-mid);line-height:1.7;margin-top:7px;padding-top:7px;border-top:1px dashed var(--gray-light);display:none}
+.pc-reason-detail.show{display:block}
 
 /* Match result header */
 .match-header{
@@ -483,6 +488,185 @@ nav{
   width:40px;height:40px;border:3px solid var(--gray-light);
   border-top-color:var(--gold);border-radius:50%;
   animation:spin 1s linear infinite;margin:8px auto 16px;
+}
+
+
+/* ════ 征信评分系统 ════ */
+.cs-wrap{background:var(--navy-mid);border:1px solid rgba(200,169,110,.2);border-radius:14px;padding:16px 18px;margin-bottom:12px}
+.cs-row{display:flex;align-items:center;gap:14px}
+.cs-gauge{position:relative;width:84px;height:84px;flex-shrink:0}
+.cs-gauge svg{width:84px;height:84px;transform:rotate(-90deg)}
+.cs-gauge-bg{fill:none;stroke:rgba(255,255,255,.07);stroke-width:7}
+.cs-gauge-fill{fill:none;stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset .9s ease}
+.cs-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cs-num-val{font-size:22px;font-weight:700;color:#fff;line-height:1;font-family:'Noto Serif SC',serif}
+.cs-num-lbl{font-size:9px;color:rgba(255,255,255,.4);margin-top:2px;letter-spacing:.5px}
+.cs-info{flex:1;min-width:0}
+.cs-info-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:5px}
+.cs-level{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 9px;border-radius:10px;font-weight:500;margin-bottom:6px}
+.cs-lv-exc{background:rgba(42,122,85,.2);color:#4ade80;border:1px solid rgba(42,122,85,.3)}
+.cs-lv-gd{background:rgba(37,99,235,.2);color:#60a5fa;border:1px solid rgba(37,99,235,.3)}
+.cs-lv-ok{background:rgba(184,134,11,.2);color:#fbbf24;border:1px solid rgba(184,134,11,.3)}
+.cs-lv-wk{background:rgba(234,88,12,.2);color:#fb923c;border:1px solid rgba(234,88,12,.3)}
+.cs-lv-bad{background:rgba(192,57,43,.2);color:#f87171;border:1px solid rgba(192,57,43,.3)}
+.cs-hint{font-size:11px;color:rgba(255,255,255,.4);line-height:1.55}
+.cs-unlock{display:flex;align-items:center;gap:7px;background:rgba(200,169,110,.07);border:1px dashed rgba(200,169,110,.3);border-radius:8px;padding:7px 10px;margin-top:8px;cursor:pointer}
+.cs-unlock-txt{font-size:10.5px;color:rgba(200,169,110,.8);flex:1;line-height:1.5}
+.cs-unlock-btn{font-size:10px;background:rgba(200,169,110,.15);border:1px solid rgba(200,169,110,.4);color:#c8a96e;padding:3px 9px;border-radius:5px;white-space:nowrap;flex-shrink:0}
+.cs-dims{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:10px}
+.cs-dim{background:rgba(255,255,255,.03);border-radius:7px;padding:6px 9px}
+.cs-dim-name{font-size:9.5px;color:rgba(255,255,255,.38);margin-bottom:3px}
+.cs-dim-row{display:flex;align-items:center;gap:5px}
+.cs-dim-bar{flex:1;height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
+.cs-dim-fill{height:100%;border-radius:2px;transition:width .7s ease}
+.cs-dim-val{font-size:10.5px;font-weight:600;min-width:24px;text-align:right}
+
+/* ════ 爆查风险指数 ════ */
+.br-wrap{background:var(--navy-mid);border:1px solid rgba(200,169,110,.14);border-radius:14px;padding:13px 16px;margin-bottom:12px}
+.br-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.br-title{font-size:13px;font-weight:600;color:#fff}
+.br-badge{font-size:11px;padding:2px 9px;border-radius:9px;font-weight:500}
+.br-safe{background:rgba(42,122,85,.2);color:#4ade80;border:1px solid rgba(42,122,85,.3)}
+.br-warn{background:rgba(184,134,11,.2);color:#fbbf24;border:1px solid rgba(184,134,11,.3)}
+.br-danger{background:rgba(234,88,12,.2);color:#fb923c;border:1px solid rgba(234,88,12,.3)}
+.br-critical{background:rgba(192,57,43,.2);color:#f87171;border:1px solid rgba(192,57,43,.3)}
+.br-meters{display:flex;gap:8px;margin-bottom:8px}
+.br-meter{flex:1;text-align:center;background:rgba(255,255,255,.04);border-radius:7px;padding:6px 4px}
+.br-meter-val{font-size:17px;font-weight:700;color:#fff;font-family:'Noto Serif SC',serif}
+.br-meter-lbl{font-size:9px;color:rgba(255,255,255,.38);margin-top:1px}
+.br-tip{font-size:11px;color:rgba(255,255,255,.38);line-height:1.6;padding-top:7px;border-top:1px solid rgba(255,255,255,.05)}
+
+/* ════ 新版结果页 ════ */
+/* 顶部总结区 */
+.conv-top{background:linear-gradient(135deg,#0d1f3c,#0a1628);border:1px solid rgba(200,169,110,.22);border-radius:14px;padding:18px 18px 14px;margin-bottom:10px}
+.conv-eyebrow{font-size:10px;color:rgba(200,169,110,.55);letter-spacing:2px;margin-bottom:9px}
+.conv-headline{font-family:'Noto Serif SC',serif;font-size:17px;font-weight:700;color:#fff;line-height:1.4;margin-bottom:13px}
+.conv-headline em{color:#c8a96e;font-style:normal}
+.conv-compare{display:grid;grid-template-columns:1fr 28px 1fr;gap:6px;align-items:center;margin-bottom:11px}
+.conv-col{background:rgba(255,255,255,.04);border-radius:9px;padding:10px 8px;text-align:center}
+.conv-col.bad{border:1px solid rgba(192,57,43,.22)}
+.conv-col.good{border:1px solid rgba(42,122,85,.28);background:rgba(42,122,85,.05)}
+.conv-col-lbl{font-size:9.5px;color:rgba(255,255,255,.38);margin-bottom:4px}
+.conv-col-rate{font-size:21px;font-weight:700;line-height:1;font-family:'Noto Serif SC',serif}
+.conv-col-rate.red{color:#f87171}
+.conv-col-rate.green{color:#4ade80}
+.conv-col-amt{font-size:12px;color:rgba(255,255,255,.5);margin-top:3px}
+.conv-col-amt em{font-style:normal;font-weight:700;color:rgba(255,255,255,.8)}
+.conv-arrow{font-size:16px;color:rgba(200,169,110,.4);text-align:center}
+.conv-gap{background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.22);border-radius:8px;padding:7px 10px;text-align:center}
+.conv-gap-lbl{font-size:9.5px;color:rgba(255,255,255,.38);margin-bottom:2px}
+.conv-gap-val{font-size:18px;font-weight:700;color:#f87171;font-family:'Noto Serif SC',serif}
+.conv-gap-sub{font-size:9px;color:rgba(255,255,255,.3);margin-top:1px}
+
+/* 通用节块 */
+.conv-sec{background:var(--navy-mid);border:1px solid rgba(200,169,110,.13);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.conv-sec-hd{display:flex;align-items:center;gap:7px;margin-bottom:10px}
+.conv-sec-icon{font-size:15px}
+.conv-sec-title{font-size:13px;font-weight:600;color:#fff}
+
+/* 问题拆解 */
+.prob-item{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.prob-item:last-child{border-bottom:none;padding-bottom:0}
+.prob-n{width:21px;height:21px;background:rgba(192,57,43,.14);border:1px solid rgba(192,57,43,.28);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#f87171;flex-shrink:0;font-weight:600}
+.prob-name{font-size:12.5px;font-weight:600;color:rgba(255,255,255,.85);margin-bottom:2px}
+.prob-name strong{color:#fbbf24}
+.prob-desc{font-size:11px;color:rgba(255,255,255,.38);line-height:1.5}
+
+/* 损失对比 */
+.loss-cols{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px}
+.loss-col{border-radius:9px;padding:11px 10px}
+.loss-col.now{background:rgba(192,57,43,.07);border:1px solid rgba(192,57,43,.18)}
+.loss-col.opt{background:rgba(42,122,85,.07);border:1px solid rgba(42,122,85,.22)}
+.loss-tag{font-size:10px;font-weight:600;padding:1px 7px;border-radius:7px;display:inline-block;margin-bottom:6px}
+.loss-col.now .loss-tag{background:rgba(192,57,43,.18);color:#f87171}
+.loss-col.opt .loss-tag{background:rgba(42,122,85,.18);color:#4ade80}
+.loss-type{font-size:12px;font-weight:600;color:#fff;margin-bottom:2px}
+.loss-rate{font-size:11px;color:rgba(255,255,255,.4);line-height:1.5}
+.loss-interest{font-size:12.5px;font-weight:700;margin-top:5px}
+.loss-col.now .loss-interest{color:#f87171}
+.loss-col.opt .loss-interest{color:#4ade80}
+.loss-diff{background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.18);border-radius:8px;padding:7px;text-align:center}
+.loss-diff-lbl{font-size:10px;color:rgba(255,255,255,.38)}
+.loss-diff-val{font-size:15px;font-weight:700;color:#f87171;font-family:'Noto Serif SC',serif}
+
+/* 提升空间 */
+.lift-sec{background:var(--navy-mid);border:1px solid rgba(42,122,85,.22);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.lift-action{display:flex;align-items:flex-start;gap:8px;padding:5px 0}
+.lift-check{width:17px;height:17px;background:rgba(42,122,85,.18);border:1px solid rgba(42,122,85,.38);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#4ade80;flex-shrink:0;margin-top:1px}
+.lift-txt{font-size:12px;color:rgba(255,255,255,.7);line-height:1.5}
+.lift-compare{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+.lift-col{background:rgba(255,255,255,.04);border-radius:8px;padding:9px 11px}
+.lift-col-lbl{font-size:9.5px;color:rgba(255,255,255,.32);margin-bottom:4px}
+.lift-col-val{font-size:13px;font-weight:600;color:#fff;margin-bottom:2px}
+.lift-col-val.green{color:#4ade80}
+.lift-col-sub{font-size:11px;color:rgba(255,255,255,.42)}
+.lift-gap{margin-top:8px;text-align:center;background:rgba(42,122,85,.09);border:1px solid rgba(42,122,85,.2);border-radius:8px;padding:5px;font-size:12px;font-weight:600;color:#4ade80}
+
+/* 路径区 */
+.path-warn{background:rgba(192,57,43,.07);border:1px solid rgba(192,57,43,.18);border-radius:8px;padding:7px 10px;margin-bottom:9px;font-size:11px;color:rgba(255,255,255,.48);line-height:1.6}
+.path-warn strong{color:#f87171}
+.path-step{display:flex;align-items:flex-start;gap:9px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.path-step:last-child{border-bottom:none}
+.path-n{width:21px;height:21px;background:rgba(200,169,110,.13);border:1px solid rgba(200,169,110,.28);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#c8a96e;flex-shrink:0;font-weight:600}
+.path-txt{font-size:12px;color:rgba(255,255,255,.62);line-height:1.5}
+.path-txt strong{color:#e8c98e}
+.path-cta{background:rgba(200,169,110,.07);border:1px dashed rgba(200,169,110,.28);border-radius:8px;padding:8px 10px;margin-top:9px;font-size:11.5px;color:rgba(200,169,110,.75);line-height:1.6;text-align:center}
+
+/* 客户标签 */
+.ct-sec{background:var(--navy-mid);border:1px solid rgba(37,99,235,.18);border-radius:14px;padding:13px 16px;margin-bottom:10px}
+.ct-row{display:flex;align-items:center;gap:11px}
+.ct-badge{flex-shrink:0;background:rgba(37,99,235,.13);border:1px solid rgba(37,99,235,.28);border-radius:9px;padding:9px 12px;text-align:center;min-width:76px}
+.ct-badge-icon{font-size:18px;margin-bottom:3px}
+.ct-badge-type{font-size:10.5px;font-weight:600;color:#60a5fa}
+.ct-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:3px}
+.ct-desc{font-size:11px;color:rgba(255,255,255,.42);line-height:1.6}
+
+/* 白名单提醒 */
+.wl-tip{background:linear-gradient(135deg,rgba(200,169,110,.1),rgba(200,169,110,.04));border:1px solid rgba(200,169,110,.28);border-radius:12px;padding:13px 15px;margin-bottom:10px}
+.wl-hd{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.wl-title{font-size:13px;font-weight:600;color:#e8c98e}
+.wl-body{font-size:11.5px;color:rgba(255,255,255,.48);line-height:1.7;margin-bottom:9px}
+.wl-btn{display:block;text-align:center;background:rgba(200,169,110,.14);border:1px solid rgba(200,169,110,.38);color:#c8a96e;border-radius:8px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;width:100%}
+
+/* 紧迫提醒 */
+.urgent-sec{background:linear-gradient(135deg,rgba(192,57,43,.11),rgba(234,88,12,.07));border:1px solid rgba(192,57,43,.28);border-radius:14px;padding:13px 16px;margin-bottom:10px}
+.urgent-title{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#f87171;margin-bottom:7px}
+.urgent-body{font-size:12px;color:rgba(255,255,255,.52);line-height:1.8}
+.urgent-body strong{color:#fb923c}
+.urgent-result{background:rgba(192,57,43,.09);border-radius:7px;padding:8px 10px;margin-top:8px;font-size:11.5px;color:#f87171;line-height:1.6;font-weight:500}
+
+/* 转化按钮区 */
+.conv-cta{background:linear-gradient(135deg,#0d1f3c,#0a1628);border:1px solid rgba(200,169,110,.22);border-radius:14px;padding:16px 18px;margin-bottom:10px;text-align:center}
+.conv-cta-title{font-family:'Noto Serif SC',serif;font-size:15px;font-weight:700;color:#fff;margin-bottom:5px}
+.conv-cta-sub{font-size:11.5px;color:rgba(255,255,255,.38);margin-bottom:12px;line-height:1.6}
+.conv-cta-badge{display:inline-block;background:rgba(200,169,110,.09);border:1px solid rgba(200,169,110,.22);border-radius:5px;padding:3px 9px;font-size:10.5px;color:rgba(200,169,110,.65);margin-bottom:12px}
+.conv-btns{display:flex;gap:9px;justify-content:center}
+.conv-btn-p{background:var(--gold);color:var(--navy);border:none;border-radius:10px;padding:12px 0;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;flex:1;max-width:170px}
+.conv-btn-s{background:rgba(200,169,110,.09);color:#c8a96e;border:1px solid rgba(200,169,110,.32);border-radius:10px;padding:12px 0;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;flex:1;max-width:170px}
+.conv-proof{margin-top:9px;font-size:10.5px;color:rgba(255,255,255,.28)}
+
+/* 手机端适配 */
+@media(max-width:480px){
+  .conv-top{padding:14px 14px 12px}
+  .conv-headline{font-size:15px}
+  .conv-col-rate{font-size:18px}
+  .conv-gap-val{font-size:16px}
+  .cs-wrap{padding:13px 14px}
+  .cs-gauge{width:76px;height:76px}
+  .cs-gauge svg{width:76px;height:76px}
+  .cs-num-val{font-size:19px}
+  .cs-dims{grid-template-columns:1fr 1fr}
+  .br-meter-val{font-size:15px}
+  .loss-cols{grid-template-columns:1fr 1fr}
+  .lift-compare{grid-template-columns:1fr 1fr}
+  .conv-compare{grid-template-columns:1fr 20px 1fr;gap:5px}
+  .conv-col-rate{font-size:18px}
+  .conv-col-amt{font-size:11px}
+  .conv-gap-val{font-size:16px}
+  .conv-btns{flex-direction:column;align-items:center}
+  .conv-btn-p,.conv-btn-s{max-width:100%;width:100%}
+  .conv-sec{padding:12px 13px}
+  .prob-name{font-size:12px}
 }
 
 /* FOOTER */
@@ -867,6 +1051,42 @@ footer{
           <div class="sb-item"><div class="sb-val" id="sumDebtRatio" style="font-size:18px">--</div><div class="sb-label">月还款负债率</div><div class="sb-debt-hint" id="sumDebtHint" style="font-size:10px;margin-top:3px;opacity:.7"></div></div>
         </div>
 
+
+        <!-- ════ 征信评分系统 ════ -->
+        <div class="cs-wrap" id="csWrap" style="display:none">
+          <div class="cs-row">
+            <div class="cs-gauge">
+              <svg viewBox="0 0 84 84"><circle class="cs-gauge-bg" cx="42" cy="42" r="33"/><circle class="cs-gauge-fill" id="csGaugeFill" cx="42" cy="42" r="33" stroke-dasharray="207" stroke-dashoffset="207"/></svg>
+              <div class="cs-num"><div class="cs-num-val" id="csScoreVal">--</div><div class="cs-num-lbl">评分</div></div>
+            </div>
+            <div class="cs-info">
+              <div class="cs-info-title">征信综合评分</div>
+              <div class="cs-level" id="csLevel">计算中…</div>
+              <div class="cs-hint" id="csHint"></div>
+              <div class="cs-unlock" id="csUnlock" style="display:none" onclick="document.getElementById('matchBtn')?.click();document.getElementById('matchBtn')?.scrollIntoView({behavior:'smooth'})">
+                <span style="font-size:15px">🔓</span>
+                <div class="cs-unlock-txt">补充收入、社保、户籍等信息<br>可提升评分准确度</div>
+                <div class="cs-unlock-btn">立即补充 →</div>
+              </div>
+            </div>
+          </div>
+          <div class="cs-dims" id="csDims"></div>
+        </div>
+
+        <!-- ════ 爆查风险指数 ════ -->
+        <div class="br-wrap" id="brWrap" style="display:none">
+          <div class="br-top">
+            <div class="br-title">⚡ 爆查风险指数</div>
+            <div class="br-badge" id="brBadge"></div>
+          </div>
+          <div class="br-meters">
+            <div class="br-meter"><div class="br-meter-val" id="brQ7">--</div><div class="br-meter-lbl">近7天</div></div>
+            <div class="br-meter"><div class="br-meter-val" id="brQ30">--</div><div class="br-meter-lbl">近1月</div></div>
+            <div class="br-meter"><div class="br-meter-val" id="brQ90">--</div><div class="br-meter-lbl">近3月</div></div>
+            <div class="br-meter"><div class="br-meter-val" id="brConc">--%</div><div class="br-meter-lbl">集中度</div></div>
+          </div>
+          <div class="br-tip" id="brTip"></div>
+        </div>
         <!-- 网贷机构统计栏 -->
         <div id="onlineStatsBox" style="display:none;border-radius:10px;padding:13px 16px;margin-bottom:12px;font-size:13px;line-height:1.8;border-width:1px;border-style:solid"></div>
 
@@ -997,6 +1217,7 @@ footer{
               <option value="state">国有企业 / 央企</option>
               <option value="listed">上市公司 / 500强</option>
               <option value="private">私营企业</option>
+              <option value="self">个体工商户</option>
               <option value="freelance">自由职业 / 无固定单位</option>
             </select>
           </div>
@@ -1105,29 +1326,141 @@ footer{
           <div class="ml-title">正在匹配可申请产品</div>
           <div class="ml-sub">综合分析负债率、查询记录、逾期情况…</div>
           <div class="ml-steps">
-            <div class="ml-step active" id="ml1"><div class="ml-dot"></div>读取识别数据</div>
-            <div class="ml-step" id="ml2"><div class="ml-dot"></div>比对银行准入条件</div>
-            <div class="ml-step" id="ml3"><div class="ml-dot"></div>计算通过概率</div>
-            <div class="ml-step" id="ml4"><div class="ml-dot"></div>排序最优方案</div>
+            <div class="ml-step active" id="ml1"><div class="ml-dot"></div>上传征信截图</div>
+            <div class="ml-step" id="ml2"><div class="ml-dot"></div>AI 智能识别中</div>
+            <div class="ml-step" id="ml3"><div class="ml-dot"></div>提取账户信息</div>
+            <div class="ml-step" id="ml4"><div class="ml-dot"></div>分析负债情况</div>
           </div>
         </div>
 
         <!-- Result -->
         <div id="matchResult" style="display:none">
-          <div class="match-header" id="matchHeader">
-            <div class="mh-left">
-              <div class="mh-eyebrow">🎉 匹配完成</div>
-              <div class="mh-title">为您找到可申请产品</div>
-              <div class="mh-sub" id="matchSub">基于您的征信数据，以下产品通过概率较高</div>
+          <!-- ① 顶部总结区 -->
+          <div class="conv-top" id="convTop" style="display:none">
+            <div class="conv-eyebrow">AI 信贷分析报告</div>
+            <div class="conv-headline" id="convHeadline"></div>
+            <div class="conv-compare" id="convCompareWrap">
+              <div class="conv-col bad">
+                <div class="conv-col-lbl">当前状态</div>
+                <div class="conv-col-rate red" id="convRateCur">--</div>
+                <div class="conv-col-amt">约 <em id="convAmtCur">--</em> 万</div>
+              </div>
+              <div class="conv-arrow">→</div>
+              <div class="conv-col good">
+                <div class="conv-col-lbl">优化后</div>
+                <div class="conv-col-rate green" id="convRateOpt">--</div>
+                <div class="conv-col-amt"><em id="convAmtOpt">--</em> 万</div>
+              </div>
             </div>
-            <div>
-              <div class="mh-count" id="matchCount">0</div>
-              <div class="mh-count-label">款匹配产品</div>
-              <div id="mrEstimate" style="display:none;margin-top:8px;font-size:13px;font-weight:600;color:#fff;background:rgba(200,169,110,0.18);border:1px solid rgba(200,169,110,0.45);border-radius:8px;padding:8px 14px;line-height:1.6"></div>
+            <div id="convNoIncomeHint" style="display:none;background:rgba(200,169,110,.07);border:1px dashed rgba(200,169,110,.28);border-radius:9px;padding:10px 12px;text-align:center;margin-bottom:10px">
+              <div style="font-size:12px;color:rgba(200,169,110,.7);margin-bottom:6px">补充月收入后可查看额度对比</div>
+              <button onclick="document.getElementById('matchBtn')?.click();document.getElementById('infoCard')?.scrollIntoView({behavior:'smooth'})" style="font-size:11px;background:rgba(200,169,110,.15);border:1px solid rgba(200,169,110,.35);color:#c8a96e;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:inherit">补充收入信息 →</button>
+            </div>
+            <div class="conv-gap">
+              <div class="conv-gap-lbl">你现在少拿的额度</div>
+              <div class="conv-gap-val" id="convGap">--</div>
+              <div class="conv-gap-sub">优化后可提升</div>
             </div>
           </div>
 
-          <div class="products-grid" id="productsGrid"></div>
+          <!-- ② 问题拆解区 -->
+          <div class="conv-sec" id="convProb" style="display:none">
+            <div class="conv-sec-hd"><span class="conv-sec-icon">⚠️</span><span class="conv-sec-title">当前核心问题</span></div>
+            <div id="convProbList"></div>
+          </div>
+
+          <!-- ③ 损失对比区 -->
+          <div class="conv-sec" id="convLoss" style="display:none">
+            <div class="conv-sec-hd"><span class="conv-sec-icon">📉</span><span class="conv-sec-title">现在直接申请，代价是什么</span></div>
+            <div class="loss-cols">
+              <div class="loss-col now">
+                <span class="loss-tag">❌ 现在申请</span>
+                <div class="loss-type">消费金融为主</div>
+                <div class="loss-rate">年利率：15%–24%</div>
+                <div class="loss-interest" id="convIntNow">--</div>
+              </div>
+              <div class="loss-col opt">
+                <span class="loss-tag">✅ 优化后申请</span>
+                <div class="loss-type">银行信用贷</div>
+                <div class="loss-rate">年利率：3.6%–6%</div>
+                <div class="loss-interest" id="convIntOpt">--</div>
+              </div>
+            </div>
+            <div class="loss-diff">
+              <div class="loss-diff-lbl">同样借10万，一年多付利息</div>
+              <div class="loss-diff-val" id="convIntDiff">约 1万+</div>
+            </div>
+          </div>
+
+          <!-- ④ 提升空间区 -->
+          <div class="lift-sec" id="convLift" style="display:none">
+            <div class="conv-sec-hd"><span class="conv-sec-icon">💡</span><span class="conv-sec-title">你的提升空间</span></div>
+            <div id="convLiftActions"></div>
+            <div class="lift-compare">
+              <div class="lift-col">
+                <div class="lift-col-lbl">优化前</div>
+                <div class="lift-col-val" id="convLiftProdB">-- 款</div>
+                <div class="lift-col-sub" id="convLiftAmtB">额度 -- 万</div>
+              </div>
+              <div class="lift-col">
+                <div class="lift-col-lbl">优化后</div>
+                <div class="lift-col-val green" id="convLiftProdA">-- 款</div>
+                <div class="lift-col-sub" id="convLiftAmtA">额度 -- 万</div>
+              </div>
+            </div>
+            <div class="lift-gap" id="convLiftGap"></div>
+          </div>
+
+          <!-- ⑤ 操作路径区 -->
+          <div class="conv-sec" id="convPath" style="display:none">
+            <div class="conv-sec-hd"><span class="conv-sec-icon">🗺️</span><span class="conv-sec-title">最优申请路径（顺序很关键）</span></div>
+            <div class="path-warn">⚠️ <strong>90% 的人失败，是因为申请顺序错了</strong><br>同时申请多家 → 查询暴增 → 全部被拒</div>
+            <div id="convPathSteps"></div>
+            <div class="path-cta">你的具体申请顺序需要结合征信定制<br>→ 联系顾问获取专属方案</div>
+          </div>
+
+          <!-- ⑥ 客户标签区 -->
+          <div class="ct-sec" id="convClient" style="display:none">
+            <div class="ct-row">
+              <div class="ct-badge"><div class="ct-badge-icon" id="convClientIcon">📋</div><div class="ct-badge-type" id="convClientType">--</div></div>
+              <div><div class="ct-title" id="convClientTitle"></div><div class="ct-desc" id="convClientDesc"></div></div>
+            </div>
+          </div>
+
+          <!-- 白名单职业提醒 -->
+          <div class="wl-tip" id="wlTip" style="display:none">
+            <div class="wl-hd"><span style="font-size:17px">🌟</span><span class="wl-title">专属优惠提醒</span></div>
+            <div class="wl-body">您的职业背景符合多家银行白名单条件，部分银行针对<strong style="color:#e8c98e">公务员 / 事业单位 / 国企</strong>提供专属利率通道、更高额度和简化审批，这类产品不公开，需要人工对接。</div>
+            <button class="wl-btn" onclick="window.location.href='tel:'+(window._agentPhone||CONTACT_PHONE)">联系专属顾问，了解专属方案</button>
+          </div>
+
+          <!-- ⑦ 紧迫提醒区 -->
+          <div class="urgent-sec" id="convUrgent" style="display:none">
+            <div class="urgent-title">⏰ 重要提醒</div>
+            <div class="urgent-body" id="convUrgentBody"></div>
+            <div class="urgent-result" id="convUrgentResult"></div>
+          </div>
+
+          <!-- 可申请产品列表 -->
+          <div id="productsWrap" style="margin-bottom:10px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 2px 7px">
+              <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.65)"><span id="matchCount">0</span> 款可申请产品</div>
+              <div id="mrEstimate" style="display:none;font-size:11.5px;font-weight:600;color:#c8a96e;background:rgba(200,169,110,.11);border:1px solid rgba(200,169,110,.28);border-radius:6px;padding:3px 9px"></div>
+            </div>
+            <div class="products-grid" id="productsGrid"></div>
+          </div>
+
+          <!-- ⑧ 转化按钮区 -->
+          <div class="conv-cta" id="convCta">
+            <div class="conv-cta-title">还有 <span id="convHidden">2</span> 个因素没分析完</div>
+            <div class="conv-cta-sub" id="convCtaSub">这些因素可能影响你的最终额度和通过率<br>联系顾问获取针对你的定制方案</div>
+            <div class="conv-cta-badge">📊 定制方案已准备好</div>
+            <div class="conv-btns">
+              <button class="conv-btn-p" onclick="window.location.href='tel:'+(window._agentPhone||CONTACT_PHONE)">📞 联系专属顾问</button>
+              <button class="conv-btn-s" onclick="showQrModal()">💬 添加微信咨询</button>
+            </div>
+            <div class="conv-proof">今日已有多位客户完成咨询</div>
+          </div>
 
           <!-- 征信全面分析报告 -->
           <div id="analysisReport" style="display:none;margin-top:20px">
@@ -1227,7 +1560,7 @@ footer{
 // ═══════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════
-const PROXY_URL     = 'https://dzhun.651047968.workers.dev';
+const PROXY_URL     = 'https://dzhun.651047968.workers.dev'; // ⚠️ 备案通过后改为 https://api.dzhun.com.cn
 const CONTACT_PHONE = '18250760433';  // 默认联系电话（直客）
 const DEFAULT_QR    = 'qr.jpg';       // 默认二维码图片路径（直客）
 
@@ -1277,7 +1610,7 @@ function esc(s) {
 //   minAge      最低年龄（null=不限）
 //   maxAge      最高年龄（null=不限）
 //   minIncome   最低月收入 元 （null=不限）
-//   overdue     'zero'=零逾期 | 'mild'=历史≤30天已结清可接受 | 'any'=宽松
+//   overdue     'strict'=历史零逾期 | 'zero'=历史轻微可 | 'mild'=近6月无逾期可 | 'loose'=当前无逾期即可
 //   social      true=需要社保/公积金 | false=不要求
 //   conditions  准入条件描述（注入AI prompt用）
 //   bonus       加分项描述
@@ -1626,7 +1959,7 @@ const BANK_PRODUCTS = [
     rate: '利率面议', amount: '2-20万循环额度',
     maxQ3: 9, maxQ1: 4, maxQ6: null, maxDebt: 100, minIncome: null,
     minAge: 22, maxAge: 55,
-    overdue: 'mild', social: true,
+    overdue: 'loose', social: true,
     conditions: '年龄22-55周岁；上班族（不含企业法人/股东/个体工商户）；企业缴社保（个人缴不要）；单位连续缴纳社保或公积金≥6个月；打卡工资：个税/社保近6月平均≥3000元，或公积金近6月缴纳基数平均≥1780元；无当前逾期（200元以下可申请），2年内无逾期30天以上；近1月查询次数<5次，近3月查询机构<9次；月负债>3万通过率降低，月负债>5万通过率极低；不接受白户；不接受军警/公检法/律所/夜总会/同业；GPS校验：业务员所在城市需与客户一致',
     bonus: '循环额度最灵活；可线上操作；6期内EPO 1.5%；支持12/24/36期，出额20万可选48期；换单位只需保证连续缴纳即可',
     tags: ['循环额度', '上班族专属', '线上操作'],
@@ -1672,12 +2005,32 @@ function buildProductLibText(q3, q6, hasOverdue, onlineCount, q1) {
   const _ageLib = calcAgeFromId(window._personIdNo || '');
 
   // 一票否决函数（复用于过滤 + 摘要）
+  // 读取不良记录（供isRejected使用）
+  const _ovNlib   = (_recognizedData?.overdue_history_notes||'').toLowerCase();
+  const _bdNlib   = (_recognizedData?.bad_record_notes||'').toLowerCase();
+  const _seriousLib = _ovNlib.includes('连三')||_ovNlib.includes('连续3')||
+                      _ovNlib.includes('累六')||_ovNlib.includes('累计6')||
+                      _ovNlib.includes('m2')||_ovNlib.includes('60天');
+  const _badRecLib  = (_recognizedData?.has_bad_record===true)
+    ||_bdNlib.includes('呆账')||_bdNlib.includes('代偿')||_bdNlib.includes('担保代还')
+    ||_ovNlib.includes('呆账')||_ovNlib.includes('代偿')||_ovNlib.includes('担保代还');
+  const _ovHistLib  = _recognizedData?.has_overdue_history||false;
+  const _onlineInstLib = [...new Set(
+    (_recognizedData?.loans||[]).filter(l=>l.type==='online').map(l=>l.name.split('-')[0])
+  )].length;
+  const _hasOverLib = (_recognizedData?.overdue_current||0)>0;
+
   const isRejected = p => {
     const hasProvident2 = provident > 0;
-    return (q3 > p.maxQ3)
+    return (_hasOverLib)                                              // 当前逾期
+      || (_seriousLib)                                               // 严重逾期
+      || (_badRecLib)                                                // 呆账/担保代还
+      || (_onlineInstLib > 12)                                       // 网贷>12家
+      || (_onlineInstLib > 8 && p.type === 'bank')                   // 网贷>8家排银行
+      || (p.overdue === 'mild' && _ovHistLib)                        // mild+历史逾期
+      || (q3 > p.maxQ3)
       || (p.maxQ1 != null && (q1 || 0) > p.maxQ1)
       || (p.maxQ6 !== null && q6 > p.maxQ6)
-      || (hasOverdue && p.overdue === 'zero')
       || (p.maxDebt && income > 0 && debtRatioPctLib != null && debtRatioPctLib > p.maxDebt)
       || ((_ageLib && p.minAge && _ageLib < p.minAge) || (_ageLib && p.maxAge && _ageLib > p.maxAge))
       || (p.minIncome && income > 0 && income < p.minIncome)
@@ -1718,12 +2071,25 @@ function buildProductLibText(q3, q6, hasOverdue, onlineCount, q1) {
 
 // ── 本地兜底匹配（AI失败时使用，逻辑与产品库完全同步）──
 function localFallbackMatch(data) {
+  // 逾期与不良记录状态解析
+  const hasOverdue   = (data.overdue_current||0)>0;
+  const ovNotes      = (data.overdue_history_notes||'').toLowerCase();
+  const badNotes     = (data.bad_record_notes||'').toLowerCase();
+  const hasLian3     = ovNotes.includes('连三')||ovNotes.includes('连续3')||ovNotes.includes('连续三');
+  const hasLei6      = ovNotes.includes('累六')||ovNotes.includes('累计6');
+  const hasSeriousOv = hasLian3||hasLei6||ovNotes.includes('m2')||ovNotes.includes('60天');
+  // summary_overdue_accounts>0 辅助判断历史逾期（防止AI漏写notes但表格有值）
+  const hasOvHist    = (data.has_overdue_history||false)
+                    || (data.summary_overdue_accounts||0) > 0;
+  // 呆账/担保代还等严重不良（优先读OCR字段，兜底读文字）
+  const hasBadRecord = (data.has_bad_record===true)
+    ||badNotes.includes('呆账')||badNotes.includes('代偿')||badNotes.includes('担保代还')
+    ||badNotes.includes('资产处置')||badNotes.includes('止付')||badNotes.includes('冻结')
+    ||ovNotes.includes('呆账')||ovNotes.includes('代偿')||ovNotes.includes('担保代还');
   const q           = calcQueryCounts(data.query_records || []);
   const q1          = q.loan_1m || 0;
   const q3          = (q.loan_3m || 0) + (q.loan_3m_card || 0);
   const q6          = q.loan_6m_total || 0;
-  const hasOverdue  = (data.overdue_current || 0) > 0;
-  const hasOvHist   = !!data.overdue_history_notes;
   const onlineCount = (data.loans||[]).filter(l=>l.type==='online').length; // 笔数（评分用）
   const _onlineL = (data.loans||[]).filter(l=>l.type==='online');
   const onlineInstCnt = [...new Set(_onlineL.map(l=>l.name.split('-')[0]))].length; // 机构数（准入用）
@@ -1759,10 +2125,28 @@ function localFallbackMatch(data) {
   const debtRatio = income > 0 && _tmForDebt > 0 ? Math.round(_tmForDebt / income * 100) : 0;
 
   const products = [];
+  const _isWhiteJobFb = ['gov','institution','state'].includes(userWorkType);
+
+  // ── 方案C：用 csScore 替换固定基础分 65 ──
+  // calcCreditScore 需要 data（征信）+ userInfo（补充信息）
+  const _csResult   = calcCreditScore(data, userInfo);
+  const _csScore    = _csResult.score; // 0-100
+  // 基础分 = csScore × 0.65，范围约 0-65
+  // csScore=85 → 基础分55；csScore=70 → 基础分46；csScore=40 → 基础分26
+  const _baseScore  = Math.round(_csScore * 0.65);
+
+  // 产品分层：csScore决定推荐产品类型
+  // ≥80：银行优先；60-79：银行+消费金融混合；<60：消费金融为主
+  const _tier = _csScore >= 80 ? 'bank' : _csScore >= 60 ? 'mixed' : 'finance';
 
   BANK_PRODUCTS.forEach(p => {
     // ── 一票否决：征信硬性条件 ──
-    if (hasOverdue && p.overdue === 'zero') return;
+    if (hasOverdue)    return;           // 当前逾期 → 排除所有产品
+    if (hasSeriousOv)  return;           // 连三/累六/M2/超60天 → 排除所有产品
+    if (hasBadRecord)  return;           // 呆账/担保代还等不良 → 排除所有产品
+    if (onlineInstCnt > 12) return;      // 网贷机构>12家 → 排除所有产品
+    if (onlineInstCnt > 8 && p.type === 'bank') return; // 网贷机构>8家 → 排除全部银行产品
+    if (p.overdue === 'mild' && hasOvHist) return;  // mild产品：有历史逾期 → 排除
     if (q3 > p.maxQ3) return;
     if (p.maxQ1 != null && q1 > p.maxQ1) return;
     if (p.maxQ6 !== null && q6 > p.maxQ6) return;
@@ -1798,9 +2182,9 @@ function localFallbackMatch(data) {
       if (!p.workTypes.includes(userWorkType)) return;
     }
 
-    // ── 通过率计算 ──
+    // ── 通过率计算（方案C：基础分由csScore驱动）──
     const qRatio = p.maxQ3 === 99 ? 0 : q3 / p.maxQ3;
-    let score = 65;
+    let score = _baseScore; // 动态基础分（csScore×0.65）
 
     // 查询次数评分
     if (qRatio <= 0.4)      score += 15;
@@ -1858,29 +2242,100 @@ function localFallbackMatch(data) {
       else if (debtRatio > p.maxDebt * 0.7)  score -= 5;
     }
 
-    const probPct = Math.max(10, Math.min(92, Math.round(score)));
-    const prob    = probPct >= 70 ? '高' : probPct >= 50 ? '中' : '低';
+    // 产品分层软调整（不排除，只调整分数和概率档位）
+    let _scoreFinal = score;
+    // 消金产品在银行优先层（_tier=bank）时，额外扣5分（软降级）
+    if (_tier === 'bank' && p.type === 'online') _scoreFinal -= 5;
+    // 银行产品在消金层（_tier=finance）时，csScore太低自然基础分已低，无需额外调整
 
-    // 生成推荐理由
-    const reasons = [];
-    if (q3 === 0)                    reasons.push('查询记录干净');
-    else                             reasons.push(`近3月查询${q3}次`);
-    if (provident >= 1000)           reasons.push(`公积金${provident}元/月`);
-    if (hasSocial && socialMonths >= 12) reasons.push(`社保${socialMonths}月`);
-    if (['gov','institution','state'].includes(userWorkType)) reasons.push('优质单位加分');
+    const probPct = Math.max(10, Math.min(95, Math.round(_scoreFinal)));
+    // 四档概率：银行产品和消金产品使用不同门槛
+    // 消金产品（type=online）准入宽松，整体门槛降15分
+    const _isOnline = p.type === 'online';
+    const prob = _isOnline
+      ? (probPct >= 60 ? '高' : probPct >= 45 ? '中' : probPct >= 30 ? '低' : '不推荐')
+      : (probPct >= 75 ? '高' : probPct >= 60 ? '中' : probPct >= 45 ? '低' : '不推荐');
+
+    // ── 精细化推荐理由生成（达到AI输出质量）──
+    // reason: 产品卡片显示的简短理由（1句，含具体数字）
+    // reason_detail: 点击展开的详细理由（2-3个维度）
+
+    // 找出该产品最大的加分项（作为主推理由）
+    const _reasonParts = [];
+
+    // 查询维度（最影响银行判断）
+    if (p.maxQ3 === 99) {
+      _reasonParts.push({ weight: 3, text: '查询次数不限，消金产品首选' });
+    } else if (q3 === 0) {
+      _reasonParts.push({ weight: 10, text: `查询记录干净，${p.bank}最高通过概率` });
+    } else {
+      const remain = p.maxQ3 - q3;
+      if (remain >= 3)      _reasonParts.push({ weight: 8,  text: `查询${q3}次，还有${remain}次余量（上限${p.maxQ3}次）` });
+      else if (remain >= 1) _reasonParts.push({ weight: 5,  text: `查询${q3}次，余量${remain}次，仍在${p.bank}准入内` });
+      else                  _reasonParts.push({ weight: 2,  text: `查询${q3}次，刚好在${p.bank}上限${p.maxQ3}次内` });
+    }
+
+    // 公积金维度
+    if (provident >= 2000)      _reasonParts.push({ weight: 9, text: `公积金${provident}元/月，超过优质门槛，利率可申请最低档` });
+    else if (provident >= 1000) _reasonParts.push({ weight: 7, text: `公积金${provident}元/月，满足${p.bank}稳定就业要求` });
+    else if (provident >= 500)  _reasonParts.push({ weight: 4, text: `公积金${provident}元/月` });
+
+    // 社保维度
+    if (hasSocial && socialMonths >= 24)      _reasonParts.push({ weight: 8, text: `社保已缴${socialMonths}个月，远超门槛，加分明显` });
+    else if (hasSocial && socialMonths >= 12) _reasonParts.push({ weight: 6, text: `社保${socialMonths}个月，满足${p.bank}稳定就业要求` });
+    else if (hasSocial && socialMonths >= 6)  _reasonParts.push({ weight: 3, text: `社保${socialMonths}个月，刚好满足门槛` });
+
+    // 职业维度
+    if (['gov','institution','state'].includes(userWorkType))
+      _reasonParts.push({ weight: 9, text: `${userInfo.work || '优质单位'}背景，${p.bank}白名单职业，通过率大幅提升` });
+    else if (userWorkType === 'listed')
+      _reasonParts.push({ weight: 6, text: `上市公司/500强背景，银行认可度高` });
+
+    // 负债率维度
+    if (debtRatio > 0 && p.maxDebt) {
+      const drMargin = p.maxDebt - debtRatio;
+      if (drMargin >= 30)      _reasonParts.push({ weight: 5, text: `负债率${debtRatio}%，距上限${p.maxDebt}%还有${drMargin}%空间，额度可申请较高` });
+      else if (drMargin >= 15) _reasonParts.push({ weight: 3, text: `负债率${debtRatio}%，在${p.bank}安全线以内` });
+    }
+
+    // 资产维度
+    const _assV = userInfo.assets || '';
+    if (_assV.includes('房产')) _reasonParts.push({ weight: 5, text: '名下有房产，银行综合评估加分' });
+
+    // 无逾期加分
+    if (!hasOverdue && !hasOvHist) _reasonParts.push({ weight: 4, text: '征信无逾期记录，还款意愿评分满分' });
+
+    // 按weight排序，取最高分作为主理由
+    _reasonParts.sort((a, b) => b.weight - a.weight);
+    const reason       = _reasonParts[0]?.text || p.conditions.split('；')[0];
+    const reasonDetail = _reasonParts.slice(0, 3).map(r => r.text).join('；') || p.conditions.split('；')[0];
 
     products.push({
       bank: p.bank, product: p.product, rate: p.rate,
       emoji: p.emoji, prob, probPct,
       amount: p.amount, tags: p.tags,
-      reason: reasons.join('，') || p.conditions.split('；')[0],
+      reason: reason,              // 主理由（按权重最高的维度）
+      reason_detail: reasonDetail, // 详细理由（前3个维度）
     });
   });
 
-  const sorted = products.sort((a,b) => b.probPct - a.probPct);
+  // 排序：高>中>低>不推荐，同档内按probPct降序
+  const _probOrder = {'高':4,'中':3,'低':2,'不推荐':1};
+  const sorted = products.sort((a,b) => {
+    const tierDiff = (_probOrder[b.prob]||0) - (_probOrder[a.prob]||0);
+    return tierDiff !== 0 ? tierDiff : b.probPct - a.probPct;
+  });
 
   const keyRisk = hasOverdue
-    ? '存在当前逾期，所有银行产品均无法申请，请先结清'
+    ? '存在当前逾期，所有产品均无法申请，请先结清'
+    : hasSeriousOv
+    ? '存在连三累六/M2级严重逾期，所有产品均无法申请，需征信修复'
+    : hasBadRecord
+    ? '存在呆账/担保代还等严重不良记录，所有产品均无法申请，需先处理'
+    : onlineInstCnt > 12
+    ? `网贷机构${onlineInstCnt}家，超12家上限，所有产品均无法申请`
+    : onlineInstCnt > 8
+    ? `网贷机构${onlineInstCnt}家，超8家上限，银行类产品全部排除，仅可申请消费金融`
     : q3 > 10 ? `近3月查询${q3}次严重超标，银行产品基本无法通过`
     : q3 > 5  ? `近3月查询${q3}次偏多，已超多数银行准入红线`
     : q1 > 5  ? `近1月查询${q1}次偏多，已超多数银行近1月查询红线`
@@ -1926,7 +2381,13 @@ function localFallbackMatch(data) {
   else if (hasSocial && socialMonths < 6)
     advIssues.push({ point: `社保仅缴${socialMonths}个月`, impact: '不足6个月，无法满足大多数银行稳定就业要求' });
   if (hasOverdue)
-    advIssues.push({ point: '存在当前逾期', impact: '银行绝对红线，所有银行信用贷产品均无法申请' });
+    advIssues.push({ point: '存在当前逾期', impact: '银行绝对红线，所有产品均无法申请，请立即结清' });
+  if (!hasOverdue && hasSeriousOv)
+    advIssues.push({ point: '存在连三累六/M2级严重逾期记录', impact: '所有产品均无法申请，需征信修复（通常需等待2年以上）' });
+  if (hasBadRecord)
+    advIssues.push({ point: '存在呆账/担保代还等严重不良', impact: '所有产品均无法申请，必须先联系金融机构协商处理不良记录' });
+  if (!hasOverdue && !hasSeriousOv && !hasBadRecord && onlineInstCnt > 8)
+    advIssues.push({ point: `网贷机构${onlineInstCnt}家超过8家上限`, impact: onlineInstCnt > 12 ? '所有产品均无法申请，需大量结清后再评估' : '银行类产品已全部排除，建议结清至8家以下再申请银行产品' });
   if (income > 0 && income < 5000)
     advIssues.push({ point: `月收入${income}元偏低`, impact: '低于多数银行最低收入门槛，额度和通过率均受限' });
 
@@ -1970,7 +2431,7 @@ function localFallbackMatch(data) {
   const _tm3 = calcTotalMonthly(_loans3, _cards3);
   const _dr3 = (userInfo.income||0) > 0 ? Math.round(_tm3/(userInfo.income)*100) : 0;
 
-  if (hasOverdue || q3 > 12 || onlineInstCnt >= 5 || _cUtil3 > 100 || _dr3 > 80) {
+  if (hasOverdue || hasSeriousOv || hasBadRecord || q3 > 12 || onlineInstCnt > 12 || _cUtil3 > 100 || _dr3 > 80) {
     riskLevel = '高风险';
   } else if (q3 >= 7 || onlineInstCnt >= 3 || _cUtil3 > 80 || _dr3 > 60 || (!hasSocial && !provident)) {
     riskLevel = '中度风险';
@@ -1978,13 +2439,38 @@ function localFallbackMatch(data) {
     riskLevel = '轻微瑕疵';
   }
 
+  // 分层标签
+  const _tierLabel = _tier === 'bank'    ? '银行优先'
+                   : _tier === 'mixed'   ? '银行+消金混合'
+                   : '消费金融为主';
+  const _highCount = sorted.filter(p => p.prob === '高').length;
+  const _noRecCount = sorted.filter(p => p.prob === '不推荐').length;
+
+  // ── 本地兜底时也输出client_type，和AI结果结构统一 ──
+  const _fbClientType = hasSeriousOv || hasBadRecord || onlineInstCnt > 8 ? 'C'
+    : (_isWhiteJobFb || (q3 <= 3 && income >= 10000 && !hasOvHist)) ? 'A'
+    : (q3 > 3 || onlineInstCnt >= 3 || debtRatio > 60) ? 'B'
+    : 'A';
+
+  // 本地计算通过率（供合并后显示）
+  const _localCurRate  = _highCount >= 2 ? 78 : sorted.length >= 2 ? 65 : sorted.length === 1 ? 55 : 30;
+  const _localOptRate  = Math.min(92, _localCurRate + 18);
+
   return {
+    _source: 'local',
     summary: sorted.length > 0
-      ? `基于完整资质数据，筛选出 ${sorted.length} 款可申请产品`
-      : '当前资质暂无可匹配产品，建议补充社保/公积金后再申请',
+      ? `征信综合评分 ${_csScore} 分（${_tierLabel}），匹配到 ${sorted.length} 款产品，其中高概率 ${_highCount} 款`
+      : `征信综合评分 ${_csScore} 分，当前资质暂无可匹配产品，建议优化征信后再申请`,
     count: sorted.length,
     key_risk: keyRisk,
     risk_level: riskLevel,
+    cs_score: _csScore,
+    cs_tier: _tier,
+    client_type: _fbClientType,
+    current_rate: _localCurRate,
+    optimized_rate: _localOptRate,
+    current_products: sorted.length,
+    optimized_products: Math.min(sorted.length + 3, 8),
     products: sorted,
     advice: {
       strengths:   advStrengths.slice(0, 4),
@@ -1997,6 +2483,139 @@ function localFallbackMatch(data) {
 // State
 let _fileBlocks = [];       // array of API content blocks (image or document)
 let _recognizedData = null; // {loans, cards, queries, summary}
+
+
+// ═══════════════════════════════════════════
+// 征信评分系统
+// ═══════════════════════════════════════════
+
+function calcCreditScore(data, ui) {
+  if (!data || typeof data !== 'object') data = {};
+  const loans = (data.loans||[]).filter(l=>l.status!=='结清'&&l.status!=='已结清');
+  const cards = (data.cards||[]).filter(c=>c.status!=='销户'&&c.status!=='已销户');
+  const q     = calcQueryCounts(data.query_records||[]);
+  const q3    = (q.loan_3m||0)+(q.loan_3m_card||0);
+  const onlineInst = [...new Set(loans.filter(l=>l.type==='online').map(l=>l.name.split('-')[0]))].length;
+  const cLimit = cards.reduce((s,c)=>s+(c.limit||0),0);
+  const cUsed  = cards.reduce((s,c)=>s+(c.used||0),0);
+  const cUtil  = cLimit>0?Math.round(cUsed/cLimit*100):0;
+  const income = ui&&ui.income?ui.income:0;
+  const monthly = calcTotalMonthly(loans,cards);
+  const dr = income>0?Math.round(monthly/income*100):0;
+  const hasOv     = (data.overdue_current||0)>0;
+  const ovNotes   = (data.overdue_history_notes||'').toLowerCase();
+  const hasLian3  = ovNotes.includes('连三')||ovNotes.includes('连续3')||ovNotes.includes('连续三');
+  const hasLei6   = ovNotes.includes('累六')||ovNotes.includes('累计6');
+  const hasOvHist = data.has_overdue_history||false;
+  const isBasic   = !ui||!ui.income;
+
+  const dims = [];
+  // 当前逾期 25%
+  let d1 = hasOv?0:100;
+  dims.push({name:'当前逾期',s:d1,w:.25,c:d1>=80?'#4ade80':'#f87171'});
+  // 历史逾期 15%
+  let d2 = hasLian3||hasLei6?0:hasOvHist?45:100;
+  dims.push({name:'历史逾期',s:d2,w:.15,c:d2>=80?'#4ade80':d2>=50?'#fbbf24':'#f87171'});
+  // 查询次数 20%
+  let d3 = q3===0?100:q3<=3?85:q3<=6?62:q3<=9?32:8;
+  dims.push({name:'查询次数',s:d3,w:.20,c:d3>=70?'#4ade80':d3>=45?'#fbbf24':'#f87171'});
+  // 网贷机构 15%
+  let d4 = onlineInst===0?100:onlineInst<=2?78:onlineInst<=4?40:8;
+  dims.push({name:'网贷情况',s:d4,w:.15,c:d4>=70?'#4ade80':d4>=45?'#fbbf24':'#f87171'});
+  // 信用卡使用率 10%
+  let d5 = cUtil<=50?100:cUtil<=70?72:cUtil<=90?40:12;
+  dims.push({name:'信用卡率',s:d5,w:.10,c:d5>=70?'#4ade80':d5>=45?'#fbbf24':'#f87171'});
+  // 负债率 10%（无收入用中性值50）
+  let d6 = income>0?(dr<=30?100:dr<=50?80:dr<=65?58:dr<=80?28:6):50;
+  dims.push({name:'负债率',s:d6,w:.10,c:d6>=70?'#4ade80':d6>=45?'#fbbf24':'#f87171'});
+
+  if (!isBasic&&ui) {
+    const hasSocial = (ui.social||'').includes('有');
+    const pvd = ui.provident||0;
+    let d7 = pvd>=1000?100:pvd>=500?75:hasSocial?60:28;
+    dims.push({name:'社保公积金',s:d7,w:.08,c:d7>=70?'#4ade80':d7>=45?'#fbbf24':'#f87171'});
+    const hk = ui.hukou||'';
+    let d8 = hk.includes('厦门')?100:hk.includes('福建')?72:hk&&hk!=='未填写'?42:50;
+    dims.push({name:'户籍',s:d8,w:.06,c:d8>=70?'#4ade80':d8>=45?'#fbbf24':'#f87171'});
+    const ast = ui.assets||'';
+    let d9 = ast.includes('房产')?100:ast.includes('车辆')?65:28;
+    dims.push({name:'资产情况',s:d9,w:.06,c:d9>=70?'#4ade80':d9>=45?'#fbbf24':'#f87171'});
+    const wtMap={'政府机关/公务员':100,'事业单位':100,'国有企业/央企':85,'上市公司/500强':72,'私营企业':55,'个体工商户':42,'自由职业':38};
+    let d10 = wtMap[ui.work||'']||50;
+    dims.push({name:'单位性质',s:d10,w:.06,c:d10>=70?'#4ade80':d10>=45?'#fbbf24':'#f87171'});
+  }
+
+  const totalW = dims.reduce((s,d)=>s+d.w,0);
+  const raw    = dims.reduce((s,d)=>s+d.s*d.w,0)/totalW;
+  const score  = Math.round(Math.max(0,Math.min(100,raw)));
+  let level,cls,hint;
+  if(score>=85){level='优质';cls='cs-lv-exc';hint='征信状态优质，银行产品基本无障碍，利率可申请最低档';}
+  else if(score>=70){level='良好';cls='cs-lv-gd';hint='征信状态良好，银行及消费金融均可申请，通过率较高';}
+  else if(score>=55){level='一般';cls='cs-lv-ok';hint='存在扣分项，部分银行受限，消费金融可正常申请';}
+  else if(score>=40){level='较弱';cls='cs-lv-wk';hint='存在明显风控问题，建议优化后再申请，否则通过率低';}
+  else{level='高风险';cls='cs-lv-bad';hint='已触碰银行风控红线，建议先养征信3-6个月再申请';}
+  return {score,level,cls,hint,dims,isBasic};
+}
+
+function renderCreditScore(data,ui) {
+  const el = document.getElementById('csWrap');
+  if(!el) return;
+  el.style.display='block';
+  const r = calcCreditScore(data,ui);
+  const C = 207;
+  const offset = C-(r.score/100)*C;
+  const fill = document.getElementById('csGaugeFill');
+  if(fill){
+    const col = r.score>=85?'#4ade80':r.score>=70?'#60a5fa':r.score>=55?'#fbbf24':r.score>=40?'#fb923c':'#f87171';
+    fill.style.stroke=col;
+    fill.style.strokeDashoffset=C;
+    setTimeout(()=>{fill.style.strokeDashoffset=offset;},80);
+  }
+  const sv=document.getElementById('csScoreVal');if(sv)sv.textContent=r.score;
+  const lv=document.getElementById('csLevel');
+  if(lv){lv.className='cs-level '+r.cls;lv.textContent=r.level;}
+  const ht=document.getElementById('csHint');if(ht)ht.textContent=r.hint;
+  const ul=document.getElementById('csUnlock');if(ul)ul.style.display=r.isBasic?'flex':'none';
+  const grid=document.getElementById('csDims');
+  if(grid){
+    grid.innerHTML=r.dims.map(d=>`<div class="cs-dim"><div class="cs-dim-name">${d.name}</div><div class="cs-dim-row"><div class="cs-dim-bar"><div class="cs-dim-fill" style="width:${d.s}%;background:${d.c}"></div></div><div class="cs-dim-val" style="color:${d.c}">${d.s}</div></div></div>`).join('');
+  }
+}
+
+function calcBlastRisk(qRecords,baseDate) {
+  if (!Array.isArray(qRecords)) qRecords = [];
+  const base = baseDate?new Date(baseDate):new Date();
+  const ago  = d=>{const t=new Date(base);t.setDate(t.getDate()-d);return t;};
+  const filt = (qRecords||[]).filter(q=>q.type==='贷款审批'||q.type==='信用卡审批');
+  const q7   = filt.filter(q=>new Date(q.date)>=ago(7)).length;
+  const q30  = filt.filter(q=>new Date(q.date)>=ago(30)).length;
+  const q90  = filt.filter(q=>new Date(q.date)>=ago(90)).length;
+  const conc = q90>0?Math.round(q30/q90*100):0;
+  let risk=100;
+  risk-=q7*15;
+  risk-=Math.max(0,q30-3)*8;
+  if(conc>60)risk-=10;
+  risk=Math.max(0,Math.min(100,Math.round(risk)));
+  let badge,cls,tip;
+  if(risk>=80){badge='🟢 正常';cls='br-safe';tip='查询频率正常，可正常申请各类产品。';}
+  else if(risk>=60){badge='🟡 偏高';cls='br-warn';tip='近期查询偏多，建议暂停查询2-3周后再申请，当前申请银行类产品通过率下降约20-30%。';}
+  else if(risk>=30){badge='🟠 爆查';cls='br-danger';tip='⚠️ 近期查询次数过多！建议停止所有查询1个月，银行类产品当前基本无法通过。';}
+  else{badge='🔴 严重';cls='br-critical';tip='🔴 查询严重超标，银行系统会直接判定为"资金紧张"，建议停止查询3个月后再评估。';}
+  return{risk,badge,cls,tip,q7,q30,q90,conc};
+}
+
+function renderBlastRisk(data) {
+  const el=document.getElementById('brWrap');if(!el)return;
+  el.style.display='block';
+  const r=calcBlastRisk(data.query_records||[],data.report_date||null);
+  const bd=document.getElementById('brBadge');
+  if(bd){bd.className='br-badge '+r.cls;bd.textContent=r.badge;}
+  const q7e=document.getElementById('brQ7');if(q7e)q7e.textContent=r.q7+'次';
+  const q30e=document.getElementById('brQ30');if(q30e)q30e.textContent=r.q30+'次';
+  const q90e=document.getElementById('brQ90');if(q90e)q90e.textContent=r.q90+'次';
+  const ce=document.getElementById('brConc');if(ce)ce.textContent=r.conc+'%';
+  const te=document.getElementById('brTip');if(te)te.textContent=r.tip;
+}
 
 // ═══════════════════════════════════════════
 // 月供估算（银行风控规则）
@@ -2106,7 +2725,7 @@ function _processImages(files) {
     return;
   }
 
-  const MAX_W = 1600, MAX_H = 2400;
+  const MAX_W = 1200, MAX_H = 1800; // 1200px对征信识别足够清晰
   let pending = files.length;
   const blocks = new Array(files.length);
 
@@ -2144,7 +2763,7 @@ function _processImages(files) {
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        const base64 = canvas.toDataURL('image/jpeg', 0.82).split(',')[1];
+        const base64 = canvas.toDataURL('image/jpeg', 0.75).split(',')[1];
         blocks[i] = { type:'image', source:{ type:'base64', media_type:'image/jpeg', data: base64 } };
         pending--;
         onOneDone();
@@ -2170,165 +2789,172 @@ function clearFile() {
 // ═══════════════════════════════════════════
 async function startAnalysis() {
   if (!_fileBlocks.length) return;
+  if (window._isAnalyzing) return; // 状态锁，防重复触发
+  window._isAnalyzing = true;
 
   // Show reading card
   document.getElementById('uploadCard').style.display = 'none';
   document.getElementById('readingCard').style.display = 'block';
   document.getElementById('resultArea').style.display = 'none';
 
-  // Animate steps
+  // 步骤动画：绑定真实进度（不用定时器假进度）
   const steps = ['rs1','rs2','rs3','rs4','rs5'];
-  let si = 0;
-  const stepTimer = setInterval(() => {
-    if (si < steps.length) {
-      if (si > 0) {
-        document.getElementById(steps[si-1]).classList.remove('active');
-        document.getElementById(steps[si-1]).classList.add('done');
-      }
-      document.getElementById(steps[si]).classList.add('active');
-      si++;
-    }
-  }, 3000);
+  steps.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('active','done'); }
+  });
+  document.getElementById('rs1').classList.add('active');
+  // stepTimer变量保留为null供后续clearInterval兼容
+  const stepTimer = null;
+  // 真实进度：rs1=开始识别 rs2=图片处理 rs3=AI分析 rs4=结构化 rs5=完成
+  function setStep(n) {
+    steps.forEach((id, i) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (i < n) { el.classList.remove('active'); el.classList.add('done'); }
+      else if (i === n) { el.classList.remove('done'); el.classList.add('active'); }
+      else { el.classList.remove('active','done'); }
+    });
+  }
+  setStep(0); // rs1激活
 
 
-  const prompt = `你是银行信贷审核员，精通人行征信报告（简版和详版）。请仔细识别并提取报告中的账户信息和查询记录。
+  const prompt = `你是银行信贷审核员，精通人行简版征信报告。请仔细识别并提取报告中的信息。
 
 【基本信息提取】
-从征信报告封面或信息头部提取：
-- person_name：姓名（如"陈志波"）
+从征信报告封面提取：
+- person_name：姓名
 - id_number：身份证号码（18位）
-- report_date：报告生成日期，格式 YYYY-MM-DD
+- report_date：报告时间字段中的日期，格式 YYYY-MM-DD（如「报告时间：2025-12-03 12:45:08」→ "2025-12-03"）
+
+【信息概要表格提取】
+找到页面顶部的「信息概要」表格，提取以下数据辅助判断逾期情况：
+- summary_overdue_accounts：「发生过逾期的账户数」中的贷款数，「--」或空记为 0
+- summary_overdue_90days：「发生过90天以上逾期的账户数」中的贷款数，「--」或空记为 0
+这两个字段用于辅助判断 has_overdue_history 和历史逾期严重程度。
+
+【严重不良记录识别】
+除逾期外，还需识别以下严重不良，写入 has_bad_record 和 bad_record_notes：
+- 呆账：账户状态栏出现「呆账」
+- 担保代还/代偿：描述中出现「担保代还」「代偿」
+- 资产处置：描述中出现「资产处置」
+- 止付/冻结：账户状态为「止付」「冻结」
+存在任意一条：has_bad_record=true，bad_record_notes填写具体描述（机构+类型）
+全部没有：has_bad_record=false，bad_record_notes="无"
 
 【账户过滤规则（严格执行）】
-1. 贷款账户：只提取当前状态为"正常"或"逾期"的未结清账户。凡是"已结清"/"结清"的账户，跳过不提取，但若该账户有历史逾期记录需记入 overdue_history_notes。
-2. 信用卡账户：只提取当前状态为"正常"或"逾期"的未销户账户。凡是"销户"/"已销户"的账户，跳过不提取。
-3. 查询记录：提取"贷款审批（含担保资格审查）"、"信用卡审批"两类的每一条记录（日期+类型），"贷后管理"/"账户审核"/"本人查询"/"资信审查"/"账户维护"等全部排除，不提取。担保资格审查记录统一归入"贷款审批"类型。
+1. 贷款账户：只提取当前未结清账户（「从未发生过逾期的账户明细」和「发生过逾期的账户明细」两节中的贷款均需提取）。已结清账户跳过，但若有历史逾期需记入 overdue_history_notes。
+2. 信用卡账户：只提取人民币账户且未销户的贷记卡。外币账户（美元账户、港元账户等）跳过不提取。已销户账户（描述中含「YYYY年MM月销户」或「已销户」）跳过不提取。
+3. 查询记录：只提取「贷款审批」和「信用卡审批」两类，其余（贷后管理/本人查询/资信审查/账户维护等）全部跳过。担保资格审查归入「贷款审批」类型。
 
-【查询记录提取说明】
-不需要计算次数，只需逐条提取符合条件的查询记录，每条记录包含日期和类型。
-前端会自动按今天日期计算各窗口的次数，确保准确。
-只提取以下两类：贷款审批（担保资格审查归入此类）、信用卡审批。
-其他类型（贷后管理/本人查询/资信审查/账户维护等）全部跳过不提取。
-提取所有近2年内符合条件的记录，不限时间范围，前端会按需截取。
+【多张图片处理】
+如果上传了多张图片，必须逐张检查所有页面，将所有页面的查询记录合并后一起输出，不得遗漏任何一张图片中的查询记录。前端按日期自动计算各窗口次数，只需逐条提取，不需要计算次数。
 
-【贷款金额字段说明（所有账户统一三个字段）】
-所有贷款账户（无论普通贷款还是循环授信），统一提取以下三个字段：
-- credit_limit（授信额度）：银行批准的贷款总额度，如长安银行500元、阳光消费金融3000元
-- balance（余额/剩余未还）：当前账户剩余未还金额，如阳光消费金融余额500元
-  · 普通贷款：balance = 剩余本金余额
-  · 循环授信：balance = 当前已借出未还的金额（征信上显示的"余额"字段）
-  · 注意：不是"已用额度"这个概念，就是征信上显示的"余额"
-- monthly（月还款）：每月还款金额，简版征信通常无此数据填null，循环授信填null
-- is_revolving：循环授信类（美团/西岸/京东/阳光消费金融等）设为true，普通期限贷款设为false
-注意：不需要提取rate（利率）字段，简版征信不显示利率，不要猜测，JSON示例中的rate字段也请忽略
+【账户名称标准化】
+name 字段格式统一为「银行简称-账户类型」：
+- 银行简称：去掉「股份有限公司」「有限公司」「分行」「支行」「中心」「营业部」等后缀，保留核心品牌名
+  例：「中国建设银行股份有限公司厦门大支行」→「建设银行」
+  例：「上海浦东发展银行股份有限公司」→「浦发银行」
+  例：「中国民生银行股份有限公司信用卡中心」→「民生银行」
+  例：「重庆小米消费金融有限公司」→「小米消费金融」
+- 账户类型：贷款填「消费贷/住房贷/车贷/其他贷」，信用卡填「贷记卡」
 
+【贷款字段说明】
+简版征信每条贷款格式为：「YYYY年MM月DD日 XXX银行发放的XXXXX元（人民币）XXX贷款，YYYY年MM月DD日到期。截至YYYY年MM月，余额XXXXX。」
 
-【账户类型判断（严格执行，绝对不准出错）】
+提取以下字段：
+- issued_date：句子最开头的日期，转为 YYYY-MM-DD 格式
+  例：「2025年02月02日宁波通商银行...」→ "2025-02-02"
+- credit_limit：「发放的XXXXX元」中的金额（授信额度）
+- balance：「余额XXXXX」中的金额（剩余未还本金）
+- monthly：简版征信无此字段，固定填 null
+- is_revolving：循环授信设true，普通期限贷款设false
+  true 的判断标准：①机构为消费金融公司/小额贷款公司/互联网助贷银行，且贷款期限≤1年；②名称含「借呗/白条/月付/闪电贷/极速贷」等
+  false 的判断标准：①房贷/车贷；②正规银行固定期限信用贷（招行/浦发/中信等）
+
+【信用卡字段说明】
+简版征信每条信用卡格式为：「YYYY年MM月DD日 XXX银行发放的贷记卡（人民币账户，卡片尾号：XXXX）。截至YYYY年MM月，信用额度XXXXX，已使用额度XXXXX。」
+
+提取以下字段：
+- name：「银行简称-贷记卡」
+- limit：「信用额度」后的数字
+- used：「已使用额度」后的数字
+- status：该账户所在章节决定状态——「从未逾期」章节内的卡填「正常」，「发生过逾期」章节内的卡填「逾期」
+
+【账户类型判断（严格执行）】
 
 ▌ type = "bank"（银行类贷款）
-机构名称含以下任意关键字，均归为银行类，不得标记为网贷：
-"银行"、"韩亚"、"农商"、"农信"、"村镇银行"
-包含：六大国有行（工农中建交邮储）、12家全国股份制银行（招商/浦发/中信/光大/华夏/民生/广发/兴业/平安/浙商/恒丰/渤海）、各地农商行、微众银行、网商银行、各类村镇银行等。
-⚠️ 注意：以下机构名称虽含"银行"字样，但属于互联网助贷银行，必须归入 type="online"（见下方 online_bank 规则），不得归为 bank：
-众邦、通商银行、蓝海银行、三湘银行、苏宁银行、富民银行、亿联银行、振兴银行、苏商银行、新网银行
+机构名称含「银行」「韩亚」「农商」「农信」「村镇银行」，均归为银行类。
+⚠️ 以下机构名称虽含「银行」，但属于互联网助贷银行，必须归入 type="online"：
+众邦、通商银行、蓝海银行、三湘银行、苏宁银行、富民银行、亿联银行、振兴银行、苏商银行、新网银行、锡商银行、中关村银行
 
-▌ type = "online"（网贷）—— 以下三类机构：
-① online_subtype = "consumer_finance"（消费金融类）
-  机构名称含：消费金融、招联、马上、中邮、捷信、哈银、盛银、北银
-② online_subtype = "microloan"（小额贷款类）
-  机构名称含：小额贷款、小贷、蚂蚁小贷、京东小贷、度小满小贷、美团小贷
-③ online_subtype = "online_bank"（互联网助贷银行）
-  机构名称含以下任意：众邦、通商银行、蓝海银行、三湘银行、苏宁银行、富民银行、亿联银行、振兴银行、苏商银行、新网银行
-  这类机构持有银行牌照但以助贷为主（蚂蚁/京东/度小满等平台引流），银行风控将其等同网贷处理，计入网贷机构总数。
-注意：online_subtype 字段仅用于 type=online 的账户，银行类填 null。
+▌ type = "online"（网贷）—— 三类：
+① online_subtype = "consumer_finance"：机构名含「消费金融、招联、马上、中邮、捷信、哈银、盛银、北银、小米消费金融」
+② online_subtype = "microloan"：机构名含「小额贷款、小贷、蚂蚁小贷、京东小贷、度小满小贷、美团小贷」
+③ online_subtype = "online_bank"：机构名含「众邦、通商银行、蓝海银行、三湘银行、苏宁银行、富民银行、亿联银行、振兴银行、苏商银行、新网银行、锡商银行、中关村银行」
+online_subtype 仅用于 type=online，银行类填 null。
 
 ▌ type = "credit"（信用卡账户）
 
 【贷款细分类型（loan_category）】
-对每笔贷款，根据账户名称/用途判断细分类型：
-- "mortgage"（房贷/按揭）：账户名称含"住房"/"房贷"/"按揭"/"公积金贷款"/"购房"，或明显为个人住房抵押贷款
-- "car"（车贷）：账户名称含"汽车"/"购车"/"车贷"/"车辆"/"机动车"
-- "credit"（银行信用贷）：type=bank 且非房贷非车贷的所有贷款（含抵押消费贷、装修贷、信用贷等）
-- "finance"（消费金融/网贷）：type=online 的所有贷款，loan_category 固定填 "finance"
-
-【贷款发放日期（issued_date）】
-- 从征信报告中提取贷款"发放日期"或"开立日期"或"合同签订日期"，格式 YYYY-MM-DD
-- 若征信上无法识别具体日期，填 null
+- "mortgage"：名称含「住房/房贷/按揭/公积金贷款/购房」
+- "car"：名称含「汽车/购车/车贷/车辆/机动车」
+- "credit"：type=bank 且非房贷非车贷
+- "finance"：type=online 固定填 "finance"
 
 只返回如下JSON，不含任何其他文字和markdown代码块：
 {
-  "person_name": "陈志波",
-  "id_number": "350583199003174356",
-  "report_date": "2026-03-04",
+  "person_name": "王邮桑",
+  "id_number": "350627198808242037",
+  "report_date": "2025-12-03",
+  "summary_overdue_accounts": 0,
+  "summary_overdue_90days": 0,
   "loans": [
     {
-      "name": "招商银行-消费贷",
+      "name": "建设银行-消费贷",
       "type": "bank",
       "online_subtype": null,
       "loan_category": "credit",
-      "issued_date": "2024-05-01",
+      "issued_date": "2025-02-02",
       "is_revolving": false,
-      "credit_limit": 50000,
-      "balance": 50000,
+      "credit_limit": 6000,
+      "balance": 1534,
       "monthly": null,
       "status": "正常"
     },
     {
-      "name": "建设银行-住房贷款",
-      "type": "bank",
-      "online_subtype": null,
-      "loan_category": "mortgage",
-      "issued_date": "2019-03-15",
-      "is_revolving": false,
-      "credit_limit": 800000,
-      "balance": 620000,
-      "monthly": null,
-      "status": "正常"
-    },
-    {
-      "name": "北京阳光消费金融-消费贷",
+      "name": "众邦银行-消费贷",
       "type": "online",
-      "online_subtype": "consumer_finance",
+      "online_subtype": "online_bank",
       "loan_category": "finance",
-      "issued_date": null,
+      "issued_date": "2025-02-06",
       "is_revolving": true,
-      "credit_limit": 3000,
-      "balance": 500,
-      "monthly": null,
-      "status": "正常"
-    },
-    {
-      "name": "蚂蚁小贷-借呗",
-      "type": "online",
-      "online_subtype": "microloan",
-      "loan_category": "finance",
-      "issued_date": null,
-      "is_revolving": true,
-      "credit_limit": 20000,
-      "balance": 5000,
+      "credit_limit": 10000,
+      "balance": 2573,
       "monthly": null,
       "status": "正常"
     }
   ],
   "cards": [
     {
-      "name": "招商银行-金卡",
-      "limit": 30000,
-      "used": 9000,
+      "name": "建设银行-贷记卡",
+      "limit": 5000,
+      "used": 0,
       "status": "正常"
     }
   ],
   "query_records": [
-    {"date": "2026-02-26", "type": "贷款审批"},
-    {"date": "2026-02-22", "type": "贷款审批"},
-    {"date": "2026-02-15", "type": "信用卡审批"},
-    {"date": "2026-01-05", "type": "贷款审批"}
+    {"date": "2025-11-20", "type": "贷款审批"},
+    {"date": "2025-10-15", "type": "信用卡审批"}
   ],
   "overdue_current": 0,
-  "overdue_history_notes": "兴业消费金融10万元贷款：有1个月逾期记录，2026年2月已结清",
-  "has_overdue_history": true,
-  "notes": "识别到X笔未结清贷款，Y张未销户信用卡，已过滤Z笔结清账户"
-}`;
+  "overdue_history_notes": "无",
+  "has_overdue_history": false,
+  "has_bad_record": false,
+  "bad_record_notes": "无",
+  "ocr_warnings": [],
+  "notes": "识别到X笔未结清贷款，Y张未销户人民币信用卡，已过滤Z笔结清账户和W张外币/销户信用卡"
+}`
 
   try {
     const controller = new AbortController();
@@ -2340,11 +2966,12 @@ async function startAnalysis() {
       signal: controller.signal,
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
+        max_tokens: 2000,
         temperature: 0,
         messages: [{ role: 'user', content: [..._fileBlocks, { type:'text', text: prompt }] }]
       })
     });
+    setStep(2); // rs3：AI分析返回
     clearTimeout(timeout);
     clearInterval(stepTimer);
 
@@ -2374,6 +3001,7 @@ async function startAnalysis() {
     }, 600);
 
   } catch(e) {
+    window._isAnalyzing = false;
     clearInterval(stepTimer);
     document.getElementById('readingCard').style.display = 'none';
     document.getElementById('uploadCard').style.display = 'block';
@@ -2488,12 +3116,16 @@ function renderResult(data) {
 
   // Summary bar - 月供估算（银行风控规则）
   const totalMonthly = calcTotalMonthly(loans, cards);
+  const hasOvHistForType = data.has_overdue_history || (data.summary_overdue_accounts||0) > 0;
 
   document.getElementById('sumLoans').textContent = loans.length + ' 笔';
   document.getElementById('sumCards').textContent = cards.length + ' 张';
   document.getElementById('sumMonthly').textContent = totalMonthly > 0 ? '≈ ' + fmt(Math.round(totalMonthly)) + ' 元' : '--';
   document.getElementById('sumDebtRatio').textContent = '--';
   document.getElementById('sumDebtRatio').style.color = 'var(--gold)';
+  // 渲染基础评分 + 爆查风险
+  renderCreditScore(data, null);
+  renderBlastRisk(data);
   document.getElementById('sumDebtHint').textContent = '填写月收入后显示';
 
   // Warn/notice boxes — reset first
@@ -2505,9 +3137,24 @@ function renderResult(data) {
   if (data.overdue_current > 0) {
     warns.push('🔴 存在 <strong>' + data.overdue_current + ' 笔</strong>当前逾期，银行不会放款，请立即结清');
   }
-  // Historical overdue note (e.g. 兴业消金已结清但有逾期记录)
-  if (data.overdue_history_notes) {
+  // 不良记录警告（呆账/担保代还等）
+  if (data.has_bad_record === true) {
+    const _badDesc = data.bad_record_notes && data.bad_record_notes !== '无'
+      ? data.bad_record_notes
+      : '请检查征信详情';
+    warns.push('🔴 存在严重不良记录：<strong>' + _badDesc + '</strong>。此类记录将导致所有银行产品无法申请，需优先处理');
+  }
+
+  // 历史逾期警告
+  if (data.overdue_history_notes && data.overdue_history_notes !== '无') {
     warns.push('⚠️ 历史逾期记录（已结清）：' + data.overdue_history_notes + '。<strong>结清后6-12个月内</strong>部分银行仍会拒贷');
+  }
+
+  // OCR识别质量警告
+  if ((data.ocr_warnings || []).length > 0) {
+    data.ocr_warnings.forEach(w => {
+      warns.push('⚠️ 识别提示：' + w + '，请核对上方数据是否准确，如有误请重新上传');
+    });
   }
 
   // Query warnings — use new field names: loan_3m + loan_3m_card for 3-month total
@@ -2687,15 +3334,20 @@ function renderResult(data) {
 // STEP 2: PRODUCT MATCHING
 // ═══════════════════════════════════════════
 async function startMatching() {
+  if (window._isMatching) return;
+  window._isMatching = true;
   // ── 支付门控 ──
   const payToken = sessionStorage.getItem('_payToken');
   if (!payToken) {
+    window._isMatching = false;
     showPayModal(() => startMatching());
     return;
   }
 
-  document.getElementById('infoCard').style.display = 'none';  // hide info form
+  document.getElementById('infoCard').style.display = 'none';
   document.getElementById('matchingCard').style.display = 'block';
+  // 更新综合评分
+  try { renderCreditScore(_recognizedData||{}, collectInfoData()); } catch(e){}
   document.getElementById('incomeWarnBanner').style.display = 'none'; // reset
   document.getElementById('matchingCard').scrollIntoView({ behavior:'smooth', block:'start' });
 
@@ -2826,37 +3478,84 @@ async function startMatching() {
     }
   }
 
-  const prompt = `你是具备10年银行信贷审批经验的专家+贷款产品匹配顾问，仅基于本次上传的人行简版征信报告+客户主动填写的补充信息完成全流程分析。所有结论必须同时结合征信数据+补充信息，禁止只看单一维度，禁止使用"可能、大概、也许"，结论必须明确。
+  // ── 客户类型预判断（注入Prompt）──
+  const _isWhiteJob = ['政府机关/公务员','事业单位','国有企业/央企'].some(w => workVal.includes(w.split('/')[0]));
+  const _hasSerious  = (data.overdue_current||0)>0 || data.has_bad_record===true ||
+                       (data.overdue_history_notes||'').toLowerCase().includes('连三') ||
+                       (data.overdue_history_notes||'').toLowerCase().includes('累六') ||
+                       onlineInstTotal > 8;
+  const _isOptimize  = !_hasSerious && (
+    q3 > 3 || onlineInstTotal >= 3 ||
+    (userInfo.income > 0 && Math.round(totalMonthly/userInfo.income*100) > 60) ||
+    hasOvHistForType
+  );
+  // A类：优质（无逾期+查询≤3次+收入≥1万 或 白名单职业）
+  // B类：可优化（有小问题但能解决）
+  // C类：需养征信（有严重问题）
+  const _clientType = _hasSerious ? 'C'
+                    : (_isWhiteJob || (q3 <= 3 && (userInfo.income||0) >= 10000 && !(data.has_overdue_history))) ? 'A'
+                    : _isOptimize ? 'B'
+                    : 'A';
+  const _clientTypeLabel = _clientType === 'A'
+    ? 'A类（优质客户）'
+    : _clientType === 'B'
+    ? 'B类（可优化客户）'
+    : 'C类（需养征信客户）';
+
+  const prompt = `你是一名有10年经验的银行信贷经理，正在帮一个真实客户分析贷款资质。
+
+【说话风格】不要写报告，像在跟客户说话。数字要精确，不说"偏高"，要说"高了2次"。
 
 ═══════════════════════════════════
-【第一部分：客户补充信息（已从表单提取）】
+【客户类型（前端预判）】
+当前客户类型：${_clientTypeLabel}
+
+${_clientType === 'A' ? `A类输出重点（优质客户）：
+① 直接告诉他当前能申请的最高额度是多少、最低利率是哪款
+② 按申请顺序排出3-5款最优产品，说明为什么先申请这款
+③ 如果是白名单职业（公务员/事业单位/国企），重点提示有无专属通道或优惠利率
+④ problems和optimization可以简写，重点放在products和优化后额度提升空间` : ''}
+${_clientType === 'B' ? `B类输出重点（可优化客户）：
+① 先说现在有哪几款能申请（别超过3款，宁少勿滥）
+② 重点说清楚：具体哪2-3个问题在卡他，每个问题多久能解决
+③ 问题解决后能申请什么、额度能到多少——这是他最想知道的
+④ optimize_actions必须给出具体时间线（不是"建议结清"，是"结清后等1个月再申请"）` : ''}
+${_clientType === 'C' ? `C类输出重点（需养征信客户）：
+① 先说现在还能不能申请到任何一款（哪怕是消费金融）
+② 核心问题是什么，最短恢复路径是什么（具体月数）
+③ 现在能做的第一步是什么（具体行动，不是废话）
+④ products如果完全为空，直接说明原因和最快能申请的时间节点
+⑤ 不要用"建议优化"这种模糊说法，要说"6个月后查询冷却，届时可申请招联"` : ''}
+
+═══════════════════════════════════
+【客户补充信息】
 ═══════════════════════════════════
 ① 学历：${userInfo.edu || '无'}
-② 月工资：${income > 0 ? income + ' 元' : '0（未填写）'}
+② 月工资：${income > 0 ? income + ' 元' : '未填写'}
 ③ 社保缴交：${socialStr}
-④ 公积金月缴额：${pvd > 0 ? pvd + ' 元' : '0（未缴）'}
+④ 公积金月缴：${pvd > 0 ? pvd + ' 元' : '0（未缴）'}
 ⑤ 资产情况：${assetsVal || '无'}
 ⑥ 户籍地：${hukouVal || '未填写'}
 ⑦ 单位性质：${workVal || '未填写'}
 
-【补充信息加减分评估（已预计算，供分析参考）】
+【补充信息加减分】
 ${scoreItems.join('\n')}
 
 ═══════════════════════════════════
-【第二部分：征信核心数据】
+【征信核心数据】
 ═══════════════════════════════════
 未结清贷款：${loans.length}笔（银行${loans.length - onlineCount}笔 | 网贷${onlineCount}笔）
-网贷机构数：合计${onlineInstTotal}家（消费金融${cfCount2}家 + 小额贷款${mlCount2}家 + 助贷银行${obCount2}家）→ 银行红线≤4家，当前：${onlineInstTotal >= 5 ? '⚠️超标' : (onlineInstTotal === 3 || onlineInstTotal === 4) ? '⚠️轻度警示' : '✅正常'}
+网贷机构数：${onlineInstTotal}家（消金${cfCount2}家+小贷${mlCount2}家+助贷银行${obCount2}家）→ 红线≤4家，当前：${onlineInstTotal >= 5 ? '❌超标' : onlineInstTotal >= 3 ? '⚠️警示' : '✅正常'}
 未销户信用卡：${cards.length}张
-月还款估算：${fmt(Math.round(totalMonthly))}元（本估算为银行审批参考值，非合同精确值）
-负债率：${debtRatio}（各产品负债率上限不同，已在下方产品库标注）
-信用卡使用率：${cardUtil}%（银行红线≤70%）
+月还款估算：${fmt(Math.round(totalMonthly))}元
+负债率：${debtRatio}
+信用卡使用率：${cardUtil}%（红线≤70%）
 当前逾期：${data.overdue_current || 0}笔
 历史逾期：${data.overdue_history_notes || '无'}
 
-【查询记录（已过滤贷后管理/本人查询）】
+【查询记录】
 近1月贷款审批：${q.loan_1m || 0}次 | 近3月贷款：${q3loans}次 | 近3月信用卡：${q3cards}次
-近3月合计：${q3}次（各产品红线不同：最严4次/一般6次/宽松9次） | 近6月合计：${q6}次
+近3月合计：${q3}次 | 近6月合计：${q6}次
 
 【贷款明细】
 ${loanDesc}
@@ -2865,114 +3564,123 @@ ${loanDesc}
 ${cardDesc}
 
 ═══════════════════════════════════
-【第三部分：风控红线逐项对照】
+【风控红线对照】
 ═══════════════════════════════════
-① 网贷机构数≤4家 → 当前${onlineInstTotal}家 → ${onlineInstTotal >= 5 ? '❌超标（直接拒贷）' : (onlineInstTotal === 3 || onlineInstTotal === 4) ? '⚠️轻度警示' : '✅达标'}
-② 近3月查询（招行/厦门农商≤4次，光大≤5次，一般银行≤6次）→ 当前${q3}次 → ${q3 > 9 ? '❌超标（全线拒贷）' : q3 > 6 ? '⚠️严重超标（仅消金/宽松银行可申）' : q3 >= 5 ? '⚠️接近红线（招行/农商已超）' : '✅达标'}
-③ 无当前逾期 → ${(data.overdue_current||0) > 0 ? '❌有' + data.overdue_current + '笔逾期（绝对红线）' : '✅无逾期'}
-④ 负债率（各产品上限50%–80%）→ ${debtRatio} → ${debtRatioPct != null ? (debtRatioPct > 80 ? '❌超标（全线拒贷）' : debtRatioPct > 70 ? '⚠️超出严格产品红线（见产品库）' : debtRatioPct >= 60 ? '⚠️偏高（注意各产品阈值）' : '✅达标') : '待计算'}
-⑤ 信用卡使用率≤70% → ${cardUtil}% → ${cardUtil > 70 ? '❌超标' : cardUtil >= 60 ? '⚠️偏高' : '✅达标'}
-⑥ 社保缴交≥12月（多数银行） → ${socialMonths >= 12 ? '✅' + socialMonths + '月达标' : socialMonths > 0 ? '⚠️仅' + socialMonths + '月' : '❌无社保（减分项）'}
+① 网贷机构≤4家 → ${onlineInstTotal}家 → ${onlineInstTotal >= 5 ? '❌超标' : onlineInstTotal >= 3 ? '⚠️警示' : '✅达标'}
+② 近3月查询 → ${q3}次 → ${q3 > 9 ? '❌超标' : q3 > 6 ? '⚠️严重超标' : q3 >= 5 ? '⚠️接近红线' : '✅达标'}
+③ 当前逾期 → ${(data.overdue_current||0) > 0 ? '❌有' + data.overdue_current + '笔（绝对红线）' : '✅无逾期'}
+④ 负债率 → ${debtRatio} → ${debtRatioPct != null ? (debtRatioPct > 80 ? '❌超标' : debtRatioPct > 70 ? '⚠️偏高' : debtRatioPct >= 60 ? '⚠️注意' : '✅达标') : '待计算'}
+⑤ 信用卡使用率 → ${cardUtil}% → ${cardUtil > 70 ? '❌超标' : cardUtil >= 60 ? '⚠️偏高' : '✅达标'}
+⑥ 历史逾期 → 当前无逾期=一票否决；近6月逾期=重大减分；2年前结清=轻微影响；连三累六=一票否决
 
-【银行可申请产品（已预过滤，以下产品均已通过前端一票否决检查）】
-${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal, q.loan_1m||0)}
+【本地规则引擎已完成产品匹配】
+以下是前端规则引擎的匹配结果（100%准确，基于硬性准入规则）：
+${_candidateSummary}
 
-【通过率计算规则】
-基础分65 + 查询充裕(+15) | 查询宽松(+5) | 查询偏多(-10)
-无逾期(+10) | 公积金≥1000元(+8) | 公积金500-999元(+5)
-国企/事业/公务员(+10) | 上市公司/500强(+6) | 有房产(+8) | 有车(+4)
-本科及以上(+5) | 大专(+2) | 厦门户籍(+5) | 福建省内(+2) | 省外(-3)
-社保≥12月(+5) | 社保6-11月(+2) | 社保<6月(-3) | 无社保(-5)
-月收入≥10000(+5) | 月收入5000-9999(+2) | 月收入<5000(-5)
-网贷机构3-4家(-10) | 网贷机构≥5家(-20) | 信用卡使用率>70%(-10)
-80分以上=高概率 | 60-79=中概率 | 40-59=低概率 | <40不推荐
+排除原因摘要：${_rejectedSummary}
 
-严格返回JSON，不含任何其他文字和markdown代码块：
+你不需要再做产品筛选和通过率计算，只需要：
+① 解读分析：为什么是这个结果，客户最关键的问题是什么
+② 优化建议：具体怎么改善，多久能改善，改善后能申请什么
+③ 个性化语言：用口语化方式解释，带具体数字
+
+严格返回JSON，不含任何其他文字和markdown：
 {
-  "summary": "1-2句整合征信+补充信息的总体评估，60字内",
-  "count": 3,
-  "key_risk": "最大风险点25字内，征信+补充信息综合判断，无则空字符串",
+  "client_type": "A",
+  "summary": "1-2句口语化总评，60字内，结合上方匹配结果说明",
+  "key_risk": "最大风险点25字内，无则空字符串",
   "risk_level": "健康",
+  "current_rate": 65,
+  "optimized_rate": 85,
+  "current_products": 2,
+  "optimized_products": 5,
   "user_info_summary": ["① 学历：本科","② 月工资：8000元","③ 社保：已缴18个月","④ 公积金：1200元/月","⑤ 资产：厦门自有房","⑥ 户籍：厦门本地","⑦ 单位：私营企业"],
-  "redlines": ["当前无绝对红线"],
-  "products": [
-    {
-      "bank": "银行名", "product": "产品名", "rate": "利率范围",
-      "emoji": "🏦", "prob": "高", "probPct": 85,
-      "amount": "最高XX万", "tags": ["厦门本地","标签2"],
-      "reason": "40字内推荐理由，必须同时引用征信数据+补充信息"
-    }
+  "problems": [
+    {"name": "查询次数过多", "value": "近3月5次", "threshold": "银行安全区≤3次", "severity": "high"}
+  ],
+  "optimize_actions": [
+    {"action": "结清2笔网贷并注销账户，等1个月后再申请", "impact": "可新增3家银行产品，通过率提升约30%"}
   ],
   "rejected_products": [
-    {"type": "国有大行（工行/建行）信用贷", "reason": "近3月查询X次超大行≤6次红线，且无公积金，双重拒贷条件"}
+    {"type": "国有大行信用贷", "reason": "近3月查询X次超大行≤6次红线"}
   ],
   "optimization": [
-    {
-      "step": "结清X家小贷并注销账户",
-      "goal": "网贷机构数从X家降至2家以内",
-      "time": "1个月",
-      "unlock": "达标后可申请股份制银行产品"
-    }
+    {"step": "结清X家小贷并注销", "goal": "网贷机构降至2家以内", "time": "1个月", "unlock": "达标后可申请股份制银行"}
   ],
-  "post_optimization": "优化完成后，可申请招行/浦发/中信等股份制银行信用贷，预计额度XX万、利率XX%，原因：XXX",
+  "post_optimization": "优化完成后，可申请招行/浦发/中信等股份制银行信用贷，预计额度XX万、利率年化3.6%-4.8%",
   "advice": {
-    "strengths": [
-      {"point": "无逾期记录 + 厦门本地户籍", "impact": "银行判定还款意愿强且稳定性高，通过率显著提升"}
-    ],
-    "issues": [
-      {"point": "社保仅缴3个月", "impact": "银行判定工作稳定性不足，大额信用贷直接受限"}
-    ],
-    "suggestions": [
-      {"action": "持续缴纳社保至12个月", "goal": "满足股份制银行社保≥6月入门门槛", "time": "9个月", "effect": "可申请招行/浦发最高20万信用贷"}
-    ]
+    "strengths": [{"point": "无逾期+厦门户籍", "impact": "银行判定还款意愿强，通过率显著提升"}],
+    "issues": [{"point": "社保仅缴3个月", "impact": "银行判定工作稳定性不足，大额信用贷受限"}],
+    "suggestions": [{"action": "持续缴纳社保至12个月", "goal": "满足股份制银行门槛", "time": "9个月", "effect": "可申请招行/浦发最高20万信用贷"}]
   }
 }
 注意（严格执行）：
-- products最多7款，宁少勿滥，必须对齐国有大行/股份制银行/城商行/消费金融的风控差异
-- rejected_products必须明确说明被拒的具体数据原因
-- optimization每步骤包含：step+goal+time+unlock四项，全部可落地
-- risk_level判定标准（严格按以下规则，满足任一条件即取对应等级，优先取最高等级）：
+- 不要输出products字段——产品列表已由前端规则引擎生成，以上方匹配结果为准
+- client_type输出"A"/"B"/"C"之一
+- problems列2-4个，每个必须带具体数字
+- optimize_actions列1-3个，每条必须含时间预期
+- current_rate/optimized_rate给具体百分比
+- risk_level判定：高风险=逾期>0|查询>12|网贷≥5家|连三累六|负债>80%；中度=查询7-12|网贷3-4|负债60-80%；轻微瑕疵=查询4-6|网贷1-2；健康=以上不触发
+- 客户类型专项：
+  A类：post_optimization给利率数字，advice.strengths≥3条
+  B类：optimization每条含time，optimize_actions给2-3条
+  C类：key_risk说最短恢复周期，post_optimization写"预计X月后可申请XXX"
+  白名单职业：advice.strengths第一条说明职业优势和专属利率`
 
-  🔴【高风险】—— 满足以下任一：
-  · 存在当前逾期（overdue_current > 0）
-  · 近3月查询合计 > 12次
-  · 网贷/消费金融机构数 ≥ 5家
-  · 有连三（连续3个月逾期）或累六（24月内累计逾期≥6次）记录
-  · 信用卡使用率 > 100%（疑似套现）
-  · 负债率 > 80%
+  // ── 新架构：先本地算产品，再AI输出建议 ──
+  // Step A：本地规则引擎算出候选产品（确定性，0ms）
+  const _localResult = localFallbackMatch(data);
+  const _localProds  = _localResult.products || [];
 
-  🟠【中度风险】—— 不触发高风险，但满足以下任一：
-  · 近3月查询合计 7–12次
-  · 网贷/消费金融机构数 3–4家
-  · 历史逾期记录中有单次逾期 > 30天（已结清）
-  · 负债率 60%–80%
-  · 信用卡使用率 > 80%
-  · 无社保且无公积金（无任何稳定就业证明）
+  // Step B：构建精简摘要传给AI（只传建议相关内容，不传产品库）
+  const _candidateSummary = _localProds.length > 0
+    ? _localProds.map((p, i) =>
+        `${i+1}. ${p.bank}·${p.product} | 通过率:${p.probPct}%(${p.prob}) | 额度:${p.amount} | 主理由:${p.reason}`
+      ).join('\n')
+    : '（本地规则引擎未匹配到可申请产品）';
 
-  🟡【轻微瑕疵】—— 不触发中度及以上，但满足以下任一：
-  · 近3月查询合计 4–6次
-  · 网贷/消费金融机构数 1–2家
-  · 历史逾期记录中单次逾期 ≤ 30天（已结清 ≥ 6个月）
-  · 负债率 50%–60%
-  · 信用卡使用率 70%–80%
-  · 社保缴纳 < 6个月
-
-  🟢【健康】—— 以上全部不触发：
-  · 无任何逾期记录
-  · 近3月查询 ≤ 3次
-  · 网贷机构数 0家
-  · 负债率 < 50%
-  · 信用卡使用率 ≤ 70%
-  · 社保 ≥ 6个月或公积金在缴
-- user_info_summary严格按①-⑦格式输出客户实际填写值
-- advice.strengths列出2-4条客户核心优势，必须结合征信+补充信息
-- advice.issues列出2-4条当前核心问题，说明银行风控影响
-- advice.suggestions列出2-4条具体可落地改善步骤，每条包含action+goal+time+effect`;
+  const _rejectedSummary = (() => {
+    const all = (typeof BANK_PRODUCTS !== 'undefined' ? BANK_PRODUCTS : []);
+    const passedIds = new Set(_localProds.map(p => p.bank + p.product));
+    // 找到被排除的主要原因
+    const reasons = [];
+    if ((data.overdue_current||0) > 0) reasons.push('当前逾期：一票否决所有产品');
+    if (onlineInstTotal > 8) reasons.push(`网贷机构${onlineInstTotal}家：银行类产品全部排除`);
+    if (onlineInstTotal > 4) reasons.push(`网贷机构${onlineInstTotal}家：部分银行产品排除`);
+    if (q3 > 6) reasons.push(`近3月查询${q3}次：超出多数银行上限`);
+    if (debtRatioPct != null && debtRatioPct > 70) reasons.push(`负债率${debtRatioPct}%：超部分银行上限`);
+    return reasons.length > 0 ? reasons.join('；') : '无主要排除原因';
+  })();
 
   try {
-    const raw = await callAI([{ role:'user', content: prompt }], 3500);
-    const result = extractJson(raw);
+    const raw = await callAI([{ role:'user', content: prompt }], 2000);
+    const aiResult = extractJson(raw);
     clearInterval(mlTimer);
+
+    // ── 合并：产品列表用本地，建议用AI ──
+    const merged = Object.assign({}, _localResult, {
+      // AI覆盖的字段（分析建议类）
+      summary:           aiResult?.summary           || _localResult.summary,
+      key_risk:          aiResult?.key_risk           || _localResult.key_risk,
+      risk_level:        aiResult?.risk_level         || _localResult.risk_level,
+      current_rate:      aiResult?.current_rate       || _localResult.current_rate,
+      optimized_rate:    aiResult?.optimized_rate     || _localResult.optimized_rate,
+      current_products:  aiResult?.current_products   || _localProds.length,
+      optimized_products:aiResult?.optimized_products || (_localProds.length + 2),
+      client_type:       aiResult?.client_type        || _clientType,
+      problems:          aiResult?.problems           || _localResult.problems || [],
+      optimize_actions:  aiResult?.optimize_actions   || _localResult.optimize_actions || [],
+      rejected_products: aiResult?.rejected_products  || [],
+      optimization:      aiResult?.optimization       || [],
+      post_optimization: aiResult?.post_optimization  || _localResult.post_optimization || '',
+      advice:            aiResult?.advice             || _localResult.advice,
+      user_info_summary: aiResult?.user_info_summary  || [],
+      // 产品列表：始终用本地（AI不再输出products）
+      products: _localProds,
+      // AI对每款产品的理由润色（如果AI返回了reason_map就用，否则用本地理由）
+      cs_score: _localResult.cs_score,
+      cs_tier:  _localResult.cs_tier,
+    });
 
     mlSteps.forEach(id => {
       document.getElementById(id).classList.remove('active');
@@ -2981,14 +3689,16 @@ ${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal, q.lo
 
     setTimeout(() => {
       document.getElementById('matchingLoading').style.display = 'none';
-      renderMatchResult(result || localFallbackMatch(data));
+      renderMatchResult(merged);
     }, 400);
 
   } catch(e) {
     clearInterval(mlTimer);
+    window._isMatching = false;
     document.getElementById('matchingLoading').style.display = 'none';
-    if (e.message === 'PAYMENT_REQUIRED') return; // 支付弹窗已弹出，静默退出
-    renderMatchResult(localFallbackMatch(data));
+    if (e.message === 'PAYMENT_REQUIRED') return;
+    // AI失败：直接用本地结果（产品完整，只缺AI建议，体验影响最小）
+    renderMatchResult(_localResult);
   }
 }
 
@@ -2997,187 +3707,221 @@ ${buildProductLibText(q3, q6, (data.overdue_current||0)>0, onlineInstTotal, q.lo
 function renderMatchResult(r) {
   if (!r) return;
   window._lastMatchResult = r;
-  document.getElementById('matchCount').textContent = r.count || (r.products ? r.products.length : 0);
-  document.getElementById('matchSub').textContent = r.summary || '基于您的征信数据匹配结果';
 
-  // 预估可贷额度
-  (function() {
-    const income = parseFloat(document.getElementById('if-income')?.value) || 0;
-    const work   = (document.getElementById('if-work')?.value || '');
-    const workMult = {
-      'gov': 95, 'institution': 90, 'state': 80, 'listed': 70, 'private': 60, 'freelance': 50,
-    };
-    let mult = workMult[work] || 50;
-    const data2 = _recognizedData || {};
-    const loans2 = (data2.loans || []).filter(l => l.status !== '结清' && l.status !== '已结清');
-    // 用loan_category过滤房贷更精准（兜底再用name关键词）
-    const nonMortgageDebt = loans2
-      .filter(l => l.loan_category !== 'mortgage'
-        && !l.name.includes('房') && !l.name.includes('住房') && !l.name.includes('按揭'))
-      .reduce((s, l) => s + (l.balance || 0), 0);
+  // ── 基础数据计算 ──
+  const income  = parseFloat(document.getElementById('if-income')?.value)||0;
+  const workVal = document.getElementById('if-work')?.value||'';
+  const data2   = _recognizedData||{};
+  const loans2  = (data2.loans||[]).filter(l=>l.status!=='结清'&&l.status!=='已结清');
+  const cards2  = (data2.cards||[]).filter(c=>c.status!=='销户'&&c.status!=='已销户');
+  const monthly = calcTotalMonthly(loans2,cards2);
+  const dr      = income>0?Math.round(monthly/income*100):0;
+  const q       = calcQueryCounts(data2.query_records||[]);
+  const q3      = (q.loan_3m||0)+(q.loan_3m_card||0);
+  const onlineL = loans2.filter(l=>l.type==='online');
+  const onlineI = [...new Set(onlineL.map(l=>l.name.split('-')[0]))].length;
+  const cLimit  = cards2.reduce((s,c)=>s+(c.limit||0),0);
+  const cUsed   = cards2.reduce((s,c)=>s+(c.used||0),0);
+  const cUtil   = cLimit>0?Math.round(cUsed/cLimit*100):0;
+  const wtMap   = {'政府机关/公务员':95,'事业单位':90,'国有企业/央企':80,'上市公司/500强':70,'私营企业':60,'个体工商户':50,'自由职业':50};
+  const wt      = ({'政府机关/公务员':'gov','事业单位':'institution','国有企业/央企':'state','上市公司/500强':'listed','私营企业':'private','个体工商户':'self','自由职业':'freelance'})[workVal]||'private';
+  const mult    = wtMap[workVal]||50;
+  const nmDebt  = loans2.filter(l=>l.loan_category!=='mortgage'&&!l.name.includes('房')&&!l.name.includes('按揭')).reduce((s,l)=>s+(l.balance||0),0);
+  let qf=1;
+  if(q3>10)qf*=.5;else if(q3>6)qf*=.7;
+  if(loans2.length>=5)qf*=.8;
+  if(cUtil>90)qf*=.7;else if(cUtil>70)qf*=.85;
+  const estLo  = income>0?Math.max(0,(income*30-nmDebt)*qf):0;
+  const estHi  = income>0?Math.min(1e6,(income*mult-nmDebt)*qf):0;
+  const estLoO = income>0?Math.max(0,(income*30-nmDebt)*Math.min(1,qf*1.35)):0;
+  const estHiO = income>0?Math.min(1e6,(income*mult-nmDebt)*Math.min(1,qf*1.35)):0;
+  const fw     = v=>v<1e4?'<1':Math.round(v/1e4)+'';
+  const curAmt = income>0?fw(estLo)+'–'+fw(estHi):'填写收入后显示';
+  const optAmt = income>0?fw(estLoO)+'–'+fw(estHiO):'填写收入后显示';
+  const gapW   = income>0?Math.max(0,Math.round((estHiO-estHi)/1e4)):0;
+  const products = r.products||[];
+  const _aiCurRate = r.current_rate;
+  const curRate  = _aiCurRate||(q3<=3&&!(data2.overdue_current)?72:q3<=6?58:38);
+  const optRate  = r.optimized_rate||Math.min(92,curRate+20);
+  const _isEstimated = !_aiCurRate; // true=本地估算，false=AI计算
 
-    // 征信质量折扣
-    const q = calcQueryCounts(_recognizedData?.query_records || []);
-    const q3loans = q.loan_3m || 0;
-    const activeLoanCount = loans2.length;
-    // 信用卡使用率
-    const cards2 = (_recognizedData?.cards || []).filter(c => c.status !== '销户');
-    const _cLimit = cards2.reduce((s,c)=>s+(c.limit||0),0);
-    const _cUsed  = cards2.reduce((s,c)=>s+(c.used||0),0);
-    const _cUtil  = _cLimit > 0 ? Math.round(_cUsed/_cLimit*100) : 0;
-    let qualityFactor = 1;
-    if (q3loans > 10)      qualityFactor *= 0.5;
-    else if (q3loans > 6)  qualityFactor *= 0.7;
-    if (activeLoanCount >= 5) qualityFactor *= 0.8;
-    if (_cUtil > 90)       qualityFactor *= 0.7;   // 信用卡严重透支
-    else if (_cUtil > 70)  qualityFactor *= 0.85;  // 信用卡偏高
+  // 更新产品数量
+  document.getElementById('matchCount').textContent = products.length;
 
-    // 范围：下限用30倍基准，上限用工作性质倍数，均乘以征信折扣
-    const estLo = (income * 30 - nonMortgageDebt) * qualityFactor;
-    const estHi = (income * mult - nonMortgageDebt) * qualityFactor;
-    const el = document.getElementById('mrEstimate');
-    if (el && income > 0) {
-      el.style.display = 'block';
-      const fmt2 = v => Math.round(v / 10000) + '万';
-      if (estHi < 10000) {
-        el.textContent = '💰 预估可贷额度：暂无法满足额度需求';
-      } else if (estLo >= 1000000) {
-        el.textContent = '💰 预估可贷额度：最高 100 万（需线下评估资产）';
-      } else {
-        const lo = Math.max(0, Math.round(Math.max(estLo, estHi * 0.4) / 10000) * 10000);
-        const hi = Math.min(1000000, Math.round(estHi / 10000) * 10000);
-        if (lo < 10000) {
-          el.textContent = `💰 预估可贷额度：最高约 ${fmt2(hi)}（仅供参考，以银行审批为准）`;
-        } else {
-          el.textContent = `💰 预估可贷额度：${fmt2(lo)}–${fmt2(hi)}（仅供参考，以银行审批为准）`;
-        }
-      }
-    } else if (el) {
-      el.style.display = 'none';
+  // ① 顶部总结区
+  const topEl = document.getElementById('convTop');
+  if(topEl){
+    topEl.style.display='block';
+    const hl = document.getElementById('convHeadline');
+    const _tier = r.cs_tier || (curRate>=80?'bank':curRate>=60?'mixed':'finance');
+    const _csScoreDisp = r.cs_score || '--';
+    const _clientT = r.client_type || (_tier==='bank'?'A':_tier==='mixed'?'B':'C');
+    if(hl){
+      if(_clientT==='A'&&['gov','institution','state'].includes(wt))
+        hl.innerHTML=`征信评分 <em>${_csScoreDisp}分</em>，白名单职业<br>可申请<em>专属利率通道</em>，额度和利率均有优势`;
+      else if(_clientT==='A')
+        hl.innerHTML=`征信评分 <em>${_csScoreDisp}分</em>，资质优质<br>按正确顺序申请，可拿到<em>最高额度+最低利率</em>`;
+      else if(_clientT==='B')
+        hl.innerHTML=`征信评分 <em>${_csScoreDisp}分</em>，有优化空间<br>做<em>2-3个调整</em>后，可申请产品明显增加`;
+      else
+        hl.innerHTML=`征信评分 <em>${_csScoreDisp}分</em><br>需先解决核心问题，<em>最短X个月后</em>可正常申请`;
     }
-  })();
-
-  // ── 客户补充信息确认卡 ──
-  const uiSum = r.user_info_summary;
-  const uiBox = document.getElementById('userInfoConfirmBox');
-  if (uiSum && uiSum.length > 0 && uiBox) {
-    uiBox.style.display = 'block';
-    document.getElementById('userInfoConfirmList').innerHTML =
-      uiSum.map(s => `<span class="as-step-tag">${s}</span>`).join('');
-  }
-
-  // ── 风险等级 banner ──
-  const riskMap = {
-    '健康':    { cls:'risk-healthy', icon:'🟢', label:'征信状态：健康',    desc:'整体征信良好，无明显风控风险' },
-    '轻微瑕疵':{ cls:'risk-mild',    icon:'🟡', label:'征信状态：轻微瑕疵', desc:'存在轻微不足，不影响主要银行产品申请' },
-    '中度风险':{ cls:'risk-medium',  icon:'🟠', label:'征信状态：中度风险', desc:'存在影响银行审批的关键问题，需优化后再申请' },
-    '高风险':  { cls:'risk-high',    icon:'🔴', label:'征信状态：高风险',   desc:'已触碰银行硬红线，当前申请银行产品大概率拒贷' },
-  };
-  const rl   = r.risk_level || '轻微瑕疵';
-  const rDef = riskMap[rl] || riskMap['轻微瑕疵'];
-  const banner = document.getElementById('riskLevelBanner');
-  banner.className = 'risk-banner ' + rDef.cls;
-  banner.innerHTML = `<span class="rb-icon">${rDef.icon}</span><div><div class="rb-level">${rDef.label}</div><div class="rb-desc">${esc(r.key_risk) || rDef.desc}</div></div>`;
-
-  // ── 专属优化建议 ──
-  const adv = r.advice;
-  if (adv) {
-    document.getElementById('adviceSection').style.display = 'block';
-    if ((adv.strengths || []).length > 0) {
-      document.getElementById('adviceStrengthsBody').innerHTML = adv.strengths.map(s =>
-        `<div class="as-item"><div class="as-dot as-dot-green"></div><div><div class="as-point">${esc(s.point)}</div><div class="as-impact">${esc(s.impact)}</div></div></div>`
-      ).join('');
+    const rc=document.getElementById('convRateCur');
+    if(rc){
+      rc.textContent=curRate+'%'+(_isEstimated?' ≈':'');
+      rc.style.color=curRate>=70?'#4ade80':'#f87171';
+      rc.title=_isEstimated?'本地估算（AI未返回精确值）':'AI计算结果';
     }
-    if ((adv.issues || []).length > 0) {
-      document.getElementById('adviceIssuesBody').innerHTML = adv.issues.map(s =>
-        `<div class="as-item"><div class="as-dot as-dot-red"></div><div><div class="as-point">${esc(s.point)}</div><div class="as-impact">${esc(s.impact)}</div></div></div>`
-      ).join('');
-    }
-    if ((adv.suggestions || []).length > 0) {
-      document.getElementById('adviceSuggestionsBody').innerHTML = adv.suggestions.map((s, i) =>
-        `<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${esc(s.action)}</div><div class="as-impact">${esc(s.goal)}</div><div class="as-step-meta"><span class="as-step-tag">⏱ ${esc(s.time)}</span><span class="as-step-tag">✨ ${esc(s.effect)}</span></div></div></div>`
-      ).join('');
-    }
+    const ro=document.getElementById('convRateOpt');if(ro)ro.textContent=optRate+'%';
+    const ac=document.getElementById('convAmtCur');if(ac)ac.textContent=curAmt;
+    const ao=document.getElementById('convAmtOpt');if(ao)ao.textContent=optAmt;
+    // 无收入时隐藏compare区域，显示引导
+    const compareEl=document.getElementById('convCompareWrap');
+    if(compareEl) compareEl.style.display = income>0?'grid':'none';
+    const noIncomeHint=document.getElementById('convNoIncomeHint');
+    if(noIncomeHint) noIncomeHint.style.display = income>0?'none':'block';
+    const gp=document.getElementById('convGap');
+    if(gp){if(income<=0){gp.textContent='补充月收入后显示';gp.style.fontSize='13px';gp.style.color='rgba(255,255,255,0.4)';}else{gp.textContent=gapW>0?'约 '+gapW+' 万':'差距较小';gp.style.fontSize='';gp.style.color='';}}
   }
 
-  // ── 不可申请产品 ──
-  if ((r.rejected_products || []).length > 0) {
-    document.getElementById('rejectedSection').style.display = 'block';
-    document.getElementById('rejectedBody').innerHTML = r.rejected_products.map(rp =>
-      `<div class="as-item"><div class="as-dot as-dot-amber"></div><div><div class="as-point">${esc(rp.type)}</div><div class="as-impact">${esc(rp.reason)}</div></div></div>`
-    ).join('');
+  // ② 问题拆解
+  const probs = r.problems||[];
+  const lProbs=[];
+  if(q3>3) lProbs.push({name:'查询次数过多',value:'近3月'+q3+'次',threshold:'银行安全区≤3次',severity:'high'});
+  if(onlineI>=3) lProbs.push({name:'网贷机构较多',value:onlineI+'家未结清',threshold:'银行红线≤4家',severity:onlineI>=5?'high':'medium'});
+  if(income>0&&dr>65) lProbs.push({name:'负债率偏高',value:dr+'%',threshold:'银行舒适区≤65%',severity:dr>80?'high':'medium'});
+  if(cUtil>70) lProbs.push({name:'信用卡使用率高',value:cUtil+'%',threshold:'银行红线≤70%',severity:'medium'});
+  const dp=(probs.length>0?probs:lProbs).slice(0,4);
+  const probEl=document.getElementById('convProb');
+  if(probEl&&dp.length>0){
+    probEl.style.display='block';
+    document.getElementById('convProbList').innerHTML=dp.map((p,i)=>`<div class="prob-item"><div class="prob-n">${i+1}</div><div><div class="prob-name"><strong>${esc(p.name)}：${esc(p.value)}</strong></div><div class="prob-desc">→ ${esc(p.threshold)}${p.severity==='high'?' ⚠️ 影响较大':''}</div></div></div>`).join('');
   }
 
-  // ── 征信优化方案 ──
-  if ((r.optimization || []).length > 0) {
-    document.getElementById('optimizationSection').style.display = 'block';
-    document.getElementById('optimizationBody').innerHTML = r.optimization.map((o, i) =>
-      `<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${esc(o.step)}</div><div class="as-impact">${esc(o.goal)}</div><div class="as-step-meta"><span class="as-step-tag">⏱ ${esc(o.time)}</span><span class="as-step-tag">🎯 ${esc(o.unlock)}</span></div></div></div>`
-    ).join('');
+  // ③ 损失对比
+  const lossEl=document.getElementById('convLoss');
+  if(lossEl){
+    lossEl.style.display='block';
+    const la=income>0?Math.max(1,Math.round(Math.min(estHi,1e5)/1e4)):10;
+    const n=document.getElementById('convIntNow');if(n)n.textContent='10万/年利息：约'+(la*1.5).toFixed(1)+'–'+(la*2.4).toFixed(1)+'万';
+    const o=document.getElementById('convIntOpt');if(o)o.textContent='10万/年利息：约'+(la*.36).toFixed(1)+'–'+(la*.6).toFixed(1)+'万';
   }
 
-  // ── 优化后产品 ──
-  if (r.post_optimization) {
-    document.getElementById('postOptSection').style.display = 'block';
-    document.getElementById('postOptBody').textContent = r.post_optimization;
+  // ④ 提升空间
+  const acts=r.optimize_actions||[];
+  const lActs=[];
+  if(onlineI>=3) lActs.push({action:'结清'+Math.min(2,onlineI-1)+'笔网贷并注销账户',impact:'可新增'+Math.min(3,onlineI)+'家可申请银行产品'});
+  if(q3>3) lActs.push({action:'停止所有贷款查询'+(q3>6?'1个月':'2-3周'),impact:'查询风险下降，银行通过率提升约'+(q3>6?'30%':'15%')});
+  const da=(acts.length>0?acts:lActs).slice(0,3);
+  const liftEl=document.getElementById('convLift');
+  if(liftEl&&da.length>0){
+    liftEl.style.display='block';
+    document.getElementById('convLiftActions').innerHTML=da.map(a=>`<div class="lift-action"><div class="lift-check">✓</div><div class="lift-txt">${esc(a.action)}（${esc(a.impact)}）</div></div>`).join('');
+    const cp=r.current_products||products.length;
+    const op=r.optimized_products||Math.min(cp+3,8);
+    const pb=document.getElementById('convLiftProdB');if(pb)pb.textContent=cp+' 款';
+    const pa=document.getElementById('convLiftProdA');if(pa)pa.textContent=op+' 款';
+    const ab=document.getElementById('convLiftAmtB');if(ab)ab.textContent='额度 '+curAmt+' 万';
+    const aa=document.getElementById('convLiftAmtA');if(aa)aa.textContent='额度 '+optAmt+' 万';
+    const lg=document.getElementById('convLiftGap');
+    if(lg)lg.textContent=gapW>0?'📈 优化后可多拿约 '+gapW+' 万额度':'📈 优化后可多申请 '+(op-cp)+' 款产品';
   }
 
-  document.getElementById('analysisReport').style.display = 'block';
-
-  // 问题8：products为空时显示引导文案
-  const _products = r.products || [];
-  if (_products.length === 0) {
-    const _keyRisk = r.key_risk || '';
-    const _noMatchReason = _keyRisk
-      ? `当前无法匹配产品：${_keyRisk}`
-      : '当前资质暂无可直接申请的银行产品';
-    document.getElementById('productsGrid').innerHTML = `
-      <div style="text-align:center;padding:32px 20px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px dashed rgba(255,255,255,0.15)">
-        <div style="font-size:32px;margin-bottom:12px">📋</div>
-        <div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:8px">${esc(_noMatchReason)}</div>
-        <div style="font-size:13px;color:rgba(255,255,255,0.5);line-height:1.8;margin-bottom:16px">
-          请查看下方「专属优化建议」，了解如何改善征信资质<br>
-          或联系顾问获取人工评估方案
-        </div>
-        <a href="tel:${window._agentPhone || CONTACT_PHONE}" style="display:inline-block;background:var(--gold);color:var(--navy);padding:10px 24px;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none">📞 联系顾问</a>
-      </div>`;
+  // ⑤ 操作路径
+  const pathEl=document.getElementById('convPath');
+  if(pathEl){
+    pathEl.style.display='block';
+    document.getElementById('convPathSteps').innerHTML=[
+      {t:'<strong>优先申请</strong>通过率最高、查询消耗最少的产品'},
+      {t:'<strong>拿到第一笔</strong>后，可补充申请额度更高的产品'},
+      {t:'<strong>消费金融</strong>作为最后备选，不要第一个申请'},
+    ].map((s,i)=>`<div class="path-step"><div class="path-n">${i+1}</div><div class="path-txt">${s.t}</div></div>`).join('');
   }
-  document.getElementById('productsGrid').innerHTML += (_products.length === 0 ? '' : _products.map(p => {
-    const pct = p.probPct || 0;
-    const barColor = pct >= 75 ? 'var(--green)' : pct >= 55 ? 'var(--gold)' : 'var(--red)';
-    return `
-      <div class="product-card">
-        <div class="pc-top">
-          <span class="pc-emoji">${esc(p.emoji) || '🏦'}</span>
-          <div class="pc-info">
-            <div class="pc-bank">${esc(p.bank)}</div>
-            <div class="pc-product">${esc(p.product)}</div>
-          </div>
-          <div class="pc-rate">${esc(p.rate)}</div>
-        </div>
-        <div class="pc-prob">
-          <div class="pc-prob-bar">
-            <div class="pc-prob-fill" style="width:${pct}%;background:${barColor}"></div>
-          </div>
-          <div class="pc-prob-val">${pct}%</div>
-        </div>
-        <div class="pc-tags">
-          <span class="badge ${p.prob === '高' ? 'badge-ok' : p.prob === '中' ? 'badge-warn' : 'badge-bad'}">${esc(p.prob)}概率</span>
-          ${(p.tags || []).map(t => `<span class="pc-tag">${esc(t)}</span>`).join('')}
-          <span class="pc-tag">${esc(p.amount)}</span>
-        </div>
-        <div class="pc-reason">${esc(p.reason) || ''}</div>
-      </div>
-    `;
-  }).join(''));
 
-  document.getElementById('matchResult').style.display = 'block';
-  document.getElementById('matchResult').scrollIntoView({ behavior:'smooth', block:'start' });
+  // ⑥ 客户标签
+  const ctEl=document.getElementById('convClient');
+  if(ctEl){
+    ctEl.style.display='block';
+    let icon,type,title,desc;
+    if(curRate>=80){icon='⭐';type='优质型';title='你的资质属于优质客户';desc='征信健康，当前可直接申请银行产品，按正确顺序申请，通过率很高';}
+    else if(curRate>=60){icon='📋';type='可优化型';title='你的情况优化空间大';desc='征信有小瑕疵，但核心数据健康，做2-3个调整后，可申请产品会明显增加';}
+    else{icon='🔧';type='需养征信';title='建议先优化再申请';desc='当前资质直接申请被拒风险高，优化周期1-3个月，之后可大幅提升通过率';}
+    const ci=document.getElementById('convClientIcon');if(ci)ci.textContent=icon;
+    const ct=document.getElementById('convClientType');if(ct)ct.textContent=type;
+    const ctit=document.getElementById('convClientTitle');if(ctit)ctit.textContent=title;
+    const cd=document.getElementById('convClientDesc');if(cd)cd.textContent=desc;
+  }
 
-  // Auto-push full report to owner
+  // 白名单职业
+  const wlEl=document.getElementById('wlTip');
+  if(wlEl)wlEl.style.display=['gov','institution','state'].includes(wt)?'block':'none';
+
+  // ⑦ 紧迫提醒
+  const urgEl=document.getElementById('convUrgent');
+  if(urgEl&&q3>=3){
+    urgEl.style.display='block';
+    const ub=document.getElementById('convUrgentBody');
+    if(ub)ub.innerHTML='你现在处于<strong>关键窗口期（7–15天）</strong><br>如果这段时间继续查询或盲目申请：';
+    const ur=document.getElementById('convUrgentResult');
+    if(ur)ur.textContent='查询次数再增加，直接降级为「银行无法通过」。恢复周期：1–3个月。现在的行动决定3个月后的结果。';
+  }
+
+  // 预估额度
+  const mrEl=document.getElementById('mrEstimate');
+  if(mrEl&&income>0&&estHi>0){
+    mrEl.style.display='block';
+    mrEl.textContent='预估 '+fw(estLo)+'–'+fw(estHi)+' 万';
+  }
+
+  // ⑧ 转化区
+  const hEl=document.getElementById('convHidden');
+  if(hEl)hEl.textContent=Math.max(1,dp.length>2?2:1);
+
+  // 产品卡片渲染
+  if(products.length===0){
+    document.getElementById('productsGrid').innerHTML=`<div style="background:rgba(255,255,255,.03);border-radius:12px;border:1px solid rgba(200,169,110,.15);padding:18px 16px;margin-bottom:8px"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="font-size:22px">🔧</div><div><div style="font-size:13px;font-weight:600;color:#e8c98e">征信修复方案</div><div style="font-size:11px;color:rgba(255,255,255,.4)">当前资质需先优化，再申请产品</div></div></div><div style="display:flex;flex-direction:column;gap:7px"><div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.6)"><span style="color:#4ade80;flex-shrink:0">✓</span>${esc(r.key_risk?'当前问题：'+r.key_risk:'暂无可直接申请的银行产品')}</div><div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.6)"><span style="color:#4ade80;flex-shrink:0">✓</span>优化后通过率：可提升至 <strong style="color:#4ade80">${optRate}%+</strong></div><div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.6)"><span style="color:#4ade80;flex-shrink:0">✓</span>人工顾问协助制定专属优化路径</div></div><a href="tel:${window._agentPhone||CONTACT_PHONE}" style="display:block;text-align:center;background:var(--gold);color:var(--navy);padding:10px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none;margin-top:12px">📞 获取征信修复方案</a></div>`;
+  } else {
+    document.getElementById('productsGrid').innerHTML=products.map(p=>{
+      const pct=p.probPct||0;
+      const bc=pct>=75?'var(--green)':pct>=55?'var(--gold)':'var(--red)';
+      const isNotRec = p.prob === '不推荐';
+      const cardStyle = isNotRec ? 'opacity:0.55;filter:grayscale(30%)' : '';
+      const badgeCls = p.prob==='高'?'badge-ok':p.prob==='中'?'badge-warn':p.prob==='低'?'badge-bad':'badge-bad';
+      const notRecTag = isNotRec ? `<span class="pc-tag" style="color:#f87171;background:rgba(192,57,43,.12)">⚠️ 当前评分偏低</span>` : '';
+      return `<div class="product-card" style="${cardStyle}"><div class="pc-top"><span class="pc-emoji">${esc(p.emoji)||'🏦'}</span><div class="pc-info"><div class="pc-bank">${esc(p.bank)}</div><div class="pc-product">${esc(p.product)}</div></div><div class="pc-rate">${esc(p.rate)}</div></div><div class="pc-prob"><div class="pc-prob-bar"><div class="pc-prob-fill" style="width:${pct}%;background:${bc}"></div></div><div class="pc-prob-val">${pct}%</div></div><div class="pc-tags"><span class="badge ${badgeCls}">${esc(p.prob)}概率</span>${notRecTag}${(p.tags||[]).map(t=>`<span class="pc-tag">${esc(t)}</span>`).join('')}<span class="pc-tag">${esc(p.amount)}</span></div><div class="pc-reason" onclick="var d=this.nextElementSibling;if(d&&d.classList.contains('pc-reason-detail')){d.classList.toggle('show');this.querySelector('.pc-reason-toggle')?.classList.toggle('open')}"><span class="pc-reason-text">${esc(p.reason)||''}</span>${p.reason_detail?'<span class="pc-reason-toggle">▾</span>':''}</div>${p.reason_detail?'<div class="pc-reason-detail">'+esc(p.reason_detail)+'</div>':''}</div>`;
+    }).join('');
+  }
+
+  // 旧版分析报告兼容渲染
+  const adv=r.advice;
+  if(adv){
+    document.getElementById('adviceSection').style.display='block';
+    if((adv.strengths||[]).length>0) document.getElementById('adviceStrengthsBody').innerHTML=adv.strengths.map(s=>`<div class="as-item"><div class="as-dot as-dot-green"></div><div><div class="as-point">${esc(s.point)}</div><div class="as-impact">${esc(s.impact)}</div></div></div>`).join('');
+    if((adv.issues||[]).length>0) document.getElementById('adviceIssuesBody').innerHTML=adv.issues.map(s=>`<div class="as-item"><div class="as-dot as-dot-red"></div><div><div class="as-point">${esc(s.point)}</div><div class="as-impact">${esc(s.impact)}</div></div></div>`).join('');
+    if((adv.suggestions||[]).length>0) document.getElementById('adviceSuggestionsBody').innerHTML=adv.suggestions.map((s,i)=>`<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${esc(s.action)}</div><div class="as-impact">${esc(s.goal)}</div><div class="as-step-meta"><span class="as-step-tag">⏱ ${esc(s.time)}</span><span class="as-step-tag">✨ ${esc(s.effect)}</span></div></div></div>`).join('');
+  }
+  if((r.rejected_products||[]).length>0){document.getElementById('rejectedSection').style.display='block';document.getElementById('rejectedBody').innerHTML=r.rejected_products.map(rp=>`<div class="as-item"><div class="as-dot as-dot-amber"></div><div><div class="as-point">${esc(rp.type)}</div><div class="as-impact">${esc(rp.reason)}</div></div></div>`).join('');}
+  if((r.optimization||[]).length>0){document.getElementById('optimizationSection').style.display='block';document.getElementById('optimizationBody').innerHTML=r.optimization.map((o,i)=>`<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${esc(o.step)}</div><div class="as-impact">${esc(o.goal)}</div><div class="as-step-meta"><span class="as-step-tag">⏱ ${esc(o.time)}</span><span class="as-step-tag">🎯 ${esc(o.unlock)}</span></div></div></div>`).join('');}
+  if(r.post_optimization){document.getElementById('postOptSection').style.display='block';document.getElementById('postOptBody').textContent=r.post_optimization;}
+  document.getElementById('analysisReport').style.display='block';
+
+  // 风险banner
+  const riskMap={'健康':{cls:'risk-healthy',icon:'🟢',label:'征信状态：健康',desc:'整体征信良好，无明显风控风险'},'轻微瑕疵':{cls:'risk-mild',icon:'🟡',label:'征信状态：轻微瑕疵',desc:'存在轻微不足，不影响主要银行产品申请'},'中度风险':{cls:'risk-medium',icon:'🟠',label:'征信状态：中度风险',desc:'存在影响银行审批的关键问题，需优化后再申请'},'高风险':{cls:'risk-high',icon:'🔴',label:'征信状态：高风险',desc:'已触碰银行硬红线，当前申请银行产品大概率拒贷'}};
+  const rl=r.risk_level||'轻微瑕疵';
+  const rDef=riskMap[rl]||riskMap['轻微瑕疵'];
+  const banner=document.getElementById('riskLevelBanner');
+  if(banner){banner.className='risk-banner '+rDef.cls;banner.innerHTML=`<span class="rb-icon">${rDef.icon}</span><div><div class="rb-level">${rDef.label}</div><div class="rb-desc">${esc(r.key_risk)||rDef.desc}</div></div>`;}
+
+  // 补充信息确认
+  const uiSum=r.user_info_summary;
+  const uiBox=document.getElementById('userInfoConfirmBox');
+  if(uiSum&&uiSum.length>0&&uiBox){uiBox.style.display='block';document.getElementById('userInfoConfirmList').innerHTML=uiSum.map(s=>`<span class="as-step-tag">${s}</span>`).join('');}
+
+  document.getElementById('matchResult').style.display='block';
+  document.getElementById('matchResult').scrollIntoView({behavior:'smooth',block:'start'});
+  window._isMatching = false; // 释放匹配状态锁
   autoSendReport();
 }
-
 
 // ═══════════════════════════════════════════
 // INFO FORM
@@ -3474,7 +4218,20 @@ function extractJson(text) {
   return null;
 }
 
+// 前端简单限流：60秒内最多5次（防误触/恶意刷）
+const _rl = { count: 0, reset: Date.now() + 60000 };
+function checkRateLimit() {
+  const now = Date.now();
+  if (now > _rl.reset) { _rl.count = 0; _rl.reset = now + 60000; }
+  if (_rl.count >= 5) return false;
+  _rl.count++;
+  return true;
+}
+
 async function callAI(messages, max_tokens = 2000) {
+  if (!checkRateLimit()) {
+    throw new Error('请求过于频繁，请稍候再试（每分钟最多5次）');
+  }
   const payToken = sessionStorage.getItem('_payToken') || '';
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120000);
@@ -3613,6 +4370,25 @@ function restartAll() {
   window._lastMatchResult = null;
   window._personName = null; window._personIdNo = null;
 
+  // 重置新版结果页模块
+  ['csWrap','brWrap'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  ['convTop','convProb','convLoss','convLift','convPath','convClient','wlTip','convUrgent'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  // 重置产品包装区
+  const pw = document.getElementById('productsWrap');
+  if (pw) pw.style.display = 'block';
+  // 重置评分显示
+  const sv = document.getElementById('csScoreVal');
+  if (sv) sv.textContent = '--';
+  // 重置状态锁
+  window._isAnalyzing = false;
+  window._isMatching  = false;
+
   // Show upload
   document.getElementById('readingCard').style.display = 'none';
   document.getElementById('uploadCard').style.display = 'block';
@@ -3620,6 +4396,12 @@ function restartAll() {
 }
 
 function rematch() {
+  // 重置新版结果页模块
+  ['convTop','convProb','convLoss','convLift','convPath','convClient','wlTip','convUrgent'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  window._isMatching = false;
   document.getElementById('matchResult').style.display = 'none';
   document.getElementById('matchingCard').style.display = 'none';
   document.getElementById('infoCard').style.display = 'block';
@@ -3656,6 +4438,7 @@ function showPayModal(callback) {
 function closePayModal() {
   clearInterval(_pollTimer);
   document.getElementById('payOverlay').classList.remove('show');
+  window._isMatching = false; // 关闭支付弹窗时释放锁，允许重新触发匹配
 }
 
 function cancelPay() {
