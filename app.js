@@ -767,7 +767,9 @@ function _processPdf(f) {
     document.getElementById('fileIcon').textContent = '📑';
     document.getElementById('fileName').textContent = f.name.length > 30 ? f.name.substring(0,28)+'…' : f.name;
     document.getElementById('fileSize').textContent = (f.size/1024).toFixed(0) + ' KB';
-    document.getElementById('analyzeBtn').disabled = false;
+    window._fileReady = true;
+    const _cc = document.getElementById('consentCheck');
+    document.getElementById('analyzeBtn').disabled = !(_cc && _cc.checked);
     document.getElementById('analyzeBtnText').textContent = '🔬 开始AI识别分析';
   };
   reader.onerror = () => {
@@ -806,7 +808,9 @@ function _processImages(files) {
       ? `${validBlocks.length}张截图`
       : (files[0].name.length > 30 ? files[0].name.substring(0,28)+'…' : files[0].name);
     document.getElementById('fileSize').textContent = totalKB + ' KB（已压缩）';
-    document.getElementById('analyzeBtn').disabled = false;
+    window._fileReady = true;
+    const _cc2 = document.getElementById('consentCheck');
+    document.getElementById('analyzeBtn').disabled = !(_cc2 && _cc2.checked);
     document.getElementById('analyzeBtnText').textContent = '🔬 开始AI识别分析';
   }
 
@@ -838,6 +842,7 @@ function _processImages(files) {
 
 function clearFile() {
   _fileBlocks = [];
+  window._fileReady = false;
   document.getElementById('fileInfo').classList.remove('show');
   document.getElementById('fileInput').value = '';
   document.getElementById('analyzeBtn').disabled = true;
@@ -849,6 +854,8 @@ function clearFile() {
 // ═══════════════════════════════════════════
 async function startAnalysis() {
   if (!_fileBlocks.length) return;
+  const _cc3 = document.getElementById('consentCheck');
+  if (!_cc3 || !_cc3.checked) { alert('请先勾选同意《个人信息保护政策》及《征信数据分析授权协议》'); return; }
   if (window._isAnalyzing) return; // 状态锁，防重复触发
   window._isAnalyzing = true;
 
@@ -1621,7 +1628,7 @@ function renderMatchResult(r) {
       if(_clientT==='A'&&['gov','institution','state'].includes(wt))
         hl.innerHTML=`征信评分 <em>${_csScoreDisp}分</em>，白名单职业<br>可申请<em>专属利率通道</em>，额度和利率均有优势`;
       else if(_clientT==='A')
-        hl.innerHTML=`征信评分 <em>${_csScoreDisp}分</em>，资质优质<br>按正确顺序申请，可拿到<em>最高额度+最低利率</em>`;
+        hl.innerHTML=`征信评分 <em>${_csScoreDisp}分</em>，资质优质<br>按正确顺序申请，可拿到<em>更高授信上限+更优利率组合</em>`;
       else if(_clientT==='B')
         hl.innerHTML=`征信评分 <em>${_csScoreDisp}分</em>，有优化空间<br>做<em>2-3个调整</em>后，可申请产品明显增加`;
       else
@@ -1676,8 +1683,8 @@ function renderMatchResult(r) {
       if(nr) nr.textContent='年利率：15%–24%';
     }
     const la=income>0?Math.max(1,Math.round(Math.min(estHi>0?estHi:3e4,1e5)/1e4)):10;
-    const n=document.getElementById('convIntNow');if(n)n.textContent='10万/年利息：约'+(la*1.5).toFixed(1)+'–'+(la*2.4).toFixed(1)+'万';
-    const o=document.getElementById('convIntOpt');if(o)o.textContent='10万/年利息：约'+(la*.36).toFixed(1)+'–'+(la*.6).toFixed(1)+'万';
+    const n=document.getElementById('convIntNow');if(n)n.textContent=la+'万/年利息：约'+(la*0.15).toFixed(1)+'–'+(la*0.24).toFixed(1)+'万（年化利率APR 15%–24%）';
+    const o=document.getElementById('convIntOpt');if(o)o.textContent=la+'万/年利息：约'+(la*0.036).toFixed(1)+'–'+(la*0.06).toFixed(1)+'万（年化利率APR 3.6%–6.0%）';
   }
 
   // ④ 提升空间
@@ -1720,7 +1727,7 @@ function renderMatchResult(r) {
   if(ctEl){
     ctEl.style.display='block';
     let icon,type,title,desc;
-    if(_clientT==='A'||curRate>=80){icon='⭐';type='优质型';title='你的资质属于优质客户';desc='征信健康，当前可直接申请银行产品，按正确顺序申请，通过率很高';}
+    if(_clientT==='A'||curRate>=80){icon='⭐';type='优质型';title='你的资质属于优质客户';desc='征信健康，当前可直接申请银行产品，按正确顺序申请，符合多数银行准入区间';}
     else if(_clientT==='B'||curRate>=60){icon='📋';type='可优化型';title='你的情况优化空间大';desc='征信有小瑕疵，但核心数据健康，做2-3个调整后，可申请产品会明显增加';}
     else{icon='🔧';type='需养征信';title='建议先优化再申请';desc='当前资质直接申请被拒风险高，优化周期1-3个月，之后可大幅提升通过率';}
     const ci=document.getElementById('convClientIcon');if(ci)ci.textContent=icon;
@@ -1756,7 +1763,7 @@ function renderMatchResult(r) {
   const ctaSub=document.getElementById('convCtaSub');
   if(ctaSub){
     if(_tier==='bank')
-      ctaSub.innerHTML='资质已达标，顾问可对接银行内部渠道<br>帮你拿到比自行申请更低的利率和更高额度';
+      ctaSub.innerHTML='顾问协助深度解析官方持牌金融机构准入政策<br>精准匹配申贷方案，通过算法优化降低综合财务成本';
     else
       ctaSub.innerHTML='这些因素可能影响你的最终额度和通过率<br>联系顾问获取针对你的定制方案';
   }
@@ -1781,7 +1788,7 @@ function renderMatchResult(r) {
     const _paywallMsg = products.length > 0
       ? `检测到 <strong style="color:#b45309;font-size:18px">${products.length}</strong> 家机构符合您的资质，付费后查看完整匹配结果与申请顺序`
       : '已完成征信分析，付费后查看专属优化方案';
-    document.getElementById('productsGrid').innerHTML = `<div style="background:rgba(200,169,110,.1);border:1px solid rgba(200,169,110,.4);border-radius:12px;padding:22px 16px;text-align:center"><div style="font-size:14px;color:#4a3728;margin-bottom:16px;line-height:1.6">${_paywallMsg}</div><button onclick="showPayModal(()=>startMatching())" style="background:var(--gold);color:var(--navy);border:none;border-radius:8px;padding:12px 36px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">9.9元 查看完整报告</button></div>`;
+    document.getElementById('productsGrid').innerHTML = `<div style="background:rgba(200,169,110,.1);border:1px solid rgba(200,169,110,.4);border-radius:12px;padding:22px 16px;text-align:center"><div style="font-size:14px;color:#4a3728;margin-bottom:16px;line-height:1.6">${_paywallMsg}</div><button onclick="showPayModal(()=>startMatching())" style="background:var(--gold);color:var(--navy);border:none;border-radius:8px;padding:12px 36px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">9.9元 解锁《个人资产优化建议书》</button></div>`;
     document.getElementById('matchResult').style.display='block';
     document.getElementById('matchResult').scrollIntoView({behavior:'smooth',block:'start'});
     window._isMatching = false;
@@ -2076,7 +2083,7 @@ function buildReportText() {
 
   const productLines = products.map((p, i) =>
     `  ${i+1}. ${p.emoji||'🏦'} ${p.bank} · ${p.product}`
-    + `\n     利率: ${p.rate} | 最高额度: ${p.amount}`
+    + `\n     利率: ${p.rate} | 授信上限: ${p.amount}`
     + ` | 通过概率: ${p.probPct}% (${p.prob})`
     + `\n     推荐理由: ${p.reason||'--'}`
   ).join('\n') || '  暂无匹配产品';

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>贷准 · AI智能贷款匹配</title>
+<title>贷准 · AI信用数据分析与方案建议</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 </head>
@@ -12,7 +12,7 @@
 <!-- NAV -->
 <nav>
   <a class="nav-logo" href="#"><em>贷</em>准</a>
-  <span class="nav-tag">AI · 智能贷款匹配</span>
+  <span class="nav-tag">AI · 信用数据分析与方案建议</span>
 </nav>
 
 <!-- HERO -->
@@ -84,11 +84,15 @@
         <button class="fi-remove" onclick="clearFile()" title="移除">×</button>
       </div>
 
+      <div class="consent-row" style="display:flex;align-items:flex-start;gap:8px;margin:12px 0 8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;font-size:12px;color:rgba(255,255,255,.7);line-height:1.5">
+        <input type="checkbox" id="consentCheck" style="margin-top:2px;flex-shrink:0;accent-color:var(--gold)" onchange="document.getElementById('analyzeBtn').disabled=!(this.checked&&window._fileReady)">
+        <label for="consentCheck">我已阅读并同意 <a href="/privacy.html" target="_blank" style="color:var(--gold)">《个人信息保护政策》</a> 及 <a href="/auth.html" target="_blank" style="color:var(--gold)">《征信数据分析授权协议》</a>，数据仅用于本次AI算法本地解析，不留存、不泄露</label>
+      </div>
       <button class="analyze-btn" id="analyzeBtn" onclick="startAnalysis()" disabled>
         <span>🔬</span>
         <span id="analyzeBtnText">请先上传征信报告</span>
       </button>
-      <div class="privacy-note">🔒 文件仅用于本次分析，不上传服务器，处理完即销毁</div>
+      <div class="privacy-note">🔒 加密上传征信报告，数据仅用于AI算法本地解析，不留存、不泄露</div>
     </div>
   </div>
 
@@ -186,7 +190,7 @@
               <div class="cs-num"><div class="cs-num-val" id="csScoreVal">--</div><div class="cs-num-lbl">评分</div></div>
             </div>
             <div class="cs-info">
-              <div class="cs-info-title">征信综合评分</div>
+              <div class="cs-info-title">征信综合评分 <span id="scoreInfoBtn" title="本评分基于贷准AI模型对102个风控维度的模拟演算，非官方人行评分，仅供金融方案参考。" style="cursor:help;font-size:11px;color:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.25);border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;line-height:1">?</span></div>
               <div class="cs-level" id="csLevel">计算中…</div>
               <div class="cs-hint" id="csHint"></div>
               <div class="cs-unlock" id="csUnlock" style="display:none" onclick="document.getElementById('matchBtn')?.click();document.getElementById('matchBtn')?.scrollIntoView({behavior:'smooth'})">
