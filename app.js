@@ -2287,16 +2287,48 @@ function initContactPhone() {
 // 微信环境检测
 const _isWeChat = /micromessenger/i.test(navigator.userAgent);
 
-// 页面加载时处理微信 OAuth
+// 页面加载时处理支付宝回跳 & 微信 OAuth
 document.addEventListener('DOMContentLoaded', () => {
   initContactPhone();
   loadProducts();
 
+  // 支付宝 WAP 支付回跳：恢复征信数据并轮询确认支付结果
+  const _urlParams = new URLSearchParams(location.search);
+  if (_urlParams.get('paid') === '1') {
+    const _savedOrderId = _urlParams.get('orderId') || sessionStorage.getItem('_alipayOrderId');
+    const _savedData    = sessionStorage.getItem('_recognizedData');
+    sessionStorage.removeItem('_alipayOrderId');
+    sessionStorage.removeItem('_recognizedData');
+    history.replaceState(null, '', location.pathname);
+
+    if (_savedData) {
+      try {
+        _recognizedData = JSON.parse(_savedData);
+        document.getElementById('uploadCard').style.display = 'none';
+        renderResult(_recognizedData);
+      } catch(e) {}
+    }
+    if (_savedOrderId) {
+      _payOrderId = _savedOrderId;
+      _confirmed  = false;
+      _payCallback = () => startMatching();
+      document.getElementById('payOverlay').classList.add('show');
+      document.getElementById('payStep1').style.display = 'none';
+      document.getElementById('payStep2').style.display = 'block';
+      document.getElementById('payStep3').style.display = 'none';
+      document.getElementById('payStep2Title').textContent = '正在确认支付结果…';
+      document.getElementById('payLinkWrap').style.display = 'none';
+      clearInterval(_pollTimer);
+      _pollTimer = setInterval(pollPayStatus, 2000);
+    }
+    return;
+  }
+
   if (!_isWeChat) return;
 
-  const _urlParams = new URLSearchParams(location.search);
-  const _wxCode    = _urlParams.get('code');
-  const _wxState   = _urlParams.get('state');
+  const _urlParams2 = new URLSearchParams(location.search);
+  const _wxCode    = _urlParams2.get('code');
+  const _wxState   = _urlParams2.get('state');
 
   if (_wxCode && _wxState === 'wxpay') {
     // OAuth 回调：换取 openid
@@ -2594,7 +2626,12 @@ async function choosePay(channel) {
 
     // 打开支付页
     const opened = window.open(_payUrl, '_blank');
-    if (!opened) window.location.href = _payUrl; // 弹窗被拦截时直接跳转
+    if (!opened) {
+      // 弹窗被拦截（手机浏览器）：页面即将跳走，提前保存状态
+      sessionStorage.setItem('_alipayOrderId', _payOrderId);
+      if (_recognizedData) sessionStorage.setItem('_recognizedData', JSON.stringify(_recognizedData));
+      window.location.href = _payUrl;
+    }
 
     // 开始轮询
     clearInterval(_pollTimer);
