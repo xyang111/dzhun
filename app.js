@@ -2703,3 +2703,37 @@ async function pollPayStatus() {
   } catch(e) { /* 忽略轮询错误 */ }
 }
 
+// iOS Safari bfcache 恢复时（从支付宝 app 返回），DOMContentLoaded 不会重新触发
+// 改用 pageshow 事件补充处理
+window.addEventListener('pageshow', (evt) => {
+  if (!evt.persisted) return; // 不是 bfcache 恢复，忽略
+  const ps = new URLSearchParams(location.search);
+  if (ps.get('paid') !== '1') return;
+  // 有支付宝回跳参数：调 verify-return 直接确认
+  if (ps.get('sign')) {
+    (async () => {
+      try {
+        const r = await fetch(PROXY_URL + '/pay/alipay/verify-return?' + ps.toString());
+        const d = await r.json();
+        if (d.status === 'paid' && d.token) {
+          clearInterval(_pollTimer);
+          localStorage.setItem('_payToken', d.token);
+          localStorage.setItem('_payTokenExp', String(Date.now() + 3600000));
+          localStorage.removeItem('_alipayPendingOrderId');
+          localStorage.removeItem('_alipayPendingTs');
+          localStorage.removeItem('_alipayPendingData');
+          history.replaceState(null, '', location.pathname);
+          document.getElementById('payStep2').style.display = 'none';
+          document.getElementById('payStep3').style.display = 'block';
+          setTimeout(() => {
+            closePayModal();
+            window._isMatching = false;
+            if (_payCallback) { _payCallback(); _payCallback = null; }
+            else startMatching();
+          }, 1200);
+        }
+      } catch(e) { /* 静默失败，轮询继续 */ }
+    })();
+  }
+});
+
