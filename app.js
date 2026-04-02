@@ -2292,26 +2292,20 @@ document.addEventListener('DOMContentLoaded', () => {
   initContactPhone();
   loadProducts();
 
-  // 支付宝 WAP 支付回跳检测：不依赖 sessionStorage 或 URL 参数，用 localStorage
-  const _urlParamsInit = new URLSearchParams(location.search);
-  const _fromAlipay    = _urlParamsInit.get('paid') === '1';
-  const _pendingOrderId = localStorage.getItem('_alipayPendingOrderId')
-                       || _urlParamsInit.get('orderId');
+  // 支付宝 WAP 支付回跳检测
+  const _urlParamsInit  = new URLSearchParams(location.search);
+  const _fromAlipay     = _urlParamsInit.get('paid') === '1';
+  const _pendingOrderId = localStorage.getItem('_alipayPendingOrderId') || _urlParamsInit.get('orderId');
   const _pendingTs      = parseInt(localStorage.getItem('_alipayPendingTs') || '0');
-  const _pendingValid   = _pendingOrderId && (Date.now() - _pendingTs < 10 * 60 * 1000);
+  const _pendingValid   = !!_pendingOrderId && (Date.now() - _pendingTs < 10 * 60 * 1000);
+  const _savedData      = localStorage.getItem('_alipayPendingData');
 
   console.log('[alipay-return] fromAlipay=', _fromAlipay, 'pendingOrderId=', _pendingOrderId, 'pendingValid=', _pendingValid, 'url=', location.search);
 
   if (_fromAlipay || _pendingValid) {
-    // 清理 localStorage
-    localStorage.removeItem('_alipayPendingOrderId');
-    localStorage.removeItem('_alipayPendingTs');
-    const _savedData = localStorage.getItem('_alipayPendingData');
-    localStorage.removeItem('_alipayPendingData');
-    // 清理 URL 参数
     history.replaceState(null, '', location.pathname);
 
-    // 恢复征信数据
+    // 先恢复征信数据（页面不显示空白）
     if (_savedData) {
       try {
         _recognizedData = JSON.parse(_savedData);
@@ -2320,20 +2314,54 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch(e) { console.warn('[alipay-return] 恢复征信数据失败', e); }
     }
 
-    // 弹出确认弹窗并轮询
-    if (_pendingOrderId) {
-      _payOrderId = _pendingOrderId;
-      _confirmed  = false;
-      _payCallback = () => startMatching();
-      document.getElementById('payOverlay').classList.add('show');
-      document.getElementById('payStep1').style.display = 'none';
-      document.getElementById('payStep2').style.display = 'block';
-      document.getElementById('payStep3').style.display = 'none';
-      document.getElementById('payStep2Title').textContent = '正在确认支付结果…';
-      document.getElementById('payLinkWrap').style.display = 'none';
-      clearInterval(_pollTimer);
-      _pollTimer = setInterval(pollPayStatus, 2000);
-    }
+    (async () => {
+      let gotToken = null;
+
+      // 优先：把回跳 URL 参数（含签名）发给 Worker 直接验证，绕开 KV 跨节点延迟
+      if (_fromAlipay && _urlParamsInit.get('sign')) {
+        try {
+          const r = await fetch(PROXY_URL + '/pay/alipay/verify-return?' + _urlParamsInit.toString());
+          const d = await r.json();
+          console.log('[alipay-return] verify-return:', d);
+          if (d.status === 'paid' && d.token) gotToken = d.token;
+        } catch(e) { console.warn('[alipay-return] verify-return 失败:', e); }
+      }
+
+      if (gotToken) {
+        // 直接拿到 token，清理并跳入匹配
+        localStorage.removeItem('_alipayPendingOrderId');
+        localStorage.removeItem('_alipayPendingTs');
+        localStorage.removeItem('_alipayPendingData');
+        localStorage.setItem('_payToken', gotToken);
+        localStorage.setItem('_payTokenExp', String(Date.now() + 3600000));
+        document.getElementById('payOverlay').classList.add('show');
+        document.getElementById('payStep1').style.display = 'none';
+        document.getElementById('payStep2').style.display = 'none';
+        document.getElementById('payStep3').style.display = 'block';
+        setTimeout(() => {
+          document.getElementById('payOverlay').classList.remove('show');
+          window._isMatching = false;
+          startMatching();
+        }, 1200);
+      } else if (_pendingOrderId) {
+        // 备用：显示弹窗并轮询
+        localStorage.removeItem('_alipayPendingOrderId');
+        localStorage.removeItem('_alipayPendingTs');
+        localStorage.removeItem('_alipayPendingData');
+        _payOrderId = _pendingOrderId;
+        _confirmed  = false;
+        _payCallback = () => startMatching();
+        document.getElementById('payOverlay').classList.add('show');
+        document.getElementById('payStep1').style.display = 'none';
+        document.getElementById('payStep2').style.display = 'block';
+        document.getElementById('payStep3').style.display = 'none';
+        document.getElementById('payStep2Title').textContent = '正在确认支付结果…';
+        document.getElementById('payLinkWrap').style.display = 'none';
+        clearInterval(_pollTimer);
+        _pollTimer = setInterval(pollPayStatus, 2000);
+      }
+    })();
+
     return;
   }
 
