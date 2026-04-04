@@ -1319,9 +1319,14 @@ function renderResult(data) {
   const totalDebt = totalLoanBalance + totalCardUsed;
   const sumTotalDebtEl = document.getElementById('sumTotalDebt');
   if (sumTotalDebtEl) sumTotalDebtEl.textContent = totalDebt > 0 ? fmt(Math.round(totalDebt)) + ' 元' : '--';
-  // sumQ30：近30天查询次数
-  const sumQ30El = document.getElementById('sumQ30');
-  if (sumQ30El) sumQ30El.textContent = (q.q30 !== undefined ? q.q30 : '--') + (q.q30 !== undefined ? ' 次' : '');
+  // sumOnlineInst：网贷机构数（按机构去重）
+  const sumOnlineInstEl = document.getElementById('sumOnlineInst');
+  if (sumOnlineInstEl) {
+    const _onlineL2 = loans.filter(l => l.type === 'online');
+    const _onlineInstCnt2 = [...new Set(_onlineL2.map(l => l.name.split('-')[0]))].length;
+    sumOnlineInstEl.textContent = _onlineInstCnt2;
+    sumOnlineInstEl.style.color = _onlineInstCnt2 >= 5 ? 'var(--danger)' : _onlineInstCnt2 >= 3 ? 'var(--warn)' : 'var(--success)';
+  }
 
   // Warn/notice boxes — reset first
   document.getElementById('warnBox').style.display = 'none';
@@ -2058,7 +2063,7 @@ function renderMatchResult(r) {
     const _optCnt = document.getElementById('csOptCount');
     if (_curCnt) _curCnt.textContent = products.length + ' 款产品';
     if (_optCnt) {
-      const _optCount = r.optimized_products_count || r.current_products || (products.length + 2);
+      const _optCount = r.optimized_products || r.optimized_products_count || (products.length + 2);
       _optCnt.textContent = _optCount + ' 款产品';
     }
     _ssEl.style.display = 'block';
