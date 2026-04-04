@@ -3004,6 +3004,9 @@ function showPayModal(callback) {
   document.getElementById('payStep1').style.display = 'block';
   document.getElementById('payStep2').style.display = 'none';
   document.getElementById('payStep3').style.display = 'none';
+  // 微信支付仅在微信内可用（H5审核未通过）
+  const wechatBtn = document.getElementById('payBtnWechat');
+  if (wechatBtn) wechatBtn.style.display = _isWeChat ? '' : 'none';
 }
 
 function closePayModal() {
