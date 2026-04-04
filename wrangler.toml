@@ -16,3 +16,9 @@ id      = "49742c254d0f45ef95e1e56073a0e7c9"
 [[kv_namespaces]]
 binding = "CACHE"
 id      = "f0b05a459aea449380a05d857f6f8a21"
+
+# D1 数据库：评分记录（运营分析用）
+[[d1_databases]]
+binding       = "DB"
+database_name = "dzhun-scores"
+database_id   = "15297542-d509-4752-b17e-b9f3094852f5"
