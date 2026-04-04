@@ -95,7 +95,7 @@ function buildProductLibText(q3, q6, hasOverdue, onlineCount, q1) {
 }
 
 // ── 本地兜底匹配（AI失败时使用，逻辑与产品库完全同步）──
-function localFallbackMatch(data) {
+function localFallbackMatch(data, v2Score = 0) {
   // 逾期与不良记录状态解析
   const hasOverdue   = (data.overdue_current||0)>0;
   const ovNotes      = (data.overdue_history_notes||'').toLowerCase();
@@ -203,79 +203,13 @@ function localFallbackMatch(data) {
       if (!p.workTypes.includes(userWorkType)) return;
     }
 
-    // ── 通过率计算（方案C：基础分由csScore驱动）──
-    const qRatio = p.maxQ3 === 99 ? 0 : q3 / p.maxQ3;
-    let score = _baseScore; // 动态基础分（csScore×0.65）
-
-    // 查询次数评分
-    if (qRatio <= 0.4)      score += 15;
-    else if (qRatio <= 0.7) score += 5;
-    else                    score -= 10;
-
-    // 逾期加分
-    if (!hasOverdue && !hasOvHist)                    score += 10;
-    else if (hasOvHist && p.overdue === 'mild')        score += 3;
-
-    // 网贷扣分
-    score += onlinePenalty;
-
-    // 公积金加分
-    if (provident > 0) {
-      if (provident >= 2000)       score += 10;
-      else if (provident >= 1000)  score += 6;
-      else                         score += 3;
-    }
-
-    // 社保加分
-    if (hasSocial) {
-      if (socialMonths >= 24)       score += 8;
-      else if (socialMonths >= 12)  score += 5;
-      else                          score += 2;
-    }
-
-    // 单位性质加分
-    if (['gov','institution','state'].includes(userWorkType))     score += 10;
-    else if (['listed'].includes(userWorkType))                    score += 6;
-
-    // 学历加分（有加分项的产品）
-    if (userEduRank >= 4) score += 5;  // 本科及以上
-    else if (userEduRank >= 3) score += 2;  // 大专
-
-    // 收入加分
-    if (income >= 10000)      score += 5;
-    else if (income >= 5000)  score += 2;
-    else if (income > 0 && income < 5000) score -= 5;
-
-    // 户籍加分/减分（厦门本地银行敏感）
-    const hukouV = userInfo.hukou || '';
-    if (hukouV.includes('厦门'))      score += 5;
-    else if (hukouV.includes('福建')) score += 2;
-    else if (hukouV && hukouV !== '未填写') score -= 3;
-
-    // 资产加分
-    const assetsV = userInfo.assets || '';
-    if (assetsV.includes('房产'))    score += 8;
-    else if (assetsV.includes('车辆')) score += 4;
-
-    // 负债率扣分（超过上限已在一票否决中排除，这里只做接近上限的扣分）
-    if (p.maxDebt && debtRatio > 0 && income > 0) {
-      if (debtRatio > p.maxDebt * 0.9)       score -= 10;
-      else if (debtRatio > p.maxDebt * 0.7)  score -= 5;
-    }
-
-    // 产品分层软调整（不排除，只调整分数和概率档位）
-    let _scoreFinal = score;
-    // 消金产品在银行优先层（_tier=bank）时，额外扣5分（软降级）
-    if (_tier === 'bank' && p.type === 'online') _scoreFinal -= 5;
-    // 银行产品在消金层（_tier=finance）时，csScore太低自然基础分已低，无需额外调整
-
-    const probPct = Math.max(10, Math.min(95, Math.round(_scoreFinal)));
-    // 四档概率：银行产品和消金产品使用不同门槛
-    // 消金产品（type=online）准入宽松，整体门槛降15分
-    const _isOnline = p.type === 'online';
-    const prob = _isOnline
+    // ── 通过率计算：V2.0 Sigmoid（单一来源，消除双系统矛盾）──
+    const probPct = Math.max(5, Math.min(97, Math.round(
+      100 / (1 + Math.exp(-(p.k || 0.025) * (v2Score - (p.hurdle || 500))))
+    )));
+    const prob = p.type === 'finance'
       ? (probPct >= 60 ? '高' : probPct >= 45 ? '中' : probPct >= 30 ? '低' : '不推荐')
-      : (probPct >= 75 ? '高' : probPct >= 60 ? '中' : probPct >= 45 ? '低' : '不推荐');
+      : (probPct >= 70 ? '高' : probPct >= 50 ? '中' : probPct >= 35 ? '低' : '不推荐');
 
     // ── 精细化推荐理由生成（达到AI输出质量）──
     // reason: 产品卡片显示的简短理由（1句，含具体数字）
@@ -724,18 +658,29 @@ function calcLoanMonthly(loan) {
   if (loan.is_revolving) return Math.round(bal * (0.045 / 12));
 
   const r = 0.045 / 12;
-  if (dueRemaining !== null) {
-    // 有到期日：精确剩余期数，直接PMT
-    return Math.round(bal * r / (1 - Math.pow(1 + r, -dueRemaining)));
-  }
-  if (elapsed !== null && elapsed >= 1) {
+  if (elapsed !== null && elapsed >= 2) {
     if (blRatio > 0.97) {
-      return Math.round(bal * (0.045 / 12)); // 先息后本
-    } else {
-      const remaining = Math.max(Math.round(blRatio * 36), 1);
+      // 先息后本：2个月以上余额仍未减少，确认只付利息
+      // elapsed<2时不能判断（新开贷款首期可能尚未到账）
+      return Math.round(bal * (0.045 / 12));
+    }
+    // 等额本息：通过余额/额度/时间三参数反推实际期限，比 blRatio×36 更精准
+    // 公式：(1+r)^T = (ratio - (1+r)^n) / (ratio - 1)
+    const k = Math.pow(1 + r, elapsed);
+    const A = (blRatio - k) / (blRatio - 1);
+    if (A > 1) {
+      const T = Math.log(A) / Math.log(1 + r);
+      const remaining = Math.max(Math.round(T - elapsed), 1);
       return Math.round(bal * r / (1 - Math.pow(1 + r, -remaining)));
     }
+    // 反推失败（已还大半）：用剩余余额直接估算
+    const remaining = Math.max(Math.round(blRatio * 12), 1);
+    return Math.round(bal * r / (1 - Math.pow(1 + r, -remaining)));
   }
+  if (dueRemaining !== null) {
+    return Math.round(bal * r / (1 - Math.pow(1 + r, -dueRemaining)));
+  }
+  // 新开贷款（elapsed<2）或无日期：按36期等额本息估算
   return Math.round(bal * r / (1 - Math.pow(1 + r, -36)));
 }
 
@@ -968,34 +913,41 @@ class ScoreEngine {
     const { score, level, features: f } = result;
     const issues = [];
 
+    const _ico = {
+      scan: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="11" y1="8" x2="11" y2="14"/></svg>`,
+      net:  `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><line x1="12" y1="7" x2="5" y2="17"/><line x1="12" y1="7" x2="19" y2="17"/><line x1="5" y1="19" x2="19" y2="19"/></svg>`,
+      card: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`,
+      warn: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+      down: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>`,
+    };
     if (f.q3m > 3) {
       const gain = this._cf(f,'queries').score - score;
-      issues.push({ icon:'🔍', tag:'查询过多',
+      issues.push({ icon:_ico.scan, tag:'查询过多',
         desc:`近3月查询${f.q3m}次，超安全线${f.q3m-3}次`,
         cost:`拉低分数约${gain}分`, fix:`今天停止申请，3个月后自然降至安全线`, months:3, gain });
     }
     if (f.onlineI >= 3) {
       const gain = this._cf(f,'online').score - score;
-      issues.push({ icon:'📱', tag:'网贷超标',
+      issues.push({ icon:_ico.net, tag:'网贷超标',
         desc:`网贷机构${f.onlineI}家，银行建议≤2家`,
         cost:`拉低分数约${gain}分`, fix:`结清${f.onlineI-2}家并注销账户`, months:2, gain });
     }
     if (f.cardUtil > 0.7) {
       const gain = this._cf(f,'cardutil').score - score;
-      issues.push({ icon:'💳', tag:'信用卡爆额',
+      issues.push({ icon:_ico.card, tag:'信用卡爆额',
         desc:`信用卡使用率${Math.round(f.cardUtil*100)}%，建议控制在70%以下`,
         cost:`拉低分数约${gain}分`, fix:`还款降使用率，当月见效`, months:1, gain });
     }
     if (f.ovCount > 0 && !f.curOv) {
       const gain = this._cf(f,'overdue').score - score;
-      issues.push({ icon:'⚠️', tag:f.lian3?'连续逾期':'历史逾期',
+      issues.push({ icon:_ico.warn, tag:f.lian3?'连续逾期':'历史逾期',
         desc:`历史${f.ovCount}笔逾期${f.lian3?' (含连续3次)':''}`,
         cost:`拉低分数约${gain}分`, fix:`时间修复，距今越久银行容忍度越高`,
         months:Math.max(0,60-(f.latestOvMths||12)), gain });
     }
     if (f.dti > 0.5 && f.effIncome > 0) {
       const gain = this._cf(f,'dti').score - score;
-      issues.push({ icon:'📉', tag:'负债率偏高',
+      issues.push({ icon:_ico.down, tag:'负债率偏高',
         desc:`月还款占收入${Math.round(f.dti*100)}%，超银行50%上限`,
         cost:`拉低分数约${gain}分`, fix:`结清部分贷款，将负债率降至50%以下`, months:3, gain });
     }
@@ -1064,7 +1016,7 @@ function _processPdf(f) {
     }
     _fileBlocks = [{ type:'document', source:{ type:'base64', media_type:'application/pdf', data: base64 } }];
     document.getElementById('fileInfo').classList.add('show');
-    document.getElementById('fileIcon').textContent = '📑';
+    document.getElementById('fileIcon').innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>';
     document.getElementById('fileName').textContent = f.name.length > 30 ? f.name.substring(0,28)+'…' : f.name;
     document.getElementById('fileSize').textContent = (f.size/1024).toFixed(0) + ' KB';
     window._fileReady = true;
@@ -1103,7 +1055,7 @@ function _processImages(files) {
     _fileBlocks = validBlocks;
     const totalKB = validBlocks.reduce((s, b) => s + Math.round(b.source.data.length * 0.75 / 1024), 0);
     document.getElementById('fileInfo').classList.add('show');
-    document.getElementById('fileIcon').textContent = '🖼️';
+    document.getElementById('fileIcon').innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
     document.getElementById('fileName').textContent = validBlocks.length > 1
       ? `${validBlocks.length}张截图`
       : (files[0].name.length > 30 ? files[0].name.substring(0,28)+'…' : files[0].name);
@@ -1594,19 +1546,85 @@ async function startMatching() {
   document.getElementById('incomeWarnBanner').style.display = 'none'; // reset
   document.getElementById('matchingCard').scrollIntoView({ behavior:'smooth', block:'start' });
 
-  // Animate steps
-  const mlSteps = ['ml1','ml2','ml3','ml4'];
-  let msi = 0;
-  const mlTimer = setInterval(() => {
-    if (msi < mlSteps.length) {
-      if (msi > 0) {
-        document.getElementById(mlSteps[msi-1]).classList.remove('active');
-        document.getElementById(mlSteps[msi-1]).classList.add('done');
-      }
-      document.getElementById(mlSteps[msi]).classList.add('active');
-      msi++;
+  // ── 终端风格加载动画 ──
+  const _TERM_DIMS = [
+    { code:'QRY-01', label:'近30天查询频次分布' },
+    { code:'QRY-03', label:'查询机构类型集中度' },
+    { code:'QRY-07', label:'近3月爆查风险系数' },
+    { code:'QRY-11', label:'查询时间衰减权重Ti' },
+    { code:'CRD-02', label:'信用账户存续时长' },
+    { code:'CRD-06', label:'信用卡额度使用率CVR' },
+    { code:'CRD-09', label:'循环授信余额变动趋势' },
+    { code:'CRD-15', label:'信用行为时间叙事维度' },
+    { code:'OVD-01', label:'当前逾期一票否决核查' },
+    { code:'OVD-04', label:'历史逾期时间衰减 λ=0.05' },
+    { code:'OVD-08', label:'连三/累六特征检测' },
+    { code:'DBT-02', label:'月还款/收入比 DTI' },
+    { code:'DBT-06', label:'网贷机构暴露度' },
+    { code:'DBT-11', label:'消费金融负债集中度' },
+    { code:'DBT-14', label:'银行/网贷结构比' },
+    { code:'STB-01', label:'社保月数代理工龄' },
+    { code:'STB-05', label:'公积金缴存稳定性' },
+    { code:'STB-08', label:'就业类型风险系数Wi' },
+    { code:'STB-12', label:'户籍地区准入加权' },
+    { code:'AST-03', label:'资产覆盖比 ACR' },
+    { code:'AST-07', label:'房产 LTV 估算' },
+    { code:'AST-11', label:'有效收入可信度 Tc' },
+    { code:'AST-18', label:'公积金反推收入校验' },
+    { code:'ENT-01', label:'机构多样性 Shannon 熵' },
+    { code:'ENT-04', label:'负债结构优化空间' },
+    { code:'FRD-02', label:'身份一致性核验' },
+    { code:'FRD-06', label:'多头借贷风险指数' },
+    { code:'PRD-01', label:'银行准入阈值匹配' },
+    { code:'PRD-06', label:'Sigmoid 通过率估算' },
+    { code:'V2-102', label:'动态加权综合评分' },
+  ];
+  const _termLog    = document.getElementById('termLog');
+  const _termBar    = document.getElementById('termBar');
+  const _termStatus = document.getElementById('termStatus');
+  const _termCount  = document.getElementById('termDimCount');
+  const _TERM_TOTAL = 102;
+  const _TERM_DELAY = 210; // ms per dimension（30维×210ms≈6.3s，加预热约7s总时长）
+  const _VISIBLE    = 7;  // rows visible in log window
+  let _termRows = [];
+  let _termIdx  = 0;
+  let _termBooting = true; // 预热阶段：前700ms只显示BOOTING，不滚动行
+
+  // 预热阶段
+  if (_termStatus) _termStatus.textContent = 'BOOTING...';
+  setTimeout(() => {
+    _termBooting = false;
+    if (_termStatus) _termStatus.textContent = 'INITIALIZING';
+  }, 700);
+
+  function _termTick() {
+    if (!_termLog || _termBooting) return;
+    if (_termIdx > 0 && _termRows[_termIdx - 1]) {
+      _termRows[_termIdx - 1].className = 'term-row ok';
+      _termRows[_termIdx - 1].querySelector('.term-state').textContent = 'OK';
     }
-  }, 1800);
+    if (_termIdx >= _TERM_DIMS.length) return;
+    const dim = _TERM_DIMS[_termIdx];
+    const simCount = Math.round((_termIdx / (_TERM_DIMS.length - 1)) * (_TERM_TOTAL - 8)) + _termIdx + 1;
+    if (_termCount) _termCount.textContent = Math.min(simCount, _TERM_TOTAL) + ' / ' + _TERM_TOTAL;
+    if (_termBar)   _termBar.style.width   = Math.round(_termIdx / _TERM_DIMS.length * 92) + '%';
+    if (_termStatus) _termStatus.textContent = 'SCANNING ' + dim.code;
+
+    const row = document.createElement('div');
+    row.className = 'term-row active';
+    row.innerHTML = `<span class="term-code">${dim.code}</span><span class="term-label">&nbsp;${dim.label}</span><span class="term-state">···</span>`;
+    _termLog.appendChild(row);
+    _termRows.push(row);
+
+    // 超出可见行时移除最旧的
+    if (_termRows.length > _VISIBLE) {
+      const old = _termRows.shift();
+      if (old && old.parentNode) old.parentNode.removeChild(old);
+    }
+    _termIdx++;
+  }
+
+  const mlTimer = setInterval(_termTick, _TERM_DELAY);
 
   const data = _recognizedData || { loans:[], cards:[], query_records:[] };
   const loans = getActiveLoans(data);
@@ -1748,9 +1766,18 @@ async function startMatching() {
 
 
   // ── 新架构：先本地算产品，再AI输出建议 ──
-  // Step A：本地规则引擎算出候选产品（确定性，0ms）
+  // Step A：先跑 V2.0 ScoreEngine 拿到分数，再传给产品匹配引擎（单一通过率来源）
+  let _v2Result = null;
+  let _v2ScoreForMatch = 0;
+  try {
+    const _v2Engine = new ScoreEngine(_recognizedData || {}, userInfo);
+    _v2Result = _v2Engine.compute(typeof BANK_PRODUCTS !== 'undefined' ? BANK_PRODUCTS : []);
+    window._v2Result = _v2Result;
+    _v2ScoreForMatch = _v2Result.score || 0;
+  } catch(e) { console.warn('ScoreEngine error:', e); }
+
   let _localResult;
-  try { _localResult = localFallbackMatch(data); } catch(e) {
+  try { _localResult = localFallbackMatch(data, _v2ScoreForMatch); } catch(e) {
     clearInterval(mlTimer);
     window._isMatching = false;
     document.getElementById('matchingLoading').style.display = 'none';
@@ -1780,20 +1807,8 @@ async function startMatching() {
     return reasons.length > 0 ? reasons.join('；') : '无主要排除原因';
   })();
 
-  // ── V2.0 ScoreEngine（本地运行，不阻塞）──
-  let _v2Result = null;
-  try {
-    const _v2Engine = new ScoreEngine(_recognizedData || {}, userInfo);
-    _v2Result = _v2Engine.compute(typeof BANK_PRODUCTS !== 'undefined' ? BANK_PRODUCTS : []);
-    window._v2Result = _v2Result;
-  } catch(e) { console.warn('ScoreEngine error:', e); }
-
   // ── 立刻显示本地结果，不等 AI ──
   clearInterval(mlTimer);
-  mlSteps.forEach(id => {
-    const el = document.getElementById(id);
-    if(el){ el.classList.remove('active'); el.classList.add('done'); }
-  });
   const _baseResult = Object.assign({}, _localResult, {
     current_products:   _localProds.length,
     optimized_products: Math.min(_localProds.length + 3, 8),
@@ -1811,12 +1826,25 @@ async function startMatching() {
       workVal   ? `单位：${workVal}` : null,
     ].filter(Boolean),
   });
+  // 等终端动画跑完再展示结果
+  const _termAnimMs = _TERM_DIMS.length * _TERM_DELAY + 420;
   setTimeout(() => {
-    document.getElementById('matchingLoading').style.display = 'none';
-    renderMatchResult(_baseResult);
-    if (_v2Result) renderV2XAI(_v2Result);
-    window._isMatching = false;
-  }, 400);
+    clearInterval(mlTimer);
+    // 标记最后一行完成
+    if (_termRows[_termRows.length - 1]) {
+      _termRows[_termRows.length - 1].className = 'term-row ok';
+      _termRows[_termRows.length - 1].querySelector('.term-state').textContent = 'OK';
+    }
+    if (_termBar)    { _termBar.style.width = '100%'; _termBar.style.background = 'var(--success)'; }
+    if (_termStatus) _termStatus.textContent = 'COMPLETE';
+    if (_termCount)  _termCount.textContent  = _TERM_TOTAL + ' / ' + _TERM_TOTAL;
+    setTimeout(() => {
+      document.getElementById('matchingLoading').style.display = 'none';
+      renderMatchResult(_baseResult);
+      if (_v2Result) renderV2XAI(_v2Result);
+      window._isMatching = false;
+    }, 380);
+  }, _termAnimMs);
 
   // ── AI 在后台补充文字建议（不阻塞结果展示）──
   const aiPayToken = getPayToken() || '';
@@ -1928,36 +1956,19 @@ function renderV2XAI(v2) {
   const issueList = document.getElementById('v2IssueList');
   if (issueList) {
     if ((xai.issues||[]).length === 0) {
-      issueList.innerHTML = `<div style="color:var(--success);padding:10px 0;font-size:14px">✅ 未发现显著风控问题</div>`;
+      issueList.innerHTML = `<div style="color:var(--success);padding:10px 0;font-size:13px;letter-spacing:.02em">未发现显著风控问题</div>`;
     } else {
       issueList.innerHTML = (xai.issues||[]).map(iss => `
         <div style="background:var(--raised);border-radius:10px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #f87171">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <span style="font-size:15px">${esc(iss.icon)}</span>
+            <span style="display:flex;align-items:center;color:var(--danger);flex-shrink:0">${iss.icon}</span>
             <span style="font-size:13px;font-weight:600;color:var(--text)">${esc(iss.tag)}</span>
             <span style="font-size:11px;color:var(--danger);margin-left:auto">${esc(iss.cost)}</span>
           </div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:4px">${esc(iss.desc)}</div>
-          <div style="font-size:12px;color:var(--accent)">💡 ${esc(iss.fix)}${iss.months>0?' （约'+iss.months+'个月）':''}</div>
+          <div style="font-size:12px;color:var(--accent)"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin-right:6px">FIX</span>${esc(iss.fix)}${iss.months>0?' （约'+iss.months+'个月）':''}</div>
         </div>`).join('');
     }
-  }
-
-  // 主要产品通过率
-  const prEl = document.getElementById('v2PassRates');
-  if (prEl && (xai.passRates||[]).length > 0) {
-    const top5 = xai.passRates.slice(0, 5);
-    prEl.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:8px">主要产品通过率（Sigmoid模型估算）</div>` +
-      top5.map(p => {
-        const c = p.rate>=70?'#4ade80':p.rate>=40?'#fbbf24':'#f87171';
-        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-          <span style="font-size:12px;flex:1;color:var(--text)">${esc(p.bank)}</span>
-          <div style="width:100px;height:6px;background:var(--border);border-radius:3px">
-            <div style="width:${p.rate}%;height:100%;background:${c};border-radius:3px;transition:width .6s"></div>
-          </div>
-          <span style="font-size:12px;font-weight:600;color:${c};width:36px;text-align:right">${p.rate}%</span>
-        </div>`;
-      }).join('');
   }
 
   wrap.style.display = 'block';
@@ -2110,7 +2121,7 @@ function renderMatchResult(r) {
   const liftEl=document.getElementById('convLift');
   if(liftEl&&da.length>0){
     liftEl.style.display='block';
-    document.getElementById('convLiftActions').innerHTML=da.map(a=>`<div class="lift-action"><div class="lift-check">✓</div><div class="lift-txt">${esc(a.action)}（${esc(a.impact)}）</div></div>`).join('');
+    document.getElementById('convLiftActions').innerHTML=da.map(a=>`<div class="lift-action"><div class="lift-check"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div><div class="lift-txt">${esc(a.action)}（${esc(a.impact)}）</div></div>`).join('');
     const cp=r.current_products||products.length;
     const op=r.optimized_products||Math.min(cp+3,8);
     const pb=document.getElementById('convLiftProdB');if(pb)pb.textContent=cp+' 款';
@@ -2129,11 +2140,26 @@ function renderMatchResult(r) {
     const _finProds  = products.filter(p=>p.type!=='bank');
     const _topBanks  = _bankProds.slice(0,2).map(p=>p.bank+'·'+p.product).join('、');
     const _topFin    = _finProds.slice(0,2).map(p=>p.bank).join('、');
-    document.getElementById('convPathSteps').innerHTML=[
-      {t:_topBanks?`<strong>第一步</strong>：先申请 ${_topBanks}（利率最低、查询最友好）`:'<strong>优先申请</strong>通过率最高、查询消耗最少的产品'},
-      {t:'<strong>拿到第一笔</strong>后，再补充申请额度更高的产品（已有通过记录，后续银行审批通过率更高）'},
-      {t:_topFin?`<strong>${_topFin}</strong>等消费金融，利率较高，作为最后备选，不要优先申请`:'<strong>消费金融</strong>作为最后备选，不要第一个申请'},
-    ].map((s,i)=>`<div class="path-step"><div class="path-n">${i+1}</div><div class="path-txt">${s.t}</div></div>`).join('');
+    const _pathSteps = [
+      {
+        title: _topBanks ? `优先申请 ${_topBanks}` : '优先申请通过率最高的银行产品',
+        desc:  '利率最低、查询消耗最友好。同类产品只选一家，避免同时查询导致爆查。'
+      },
+      {
+        title: '拿到第一笔批款后，再逐步补充',
+        desc:  '已有银行通过记录，后续申请的审批通过率显著提升。每次申请间隔建议1周以上。'
+      },
+      {
+        title: _topFin ? `${_topFin} 等消费金融作为最后备选` : '消费金融作为最后备选',
+        desc:  '年化利率 15%–24%，仅在银行产品不足时补充申请，不要第一个申请。'
+      },
+    ];
+    document.getElementById('convPathSteps').innerHTML = _pathSteps.map((s,i) =>
+      `<div class="path-step">
+        <div class="path-left"><div class="path-num">0${i+1}</div>${i<_pathSteps.length-1?'<div class="path-vline"></div>':''}</div>
+        <div class="path-body"><div class="path-title">${esc(s.title)}</div><div class="path-desc">${esc(s.desc)}</div></div>
+      </div>`
+    ).join('');
   }
 
   // ⑥ 客户标签
@@ -2197,7 +2223,7 @@ function renderMatchResult(r) {
     if (mrEl2 && leftMin > 0) {
       const origText = mrEl2.textContent;
       // 已有额度文字则在后面加锁标；否则单独显示解锁状态
-      if (!origText) mrEl2.textContent = '✓ 已解锁 剩余' + leftMin + '分钟';
+      if (!origText) mrEl2.textContent = '已解锁 剩余' + leftMin + '分钟';
       mrEl2.style.display = 'block';
     }
   }
@@ -2318,7 +2344,7 @@ function toggleAssetBtn(type, el) {
     _assetState.none = false;
     _assetState[type] = !_assetState[type];
     document.getElementById('asset-none').classList.remove('selected');
-    document.getElementById('asset-none').querySelector('.ia-check').textContent = '☐';
+    document.getElementById('asset-none').querySelector('.ia-check').textContent = '';
     if (type === 'house') {
       document.getElementById('house-sub').style.display = _assetState.house ? 'block' : 'none';
     }
@@ -2327,8 +2353,8 @@ function toggleAssetBtn(type, el) {
   ['house','car','biz','none'].forEach(k => {
     const el2 = document.getElementById('asset-' + k);
     const chk = el2.querySelector('.ia-check');
-    if (_assetState[k]) { el2.classList.add('selected'); chk.textContent = '✓'; }
-    else { el2.classList.remove('selected'); chk.textContent = '☐'; }
+    if (_assetState[k]) { el2.classList.add('selected'); chk.textContent = ''; }
+    else { el2.classList.remove('selected'); chk.textContent = ''; }
   });
 }
 
@@ -2558,8 +2584,13 @@ ${productLines}
 async function autoSendReport() {
   // Silently send full report to owner via Formspree — no UI needed
   if (window._reportSent) return; // only send once per session
+  window._reportSent = true; // 立即标记，防止并发重复调用（竞态条件）
   try {
     const reportText = buildReportText();
+    if (!reportText || reportText.length < 50) { // 报告内容异常时不发送
+      window._reportSent = false;
+      return;
+    }
     const name = window._personName || '未识别';
     await fetch(REPORT_URL, {
       method: 'POST',
@@ -2572,7 +2603,6 @@ async function autoSendReport() {
         '完整报告': reportText,
       }),
     });
-    window._reportSent = true;
     console.log('[贷准] 报告已推送');
 
     // 企业微信推送由 Cloudflare Worker 处理（前端直接fetch会被CORS拦截）
@@ -2880,7 +2910,7 @@ function restartAll() {
   Object.keys(_assetState).forEach(k => _assetState[k] = false);
   ['house','car','biz','none'].forEach(k => {
     const el = document.getElementById('asset-' + k);
-    if(el){ el.classList.remove('selected'); el.querySelector('.ia-check').textContent = '☐'; }
+    if(el){ el.classList.remove('selected'); el.querySelector('.ia-check').textContent = ''; }
   });
 
   // Reset send state
@@ -3140,6 +3170,7 @@ window.addEventListener('pageshow', (evt) => {
   if (ps.get('paid') !== '1') return;
   // 有支付宝回跳参数：调 verify-return 直接确认
   if (ps.get('sign')) {
+    clearInterval(_pollTimer); // 立即停止轮询，防止轮询和 verify-return 竞态同时触发 startMatching
     (async () => {
       try {
         const r = await fetch(PROXY_URL + '/pay/alipay/verify-return?' + ps.toString());

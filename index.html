@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>贷准 · AI信用数据分析与方案建议</title>
 <link href="https://fonts.loli.net/css2?family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" onerror="this.remove()">
-<link rel="stylesheet" href="style.css?v=1775430000">
+<link rel="stylesheet" href="style.css?v=1775460000">
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 </head>
 <body>
@@ -568,7 +568,7 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
             <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
           </svg>
-          <span>开始AI产品匹配 →</span>
+          <span>开始AI智能解析 →</span>
         </button>
         <div class="sec-note">以上信息仅用于本次匹配分析，不作其他用途</div>
       </div>
@@ -581,7 +581,7 @@
     <div class="pcard" id="matchingCard" style="display:none">
       <div class="card-bar">
         <span class="step-tag">STEP 04</span>
-        <span class="card-title">AI 产品匹配</span>
+        <span class="card-title">AI 智能解析</span>
         <span class="card-status">
           <span style="width:8px;height:8px;border:1.5px solid var(--accentB);border-top-color:transparent;border-radius:50%;animation:rotateCW .7s linear infinite;display:inline-block"></span>
           PROCESSING
@@ -590,18 +590,16 @@
       <div class="cbody">
         <!-- Loading -->
         <div class="matching-loading" id="matchingLoading" style="display:block">
-          <div class="geo-loader">
-            <div class="geo-outer"></div>
-            <div class="geo-mid"></div>
-            <div class="geo-inner"></div>
+          <div class="ml-corners"><span class="ml-c tl"></span><span class="ml-c tr"></span><span class="ml-c bl"></span><span class="ml-c br"></span></div>
+          <div class="term-hd">
+            <div class="term-eye"><div class="term-eye-r1"></div><div class="term-eye-r2"></div><div class="term-eye-dot"></div></div>
+            <span class="term-badge">RISK ENGINE v2.0</span>
+            <span class="term-badge-r" id="termDimCount">0 / 102</span>
           </div>
-          <div class="ml-title">正在匹配可申请产品</div>
-          <div class="ml-sub">综合分析负债率、查询记录、逾期情况…</div>
-          <div class="ml-steps">
-            <div class="ml-step active" id="ml1"><div class="ml-dot"></div>上传征信截图</div>
-            <div class="ml-step" id="ml2"><div class="ml-dot"></div>AI 智能识别中</div>
-            <div class="ml-step" id="ml3"><div class="ml-dot"></div>提取账户信息</div>
-            <div class="ml-step" id="ml4"><div class="ml-dot"></div>分析负债情况</div>
+          <div class="term-log" id="termLog"><div class="term-scan"></div></div>
+          <div class="term-footer">
+            <span class="term-bar-wrap"><span class="term-bar" id="termBar"></span></span>
+            <span class="term-status" id="termStatus">INITIALIZING</span>
           </div>
         </div>
 
@@ -643,7 +641,7 @@
 
           <!-- V2.0 风险诊断 & 通过率 -->
           <div class="conv-sec" id="v2xaiWrap" style="display:none">
-            <div class="conv-sec-hd"><span class="conv-sec-title">📊 102维风控诊断</span></div>
+            <div class="conv-sec-hd"><span class="conv-sec-title">102维风控诊断</span></div>
             <div id="v2DomainBar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
             <div id="v2IssueList"></div>
             <div id="v2PassRates" style="margin-top:14px"></div>
@@ -702,7 +700,7 @@
 
           <!-- 白名单职业提醒 -->
           <div class="wl-tip" id="wlTip" style="display:none">
-            <div class="wl-hd"><span style="font-size:17px">★</span><span class="wl-title">专属优惠提醒</span></div>
+            <div class="wl-hd"><span style="display:flex;align-items:center;color:var(--gold)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="wl-title">专属优惠提醒</span></div>
             <div class="wl-body">您的职业背景符合多家银行白名单条件，部分银行针对<strong>公务员 / 事业单位 / 国企</strong>提供专属利率通道、更高额度和简化审批，这类产品不公开，需要人工对接。</div>
             <button class="wl-btn" onclick="window.location.href='tel:'+(window._agentPhone||CONTACT_PHONE)">联系专属顾问，了解专属方案</button>
           </div>
@@ -826,7 +824,7 @@
 </footer>
 
 <script src="config.js?v=1775370000"></script>
-<script src="app.js?v=1775410000"></script>
+<script src="app.js?v=1775461000"></script>
 
 <!-- PAYMENT MODAL -->
 <div class="pay-overlay" id="payOverlay">
@@ -840,7 +838,7 @@
           <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
         </svg>
       </div>
-      <div style="font-size:16px;font-weight:700;color:var(--white);margin-bottom:4px">查看AI产品匹配结果</div>
+      <div style="font-size:16px;font-weight:700;color:var(--white);margin-bottom:4px">查看AI智能解析结果</div>
       <div style="font-size:12px;color:var(--silver);line-height:1.8;margin-bottom:6px">
         征信识别结果免费查看<br>匹配产品 · 通过率分析 · 优化建议 · 单次付费
       </div>
