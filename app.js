@@ -815,6 +815,17 @@ class ScoreEngine {
 
   runScoreEngine(f) {
     if (!f) f = this.extractFeatures();
+    // ── 权重归一化校验（开发期安全网）──
+    if (typeof console !== 'undefined') {
+      const _domainW = 0.40+0.30+0.25+0.05;
+      if (Math.abs(_domainW - 1.0) > 1e-9) console.error(`[ScoreEngine] 域权重不归一: Σ=${_domainW}`);
+      const _stW = 0.25+0.25+0.15+0.12+0.08+0.08+0.07;
+      if (Math.abs(_stW - 1.0) > 1e-9) console.error(`[ScoreEngine] 稳定性权重不归一: Σ=${_stW}`);
+      const _asW = 0.35+0.25+0.20+0.12+0.08;
+      if (Math.abs(_asW - 1.0) > 1e-9) console.error(`[ScoreEngine] 资产权重不归一: Σ=${_asW}`);
+      const _frW = 0.50+0.30+0.20;
+      if (Math.abs(_frW - 1.0) > 1e-9) console.error(`[ScoreEngine] 反欺诈权重不归一: Σ=${_frW}`);
+    }
     const mm = this._mm.bind(this);
     const tf = this._tf.bind(this);
 
@@ -1140,7 +1151,7 @@ async function startAnalysis() {
       : null;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120000);
-    const resp = await fetch(PROXY_URL + '/ocr', {
+    const resp = await fetch(PROXY_URL + '/api/v1/ocr', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
@@ -1787,6 +1798,22 @@ async function startMatching() {
     _v2Result = _v2Engine.compute(typeof BANK_PRODUCTS !== 'undefined' ? BANK_PRODUCTS : []);
     window._v2Result = _v2Result;
     _v2ScoreForMatch = _v2Result.score || 0;
+    // 异步上报评分记录到 D1（fire-and-forget，失败不影响主流程）
+    const _sessionId = Math.random().toString(36).slice(2, 18);
+    fetch(PROXY_URL + '/api/v1/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId:    _sessionId,
+        score:        _v2Result.score,
+        rawScore:     _v2Result.rawScore,
+        penalty:      _v2Result.penalty,
+        level:        _v2Result.level,
+        domainScores: _v2Result.domainScores,
+        features:     _v2Result.features,
+        agentId:      window._currentAgent?.id || null,
+      }),
+    }).catch(() => {});
   } catch(e) { console.warn('ScoreEngine error:', e); }
 
   let _localResult;
@@ -1891,7 +1918,7 @@ async function startMatching() {
       try {
         const controller = new AbortController();
         const t = setTimeout(() => controller.abort(), 40000);
-        const resp = await fetch(PROXY_URL + '/match', {
+        const resp = await fetch(PROXY_URL + '/api/v1/match', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
@@ -1947,7 +1974,46 @@ function renderV2XAI(v2) {
   const lvColor = { A:'#4ade80', B:'#60a5fa', C:'#fbbf24', D:'#f87171' };
   const col = lvColor[v2.level] || '#60a5fa';
 
-  // 四域分数条
+  // 五维雷达图
+  const radarWrap = document.getElementById('v2RadarWrap');
+  if (radarWrap) {
+    const f2 = v2.features || {};
+    const queryScore = f2.q3m === undefined ? 50 :
+      f2.q3m === 0 ? 100 : f2.q3m <= 3 ? 85 : f2.q3m <= 6 ? 62 : f2.q3m <= 9 ? 32 : 8;
+    const axes = [
+      { label:'信用行为', val: Math.min(100, Math.round(ds.credit    || 0)) },
+      { label:'查询安全', val: queryScore },
+      { label:'资产偿债', val: Math.min(100, Math.round(ds.asset     || 0)) },
+      { label:'反欺诈',   val: Math.min(100, Math.round(ds.fraud     || 0)) },
+      { label:'稳定性',   val: Math.min(100, Math.round(ds.stability || 0)) },
+    ];
+    const N = axes.length, CX = 100, CY = 100, R = 68;
+    const ang = i => Math.PI * 2 * i / N - Math.PI / 2;
+    const pt  = (i, r) => ({ x: CX + r * Math.cos(ang(i)), y: CY + r * Math.sin(ang(i)) });
+    const gridPaths = [20,40,60,80,100].map(pct => {
+      const gp = axes.map((_,i) => pt(i, pct/100*R));
+      return gp.map((p,i) => `${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')+'Z';
+    });
+    const dataPts = axes.map((_,i) => pt(i, axes[i].val/100*R));
+    const dataPath = dataPts.map((p,i) => `${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')+'Z';
+    const axisLines = axes.map((_,i) => { const e=pt(i,R); return `<line x1="${CX}" y1="${CY}" x2="${e.x.toFixed(1)}" y2="${e.y.toFixed(1)}" stroke="rgba(255,255,255,.12)" stroke-width="1"/>`; }).join('');
+    const labels = axes.map((a,i) => {
+      const lp = pt(i, R+16);
+      const anchor = Math.abs(lp.x-CX)<8?'middle':lp.x>CX?'start':'end';
+      const c = a.val>=70?'#4ade80':a.val>=45?'#fbbf24':'#f87171';
+      return `<text x="${lp.x.toFixed(1)}" y="${lp.y.toFixed(1)}" text-anchor="${anchor}" dominant-baseline="middle" font-size="9.5" fill="${c}" font-family="system-ui,-apple-system,sans-serif">${a.label}</text>`;
+    }).join('');
+    const dots = dataPts.map(p => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="${col}"/>`).join('');
+    radarWrap.innerHTML = `<svg width="200" height="200" viewBox="0 0 200 200" style="overflow:visible">
+      ${gridPaths.map(d=>`<path d="${d}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="0.8"/>`).join('')}
+      ${axisLines}
+      <path d="${dataPath}" fill="${col}22" stroke="${col}" stroke-width="1.8" stroke-linejoin="round"/>
+      ${dots}
+      ${labels}
+    </svg>`;
+  }
+
+  // 四域分数条（竖向，与雷达图并排）
   const domainBar = document.getElementById('v2DomainBar');
   if (domainBar) {
     const domains = [
@@ -1959,10 +2025,12 @@ function renderV2XAI(v2) {
     domainBar.innerHTML = domains.map(d => {
       const pct = Math.min(100, Math.round(d.val || 0));
       const c = pct>=70?'#4ade80':pct>=45?'#fbbf24':'#f87171';
-      return `<div style="flex:1;min-width:80px;background:var(--raised);border-radius:8px;padding:8px 10px">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${d.name} <span style="color:var(--muted);font-size:10px">${d.w}</span></div>
-        <div style="font-size:16px;font-weight:700;color:${c}">${pct}</div>
-        <div style="height:3px;background:var(--border);border-radius:2px;margin-top:4px">
+      return `<div style="background:var(--raised);border-radius:8px;padding:8px 10px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+          <span style="font-size:11px;color:var(--muted)">${d.name} <span style="font-size:10px;opacity:.6">${d.w}</span></span>
+          <span style="font-size:15px;font-weight:700;color:${c}">${pct}</span>
+        </div>
+        <div style="height:3px;background:var(--border);border-radius:2px">
           <div style="width:${pct}%;height:100%;background:${c};border-radius:2px;transition:width .6s"></div>
         </div>
       </div>`;
@@ -2479,7 +2547,7 @@ function renderTableFooters(loans, cards) {
 // ═══════════════════════════════════════════
 // AUTO REPORT → WORKER /report → RESEND
 // ═══════════════════════════════════════════
-const REPORT_URL     = PROXY_URL + '/report';              // Worker 报告路由
+const REPORT_URL     = PROXY_URL + '/api/v1/report';              // Worker 报告路由
 
 function getPayToken() {
   const token = localStorage.getItem('_payToken');
@@ -2668,7 +2736,7 @@ async function callMatch(payToken, payload) {
   }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 35000);
-  const resp = await fetch(PROXY_URL + '/match', {
+  const resp = await fetch(PROXY_URL + '/api/v1/match', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     signal: controller.signal,
@@ -2797,7 +2865,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // 优先：把回跳 URL 参数（含签名）发给 Worker 直接验证，绕开 KV 跨节点延迟
       if (_fromAlipay && _urlParamsInit.get('sign')) {
         try {
-          const r = await fetch(PROXY_URL + '/pay/alipay/verify-return?' + _urlParamsInit.toString());
+          const r = await fetch(PROXY_URL + '/api/v1/pay/alipay/verify-return?' + _urlParamsInit.toString());
           const d = await r.json();
           console.log('[alipay-return] verify-return:', d);
           if (d.status === 'paid' && d.token) gotToken = d.token;
@@ -2850,7 +2918,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (_wxCode && _wxState === 'wxpay') {
     // OAuth 回调：换取 openid
-    fetch(PROXY_URL + '/pay/wechat/oauth?code=' + _wxCode)
+    fetch(PROXY_URL + '/api/v1/pay/wechat/oauth?code=' + _wxCode)
       .then(r => r.json())
       .then(d => {
         if (d.openid) sessionStorage.setItem('_wxOpenid', d.openid);
@@ -3040,7 +3108,7 @@ async function choosePay(channel) {
     document.getElementById('payStep2Title').textContent = '正在创建订单…';
     document.getElementById('payLinkWrap').style.display = 'none';
     try {
-      const resp = await fetch(PROXY_URL + '/pay/create', {
+      const resp = await fetch(PROXY_URL + '/api/v1/pay/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ channel: 'wechat', amount: 990, openid }),
@@ -3071,7 +3139,7 @@ async function choosePay(channel) {
         for (let i = 0; i < 30 && !_confirmed; i++) {
           await new Promise(r => setTimeout(r, 2000));
           try {
-            const cr = await fetch(PROXY_URL + '/pay/wechat/confirm', {
+            const cr = await fetch(PROXY_URL + '/api/v1/pay/wechat/confirm', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ orderId: _confirmOrderId }),
@@ -3094,7 +3162,7 @@ async function choosePay(channel) {
         }, (res) => {
           if (res.err_msg === 'get_brand_wcpay_request:ok') {
             // WXPay 回调成功，立刻再查一次加速确认
-            fetch(PROXY_URL + '/pay/wechat/confirm', {
+            fetch(PROXY_URL + '/api/v1/pay/wechat/confirm', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ orderId: _confirmOrderId }),
@@ -3129,7 +3197,7 @@ async function choosePay(channel) {
   document.getElementById('payLinkWrap').style.display = 'none';
 
   try {
-    const resp = await fetch(PROXY_URL + '/pay/create', {
+    const resp = await fetch(PROXY_URL + '/api/v1/pay/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ channel, amount: 990 }),
@@ -3167,7 +3235,7 @@ async function choosePay(channel) {
 async function pollPayStatus() {
   if (!_payOrderId || _confirmed) return;
   try {
-    const resp = await fetch(PROXY_URL + '/pay/status/' + _payOrderId);
+    const resp = await fetch(PROXY_URL + '/api/v1/pay/status/' + _payOrderId);
     const data = await resp.json();
     if (data.status === 'paid' && data.token) {
       clearInterval(_pollTimer);
@@ -3194,7 +3262,7 @@ window.addEventListener('pageshow', (evt) => {
     clearInterval(_pollTimer); // 立即停止轮询，防止轮询和 verify-return 竞态同时触发 startMatching
     (async () => {
       try {
-        const r = await fetch(PROXY_URL + '/pay/alipay/verify-return?' + ps.toString());
+        const r = await fetch(PROXY_URL + '/api/v1/pay/alipay/verify-return?' + ps.toString());
         const d = await r.json();
         if (d.status === 'paid' && d.token) {
           clearInterval(_pollTimer);
