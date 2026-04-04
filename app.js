@@ -148,17 +148,8 @@ function localFallbackMatch(data, v2Score = 0) {
   const products = [];
   const _isWhiteJobFb = ['gov','institution','state'].includes(userWorkType);
 
-  // ── 方案C：用 csScore 替换固定基础分 65 ──
-  // calcCreditScore 需要 data（征信）+ userInfo（补充信息）
-  const _csResult   = calcCreditScore(data, userInfo);
-  const _csScore    = _csResult.score; // 0-100
-  // 基础分 = csScore × 0.65，范围约 0-65
-  // csScore=85 → 基础分55；csScore=70 → 基础分46；csScore=40 → 基础分26
-  const _baseScore  = Math.round(_csScore * 0.65);
-
-  // 产品分层：csScore决定推荐产品类型
-  // ≥80：银行优先；60-79：银行+消费金融混合；<60：消费金融为主
-  const _tier = _csScore >= 80 ? 'bank' : _csScore >= 60 ? 'mixed' : 'finance';
+  // 产品分层：V2.0评分决定推荐产品类型（≥650银行优先；400-649混合；<400消费金融为主）
+  const _tier = v2Score >= 650 ? 'bank' : v2Score >= 400 ? 'mixed' : 'finance';
 
   BANK_PRODUCTS.forEach(p => {
     // ── 一票否决：征信硬性条件 ──
@@ -413,12 +404,12 @@ function localFallbackMatch(data, v2Score = 0) {
   return {
     _source: 'local',
     summary: sorted.length > 0
-      ? `征信综合评分 ${_csScore} 分（${_tierLabel}），匹配到 ${sorted.length} 款产品，其中高概率 ${_highCount} 款`
-      : `征信综合评分 ${_csScore} 分，当前资质暂无可匹配产品，建议优化征信后再申请`,
+      ? `V2.0评分 ${v2Score} 分（${_tierLabel}），匹配到 ${sorted.length} 款产品，其中高概率 ${_highCount} 款`
+      : `V2.0评分 ${v2Score} 分，当前资质暂无可匹配产品，建议优化征信后再申请`,
     count: sorted.length,
     key_risk: keyRisk,
     risk_level: riskLevel,
-    cs_score: _csScore,
+    cs_score: v2Score,
     cs_tier: _tier,
     client_type: _fbClientType,
     current_rate: _localCurRate,
@@ -2074,16 +2065,17 @@ function renderMatchResult(r) {
   if(topEl){
     topEl.style.display='block';
     const hl = document.getElementById('convHeadline');
-    const _csScoreDisp = r.cs_score || '--';
+    const _csScoreRaw = r.cs_score || 0;
+    const _csScoreDisp = _csScoreRaw > 0 ? `${_csScoreRaw}<span style="font-size:0.6em;opacity:0.6">/1000</span>` : '--';
     if(hl){
       if(_clientT==='A'&&['gov','institution','state'].includes(wt))
-        hl.innerHTML=`征信评分 <em>${_csScoreDisp}分</em>，白名单职业<br>可申请<em>专属利率通道</em>，额度和利率均有优势`;
+        hl.innerHTML=`风控评分 <em>${_csScoreDisp}</em>，白名单职业<br>可申请<em>专属利率通道</em>，额度和利率均有优势`;
       else if(_clientT==='A')
-        hl.innerHTML=`征信评分 <em>${_csScoreDisp}分</em>，资质优质<br>按正确顺序申请，可拿到<em>更高授信上限+更优利率组合</em>`;
+        hl.innerHTML=`风控评分 <em>${_csScoreDisp}</em>，资质优质<br>按正确顺序申请，可拿到<em>更高授信上限+更优利率组合</em>`;
       else if(_clientT==='B')
-        hl.innerHTML=`征信评分 <em>${_csScoreDisp}分</em>，有优化空间<br>做<em>2-3个调整</em>后，可申请产品明显增加`;
+        hl.innerHTML=`风控评分 <em>${_csScoreDisp}</em>，有优化空间<br>做<em>2-3个调整</em>后，可申请产品明显增加`;
       else
-        hl.innerHTML=`征信评分 <em>${_csScoreDisp}分</em><br>需先解决核心问题，<em>最短X个月后</em>可正常申请`;
+        hl.innerHTML=`风控评分 <em>${_csScoreDisp}</em><br>需先解决核心问题，<em>最短X个月后</em>可正常申请`;
     }
     const rc=document.getElementById('convRateCur');
     if(rc){
