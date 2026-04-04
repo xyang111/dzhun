@@ -881,8 +881,8 @@ class ScoreEngine {
       (f.curOv?0:1)  *0.30 +
       mm(f.q30dConc,0,1,true)*0.20;
 
-    const rawScore = Math.round(1000*(cbScore*0.40+stScore*0.30+asScore*0.25+frScore*0.05));
-    const score    = Math.max(300, Math.min(1000, rawScore - penalty));
+    const rawScore = 1000*(cbScore*0.40+stScore*0.30+asScore*0.25+frScore*0.05); // 保留浮点，XAI用
+    const score    = Math.max(300, Math.min(1000, Math.round(rawScore) - penalty));
     const level    = score>=800?'A':score>=650?'B':score>=500?'C':'D';
 
     return {
@@ -911,6 +911,9 @@ class ScoreEngine {
 
   generateXAI(result, products) {
     const { score, level, features: f } = result;
+    // gain 用未截断分数计算（避免 300 底线把所有差值压成 0）
+    const _unclamp = r => r.rawScore - r.penalty;
+    const _gain    = key => Math.round(_unclamp(this._cf(f, key)) - _unclamp(result));
     const issues = [];
 
     const _ico = {
@@ -921,32 +924,32 @@ class ScoreEngine {
       down: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>`,
     };
     if (f.q3m > 3) {
-      const gain = this._cf(f,'queries').score - score;
+      const gain = _gain('queries');
       issues.push({ icon:_ico.scan, tag:'查询过多',
         desc:`近3月查询${f.q3m}次，超安全线${f.q3m-3}次`,
         cost:`拉低分数约${gain}分`, fix:`今天停止申请，3个月后自然降至安全线`, months:3, gain });
     }
     if (f.onlineI >= 3) {
-      const gain = this._cf(f,'online').score - score;
+      const gain = _gain('online');
       issues.push({ icon:_ico.net, tag:'网贷超标',
         desc:`网贷机构${f.onlineI}家，银行建议≤2家`,
         cost:`拉低分数约${gain}分`, fix:`结清${f.onlineI-2}家并注销账户`, months:2, gain });
     }
     if (f.cardUtil > 0.7) {
-      const gain = this._cf(f,'cardutil').score - score;
+      const gain = _gain('cardutil');
       issues.push({ icon:_ico.card, tag:'信用卡爆额',
         desc:`信用卡使用率${Math.round(f.cardUtil*100)}%，建议控制在70%以下`,
         cost:`拉低分数约${gain}分`, fix:`还款降使用率，当月见效`, months:1, gain });
     }
     if (f.ovCount > 0 && !f.curOv) {
-      const gain = this._cf(f,'overdue').score - score;
+      const gain = _gain('overdue');
       issues.push({ icon:_ico.warn, tag:f.lian3?'连续逾期':'历史逾期',
         desc:`历史${f.ovCount}笔逾期${f.lian3?' (含连续3次)':''}`,
         cost:`拉低分数约${gain}分`, fix:`时间修复，距今越久银行容忍度越高`,
         months:Math.max(0,60-(f.latestOvMths||12)), gain });
     }
     if (f.dti > 0.5 && f.effIncome > 0) {
-      const gain = this._cf(f,'dti').score - score;
+      const gain = _gain('dti');
       issues.push({ icon:_ico.down, tag:'负债率偏高',
         desc:`月还款占收入${Math.round(f.dti*100)}%，超银行50%上限`,
         cost:`拉低分数约${gain}分`, fix:`结清部分贷款，将负债率降至50%以下`, months:3, gain });
@@ -1538,6 +1541,7 @@ function renderResult(data) {
 async function startMatching() {
   if (window._isMatching) return;
   window._isMatching = true;
+  let mlTimer;
 
   document.getElementById('infoCard').style.display = 'none';
   document.getElementById('matchingCard').style.display = 'block';
@@ -1590,8 +1594,23 @@ async function startMatching() {
   let _termIdx  = 0;
   let _termBooting = true; // 预热阶段：前700ms只显示BOOTING，不滚动行
 
-  // 预热阶段
+  // 预热阶段：显示启动文字，700ms后开始正式滚动
   if (_termStatus) _termStatus.textContent = 'BOOTING...';
+  const _bootLines = [
+    { code:'SYS', label:'Loading risk analysis engine v2.0', delay:80  },
+    { code:'SYS', label:'Parsing credit report structure...',  delay:220 },
+    { code:'SYS', label:'Verifying data integrity checksum',   delay:400 },
+    { code:'SYS', label:'Pipeline ready — starting scan',      delay:580 },
+  ];
+  _bootLines.forEach(({code, label, delay}) => {
+    setTimeout(() => {
+      if (!_termLog) return;
+      const row = document.createElement('div');
+      row.className = 'term-row ok';
+      row.innerHTML = `<span class="term-code">${code}</span><span class="term-label">&nbsp;${label}</span><span class="term-state">OK</span>`;
+      _termLog.appendChild(row);
+    }, delay);
+  });
   setTimeout(() => {
     _termBooting = false;
     if (_termStatus) _termStatus.textContent = 'INITIALIZING';
@@ -1623,8 +1642,6 @@ async function startMatching() {
     }
     _termIdx++;
   }
-
-  const mlTimer = setInterval(_termTick, _TERM_DELAY);
 
   const data = _recognizedData || { loans:[], cards:[], query_records:[] };
   const loans = getActiveLoans(data);
@@ -1845,6 +1862,10 @@ async function startMatching() {
       window._isMatching = false;
     }, 380);
   }, _termAnimMs);
+
+  // ── 所有同步计算完毕，启动终端动画，与 AI 请求并行运行 ──
+  mlTimer = setInterval(_termTick, _TERM_DELAY);
+  await new Promise(r => setTimeout(r, 50)); // 让浏览器渲染第一帧
 
   // ── AI 在后台补充文字建议（不阻塞结果展示）──
   const aiPayToken = getPayToken() || '';
