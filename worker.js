@@ -267,6 +267,11 @@ const PROMPT_OCR = `你是银行信贷审核员，精通人行简版征信报告
 存在任意一条：has_bad_record=true，bad_record_notes填写具体描述（机构+类型）
 全部没有：has_bad_record=false，bad_record_notes="无"
 
+【贷款到期日提取】
+- due_date：贷款合同到期日，格式 YYYY-MM-DD（如「2028年02月12日到期」→ "2028-02-12"）
+- 循环授信（可循环使用）的额度有效期不是到期日，due_date 填 null
+- 已知到期日时必须填写，不得省略
+
 【账户过滤规则（严格执行）】
 1. 贷款账户：只提取当前未结清账户。已结清账户跳过，但若有历史逾期需记入 overdue_history_notes。
 2. 信用卡账户：只提取人民币账户且未销户的贷记卡。外币账户跳过不提取。已销户账户跳过不提取。
@@ -314,6 +319,7 @@ name 字段格式统一为「银行简称-账户类型」：
       "online_subtype": null,
       "loan_category": "credit",
       "issued_date": "2025-02-02",
+      "due_date": "2028-02-02",
       "is_revolving": false,
       "credit_limit": 6000,
       "balance": 1534,
@@ -524,12 +530,12 @@ async function handleOCR(request, env) {
     }
   }
 
-  // 缓存未命中，IP 限流：每 IP 每 24 小时最多 5 次
+  // 缓存未命中，IP 限流：每 IP 每 24 小时最多 30 次
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   const rateLimitKey = `ocr_rate:${ip}`;
   const countRaw = await env.CACHE.get(rateLimitKey);
   const count = countRaw ? parseInt(countRaw) : 0;
-  if (count >= 5) {
+  if (count >= 30) {
     return jsonResp({ error: '今日识别次数已达上限，请明日再试' }, 429, request);
   }
   await env.CACHE.put(rateLimitKey, String(count + 1), { expirationTtl: 86400 });
@@ -880,8 +886,40 @@ async function handlePayStatus(request, env, path) {
   const raw = await env.ORDERS.get(`order:${orderId}`);
   if (!raw) return jsonResp({ status: 'expired' }, 200, request);
   const order = JSON.parse(raw);
-  if (order.status !== 'paid') return jsonResp({ status: order.status }, 200, request);
-  return jsonResp({ status: 'paid', token: order.token }, 200, request);
+  if (order.status === 'paid') return jsonResp({ status: 'paid', token: order.token }, 200, request);
+
+  // KV 尚未同步 paid 状态时，直接查支付宝权威结果（绕过跨节点一致性延迟）
+  if (order.channel === 'alipay') {
+    try {
+      const tradeStatus = await queryAlipayTrade(env, orderId);
+      if (tradeStatus === 'TRADE_SUCCESS' || tradeStatus === 'TRADE_FINISHED') {
+        await markOrderPaid(env, orderId);
+        const updatedRaw = await env.ORDERS.get(`order:${orderId}`);
+        if (updatedRaw) {
+          const updated = JSON.parse(updatedRaw);
+          if (updated.status === 'paid') return jsonResp({ status: 'paid', token: updated.token }, 200, request);
+        }
+      }
+    } catch(e) { /* 查询失败时回退到本地状态 */ }
+  }
+  return jsonResp({ status: order.status }, 200, request);
+}
+
+async function queryAlipayTrade(env, orderId) {
+  const appId   = env.ALIPAY_APP_ID;
+  const privKey = env.ALIPAY_PRIV_KEY;
+  if (!appId || !privKey) return null;
+  const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  const params = {
+    app_id: appId, method: 'alipay.trade.query',
+    charset: 'utf-8', sign_type: 'RSA2', timestamp: ts, version: '1.0',
+    biz_content: JSON.stringify({ out_trade_no: orderId }),
+  };
+  params.sign = await signAlipay(params, privKey);
+  const query = Object.entries(params).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  const resp = await fetch('https://openapi.alipay.com/gateway.do?' + query);
+  const data = await resp.json();
+  return data?.alipay_trade_query_response?.trade_status ?? null;
 }
 
 async function handleWechatNotify(request, env) {
@@ -924,10 +962,13 @@ async function handleAlipayVerifyReturn(request, env) {
     const orderId = params.out_trade_no;
     if (!orderId) return jsonResp({ error: '缺少订单号' }, 400, request);
 
-    // 验证支付宝签名
+    // 验证支付宝签名（排除自定义参数 paid/orderId，仅对支付宝原始字段验签）
     const alipayPubKey = env.ALIPAY_PUB_KEY || '';
     if (alipayPubKey) {
-      const ok = await verifyAlipay(params, alipayPubKey);
+      const alipayParams = Object.fromEntries(
+        Object.entries(params).filter(([k]) => k !== 'paid' && k !== 'orderId')
+      );
+      const ok = await verifyAlipay(alipayParams, alipayPubKey);
       if (!ok) return jsonResp({ error: '签名验证失败' }, 400, request);
     }
 

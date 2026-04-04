@@ -83,7 +83,7 @@ function buildProductLibText(q3, q6, hasOverdue, onlineCount, q1) {
     const eduReq  = (p.minEdu && p.minEdu !== 'none') ? (' | 学历≥' + {college:'大专',bachelor:'本科',master:'硕士'}[p.minEdu]) : '';
 
     return p.emoji + p.bank + '-' + p.product + '\n'
-      + '  ✅【可申请】\n'
+      + '  【可申请】\n'
       + '  利率：' + p.rate + ' | 最高：' + p.amount
         + ' | 近3月查询上限：' + q3limit + q6limit + '\n'
       + '  逾期要求：' + ovReq + ' | 负债率上限：' + debtLmt + incReq + socReq + pvdReq + eduReq + '\n'
@@ -626,10 +626,10 @@ function calcBlastRisk(qRecords,baseDate) {
   if(conc>60 && q90>=3)risk-=10;
   risk=Math.max(0,Math.min(100,Math.round(risk)));
   let badge,cls,tip;
-  if(risk>=80){badge='🟢 正常';cls='br-safe';tip='查询频率正常，可正常申请各类产品。';}
-  else if(risk>=60){badge='🟡 偏高';cls='br-warn';tip='近期查询偏多，建议暂停查询2-3周后再申请，当前申请银行类产品通过率下降约20-30%。';}
-  else if(risk>=30){badge='🟠 爆查';cls='br-danger';tip='⚠️ 近期查询次数过多！建议停止所有查询1个月，银行类产品当前基本无法通过。';}
-  else{badge='🔴 严重';cls='br-critical';tip='🔴 查询严重超标，银行系统会直接判定为"资金紧张"，建议停止查询3个月后再评估。';}
+  if(risk>=80){badge='正常';cls='br-safe';tip='查询频率正常，可正常申请各类产品。';}
+  else if(risk>=60){badge='偏高';cls='br-warn';tip='近期查询偏多，建议暂停查询2-3周后再申请，当前申请银行类产品通过率下降约20-30%。';}
+  else if(risk>=30){badge='爆查';cls='br-danger';tip='近期查询次数过多！建议停止所有查询1个月，银行类产品当前基本无法通过。';}
+  else{badge='严重';cls='br-critical';tip='查询严重超标，银行系统会直接判定为"资金紧张"，建议停止查询3个月后再评估。';}
   return{risk,badge,cls,tip,q7,q30,q90,conc};
 }
 
@@ -644,6 +644,33 @@ function renderBlastRisk(data) {
   const q90e=document.getElementById('brQ90');if(q90e)q90e.textContent=r.q90+'次';
   const ce=document.getElementById('brConc');if(ce)ce.textContent=r.q90>=3?r.conc+'%':'--';
   const te=document.getElementById('brTip');if(te)te.textContent=r.tip;
+  // 填充风险进度条
+  const riskScoreEl = document.getElementById('brRiskScore');
+  if (riskScoreEl) {
+    riskScoreEl.textContent = r.risk + ' / 100';
+    riskScoreEl.style.color = r.risk >= 70 ? 'var(--success)' : r.risk >= 40 ? 'var(--warn)' : 'var(--danger)';
+  }
+  const riskBarEl = document.getElementById('brRiskBar');
+  if (riskBarEl) {
+    riskBarEl.style.width = r.risk + '%';
+    riskBarEl.style.background = r.risk >= 70 ? 'var(--success)' : r.risk >= 40 ? 'var(--warn)' : 'var(--danger)';
+  }
+  // Q7 bar（上限5次）
+  const q7Bar = document.getElementById('brQ7Bar');
+  if (q7Bar) { q7Bar.style.width = Math.min(r.q7/5*100,100)+'%'; q7Bar.style.background = r.q7<=1?'var(--success)':r.q7<=3?'var(--warn)':'var(--danger)'; }
+  if (q7e) { q7e.style.color = r.q7<=1?'var(--success)':r.q7<=3?'var(--warn)':'var(--danger)'; }
+  // Q30 bar（上限10次）
+  const q30Bar = document.getElementById('brQ30Bar');
+  if (q30Bar) { q30Bar.style.width = Math.min(r.q30/10*100,100)+'%'; q30Bar.style.background = r.q30<=3?'var(--success)':r.q30<=6?'var(--warn)':'var(--danger)'; }
+  if (q30e) { q30e.style.color = r.q30<=3?'var(--success)':r.q30<=6?'var(--warn)':'var(--danger)'; }
+  // Q90 bar（上限20次）
+  const q90Bar = document.getElementById('brQ90Bar');
+  if (q90Bar) { q90Bar.style.width = Math.min(r.q90/20*100,100)+'%'; q90Bar.style.background = r.q90<=6?'var(--success)':r.q90<=12?'var(--warn)':'var(--danger)'; }
+  if (q90e) { q90e.style.color = r.q90<=6?'var(--success)':r.q90<=12?'var(--warn)':'var(--danger)'; }
+  // Conc bar
+  const concBar = document.getElementById('brConcBar');
+  if (concBar && r.conc > 0) { concBar.style.width = Math.min(r.conc,100)+'%'; concBar.style.background = r.conc<=40?'var(--success)':r.conc<=70?'var(--warn)':'var(--danger)'; }
+  if (ce) { ce.style.color = r.conc<=40?'var(--success)':r.conc<=70?'var(--warn)':'var(--danger)'; }
 }
 
 // ═══════════════════════════════════════════
@@ -670,42 +697,45 @@ function calcLoanMonthly(loan) {
   const elapsed = issued
     ? Math.floor((baseDate - issued) / (1000 * 60 * 60 * 24 * 30.44))
     : null;
-  const limit = loan.credit_limit || loan.limit || bal; // 授信额度，兜底用余额
+  // due_date精确剩余期数（非循环贷才有意义）
+  const dueRemaining = (!loan.is_revolving && loan.due_date)
+    ? Math.max(Math.round((new Date(loan.due_date) - baseDate) / (1000 * 60 * 60 * 24 * 30.44)), 1)
+    : null;
+  const limit = loan.credit_limit || loan.limit || bal;
   const blRatio = limit > 0 ? bal / limit : 1;
 
   // ── 消费金融 / 网贷（等额本息）──────────────────────────────
   if (cat === 'finance') {
-    // 网贷默认12期，消费金融默认36期
-    const totalPeriods = (loan.type === 'online' && loan.online_subtype !== 'online_bank') ? 12 : 36;
+    const r = 0.015; // 18%年化
+    if (dueRemaining !== null) {
+      // 有到期日：精确剩余期数
+      return Math.round(bal * r / (1 - Math.pow(1 + r, -dueRemaining)));
+    }
     if (elapsed !== null && elapsed >= 1) {
+      // 无到期日：网贷默认12期，消费金融默认36期
+      const totalPeriods = (loan.type === 'online' && loan.online_subtype !== 'online_bank') ? 12 : 36;
       const remaining = Math.max(totalPeriods - elapsed, 1);
-      // PMT等额本息：月利率1.5%（18%/12），更贴近消费金融实际利率
-      const r = 0.015;
       return Math.round(bal * r / (1 - Math.pow(1 + r, -remaining)));
     }
-    // 发放不足1个月，按全期保守估算
-    const r = 0.015;
     return Math.round(bal * r / (1 - Math.pow(1 + r, -36)));
   }
 
   // ── 银行信用贷（credit）──────────────────────────────────────
-  // 循环贷账户：先息后本，余额减少是主动还款，不代表固定还款计划
   if (loan.is_revolving) return Math.round(bal * (0.045 / 12));
 
-  // 非循环贷：用B/L比值区分先息后本 vs 等额本息
+  const r = 0.045 / 12;
+  if (dueRemaining !== null) {
+    // 有到期日：精确剩余期数，直接PMT
+    return Math.round(bal * r / (1 - Math.pow(1 + r, -dueRemaining)));
+  }
   if (elapsed !== null && elapsed >= 1) {
     if (blRatio > 0.97) {
-      // 余额几乎未动 → 先息后本
-      return Math.round(bal * (0.045 / 12));
+      return Math.round(bal * (0.045 / 12)); // 先息后本
     } else {
-      // 余额在减少 → 等额本息，按剩余期数反推
       const remaining = Math.max(Math.round(blRatio * 36), 1);
-      const r = 0.045 / 12;
       return Math.round(bal * r / (1 - Math.pow(1 + r, -remaining)));
     }
   }
-  // 发放不足1个月，无法判断，保守按等额本息36期估算
-  const r = 0.045 / 12;
   return Math.round(bal * r / (1 - Math.pow(1 + r, -36)));
 }
 
@@ -714,6 +744,276 @@ function calcTotalMonthly(loans, cards) {
   // 银行审批口径：信用卡按【已用额度×2%】折算月供（银行实际通用口径）
   const cardPart = cards.reduce((s, c) => s + Math.round((c.used || 0) * 0.02), 0);
   return loanPart + cardPart;
+}
+
+// ═══════════════════════════════════════════
+// 贷准风控 2.0 — ScoreEngine
+// ═══════════════════════════════════════════
+class ScoreEngine {
+  constructor(ocrData, userInfo) {
+    this.ocr  = ocrData  || {};
+    this.ui   = userInfo || {};
+    this.base = ocrData?.report_date ? new Date(ocrData.report_date) : new Date();
+  }
+
+  _mths(dateStr) {
+    if (!dateStr) return null;
+    return Math.max(0, Math.floor((this.base - new Date(dateStr)) / (1000 * 60 * 60 * 24 * 30.44)));
+  }
+  _mm(v, min, max, inv = false) {
+    if (v === null || v === undefined) return 0.5;
+    const n = (Math.max(min, Math.min(max, v)) - min) / (max - min);
+    return inv ? 1 - n : n;
+  }
+  _tf(mths) { return Math.exp(-0.05 * (mths || 0)); }
+  _sigmoid(score, hurdle, k) {
+    return Math.round(100 / (1 + Math.exp(-k * (score - hurdle))));
+  }
+
+  extractFeatures() {
+    const { ocr, ui, base } = this;
+    const loans = (ocr.loans || []).filter(l => l.status !== '结清' && l.status !== '已结清');
+    const cards = (ocr.cards || []).filter(c => c.status !== '销户' && c.status !== '已销户');
+    const q   = calcQueryCounts(ocr.query_records || [], ocr.report_date);
+    const q1m = q.loan_1m || 0;
+    const q3m = (q.loan_3m || 0) + (q.loan_3m_card || 0);
+    const q6m = q.loan_6m_total || 0;
+
+    const income  = ui.income || 0;
+    const pvdRates = { gov:0.12, institution:0.12, state:0.11, listed:0.09, private:0.06, self:0.05, freelance:0.05 };
+    const wKey = (() => {
+      const w = ui.work || '';
+      if (w.includes('公务员') || w.includes('政府')) return 'gov';
+      if (w.includes('事业'))  return 'institution';
+      if (w.includes('国有') || w.includes('央企')) return 'state';
+      if (w.includes('上市') || w.includes('500强')) return 'listed';
+      if (w.includes('个体')) return 'self';
+      if (w.includes('自由')) return 'freelance';
+      return 'private';
+    })();
+    const pvdTotal   = ui.provident || 0;
+    const pvdIndiv   = pvdTotal / 2;
+    const pvdRate    = pvdRates[wKey];
+    const inferIncome = pvdIndiv > 0 ? Math.round(pvdIndiv / pvdRate) : income;
+    const incDiff    = income > 0 && inferIncome > 0 ? Math.abs(inferIncome - income) / inferIncome : 0;
+    const trustScore = pvdTotal > 0
+      ? (incDiff < 0.2 ? 100 : incDiff < 0.4 ? 75 : incDiff < 0.8 ? 40 : 10) : 50;
+    const effIncome  = income > 0
+      ? (trustScore >= 75 ? income : trustScore >= 40 ? Math.round(income * 0.8) : Math.round(income * 0.6)) : 0;
+
+    const monthly    = calcTotalMonthly(loans, cards);
+    const fixedExp   = ui.fixed_expense != null ? ui.fixed_expense : Math.round((income || 0) * 0.3);
+    const disposable = Math.max(0, effIncome - fixedExp - monthly);
+
+    const cLimit  = cards.reduce((s, c) => s + (c.limit || 0), 0);
+    const cUsed   = cards.reduce((s, c) => s + (c.used  || 0), 0);
+    const cardUtil = cLimit > 0 ? cUsed / cLimit : 0;
+
+    const curOv   = (ocr.overdue_current || 0) > 0;
+    const badRec  = ocr.has_bad_record || false;
+    const ovNotes = (ocr.overdue_history_notes || '').toLowerCase();
+    const lian3   = ovNotes.includes('连三') || ovNotes.includes('连续3');
+    const lei6    = ovNotes.includes('累六') || ovNotes.includes('累计6');
+    const ovCount = (() => { const m = ovNotes.match(/(\d+)笔/); return m ? parseInt(m[1]) : (ocr.has_overdue_history ? 1 : 0); })();
+    const ov90d   = ocr.summary_overdue_90days || 0;
+    const sumOv   = ocr.summary_overdue_accounts || 0;
+
+    const allAcc  = [...loans, ...cards];
+    const dates   = allAcc.map(a => a.issued_date).filter(Boolean).map(d => new Date(d));
+    const earliest = dates.length ? new Date(Math.min(...dates)) : null;
+    const accAge  = earliest ? this._mths(earliest.toISOString().split('T')[0]) : 0;
+    const accHealth = allAcc.length > 0 ? (allAcc.length - sumOv) / allAcc.length : 1;
+    const recent6mLoans = loans.filter(l => { const m = this._mths(l.issued_date); return m !== null && m <= 6; }).length;
+
+    const onlineL = loans.filter(l => l.type === 'online');
+    const onlineI = [...new Set(onlineL.map(l => l.name.split('-')[0]))].length;
+    const cfI     = [...new Set(onlineL.filter(l => l.online_subtype === 'consumer_finance').map(l => l.name.split('-')[0]))].length;
+    const cfConc  = onlineI > 0 ? cfI / onlineI : 0;
+    const bankLR  = loans.length > 0 ? loans.filter(l => l.type === 'bank').length / loans.length : 0;
+    const entropy = typeof calcInstitutionEntropy === 'function' ? calcInstitutionEntropy(loans) : 0;
+
+    const latestOvMths = (() => {
+      if (!ocr.has_overdue_history) return 999;
+      const m = ovNotes.match(/(\d{4})年/);
+      if (m) return Math.max(0, (base.getFullYear() - parseInt(m[1])) * 12);
+      return 12;
+    })();
+
+    const loanMthls = loans.map(l => calcLoanMonthly(l)).filter(v => v > 0);
+    const monthlyCV = (() => {
+      if (loanMthls.length < 2) return 0;
+      const mean = loanMthls.reduce((a, b) => a + b, 0) / loanMthls.length;
+      const sd   = Math.sqrt(loanMthls.reduce((s, v) => s + (v - mean) ** 2, 0) / loanMthls.length);
+      return mean > 0 ? sd / mean : 0;
+    })();
+
+    const age      = calcAgeFromId(window._personIdNo || ocr.id_number || '');
+    const cardLimits = cards.map(c => c.limit || 0).filter(v => v > 0);
+    const cardTrend  = cardLimits.length > 1 ? Math.max(...cardLimits) / Math.min(...cardLimits) : 1;
+    const dti      = effIncome > 0 ? monthly / effIncome : 1;
+    const q30dConc = q3m > 0 ? q1m / q3m : 0;
+    const socialMths = (() => {
+      const s = ui.social || '';
+      if (!s.includes('有')) return 0;
+      const m = s.match(/已缴(\d+)月/); return m ? parseInt(m[1]) : 1;
+    })();
+    const wkScore  = { gov:1.0, institution:1.0, state:0.85, listed:0.72, private:0.55, self:0.42, freelance:0.38 }[wKey] || 0.5;
+    const eduScore = (() => { const e = ui.edu||''; return e.includes('本科')?1.0:e.includes('大专')?0.75:e.includes('函授')?0.6:0.45; })();
+    const hkScore  = (() => { const h = ui.hukou||''; return h.includes('厦门')?1.0:h.includes('福建')?0.72:h&&h!=='未填写'?0.42:0.5; })();
+    const ageScore = (() => { if(!age)return 0.5; return(age>=28&&age<=45)?1.0:(age>=25||age<=50)?0.8:0.65; })();
+    const astStr   = ui.assets || '';
+    const astScore = astStr.includes('房产')?1.0:astStr.includes('车辆')?0.65:astStr.includes('营业')?0.55:0.2;
+
+    return {
+      q1m, q3m, q6m, q30dConc,
+      curOv, badRec, lian3, lei6, ovCount, ov90d, sumOv,
+      accAge, accHealth, recent6mLoans, bankLR, cfConc,
+      latestOvMths, entropy, cardUtil, monthlyCV,
+      cardTrend, onlineI, dti, disposable, fixedExp,
+      income, effIncome, monthly, trustScore, inferIncome,
+      pvdTotal, pvdRate, pvdIndiv, socialMths,
+      wkScore, eduScore, hkScore, ageScore, astScore,
+      cLimit, cUsed, age, loans, cards,
+    };
+  }
+
+  runScoreEngine(f) {
+    if (!f) f = this.extractFeatures();
+    const mm = this._mm.bind(this);
+    const tf = this._tf.bind(this);
+
+    let penalty = 0;
+    if (f.badRec)           penalty += 100;
+    if (f.curOv)            penalty += 100;
+    if (f.lian3 || f.lei6)  penalty += 80;
+    if (f.ov90d > 0)        penalty += 80;
+    penalty += Math.max(0, f.q3m - 3) * 20;
+    penalty += f.ovCount * 50;
+    if (f.onlineI >= 5)     penalty += 30;
+
+    const ovTf  = tf(f.latestOvMths);
+    const cbW   = 0.10*tf(1)+0.06*tf(1)+0.04*tf(1)+0.14*ovTf+0.08*ovTf+0.08+0.06+0.06+0.06+0.05+0.06*tf(1)+0.06+0.06+0.04+0.03+0.06+0.06*tf(3);
+    const cbRaw =
+      mm(f.q3m,0,15,true)              *0.10*tf(1) +
+      mm(f.q30dConc,0,1,true)           *0.06*tf(1) +
+      mm(f.q6m,0,25,true)              *0.04*tf(1) +
+      (f.ovCount===0?1:mm(f.ovCount,1,10,true))*0.14*ovTf +
+      (f.ov90d===0?1:mm(f.ov90d,1,5,true))    *0.08*ovTf +
+      mm(f.accHealth,0,1)               *0.08 +
+      mm(f.accAge,0,180)                *0.06 +
+      mm(f.bankLR,0,1)                  *0.06 +
+      mm(f.cfConc,0,1,true)             *0.06 +
+      mm(f.entropy,0,2.3)               *0.05 +
+      mm(f.recent6mLoans,0,8,true)      *0.06*tf(1) +
+      mm(f.cardUtil,0,1,true)            *0.06 +
+      mm(f.onlineI,0,10,true)           *0.06 +
+      mm(f.monthlyCV,0,2,true)           *0.04 +
+      mm(f.cardTrend,1,5)               *0.03 +
+      mm(f.latestOvMths,0,60)            *0.06 +
+      mm(f.recent6mLoans,0,6,true)      *0.06*tf(3);
+    const cbScore = cbW > 0 ? cbRaw / cbW : 0;
+
+    const stMod = f.trustScore>=75?1.0:f.trustScore>=40?0.8:0.6;
+    const stScore = (
+      f.wkScore              *0.25 +
+      mm(f.socialMths,0,36)  *0.25 +
+      (f.trustScore/100)     *0.15 +
+      f.eduScore             *0.12 +
+      f.hkScore              *0.08 +
+      f.ageScore             *0.08 +
+      (f.pvdTotal>0?mm(f.pvdTotal,0,3000):0.3)*0.07
+    ) * stMod;
+
+    const asScore =
+      mm(f.dti,0,1.2,true)   *0.35 +
+      (f.effIncome>0?mm(f.disposable,0,f.effIncome):0.5)*0.25 +
+      f.astScore              *0.20 +
+      mm(f.cardUtil,0,1,true) *0.12 +
+      mm(f.fixedExp/Math.max(f.income||1,1),0,0.8,true)*0.08;
+
+    const frScore =
+      (f.badRec?0:1) *0.50 +
+      (f.curOv?0:1)  *0.30 +
+      mm(f.q30dConc,0,1,true)*0.20;
+
+    const rawScore = Math.round(1000*(cbScore*0.40+stScore*0.30+asScore*0.25+frScore*0.05));
+    const score    = Math.max(300, Math.min(1000, rawScore - penalty));
+    const level    = score>=800?'A':score>=650?'B':score>=500?'C':'D';
+
+    return {
+      score, rawScore, penalty, level,
+      domainScores: {
+        credit:    +(cbScore*100).toFixed(1),
+        stability: +(stScore*100).toFixed(1),
+        asset:     +(asScore*100).toFixed(1),
+        fraud:     +(frScore*100).toFixed(1),
+      },
+      features: f,
+    };
+  }
+
+  _cf(baseF, issueKey) {
+    const f = JSON.parse(JSON.stringify(baseF));
+    switch (issueKey) {
+      case 'queries':  f.q3m=Math.min(f.q3m,3);f.q1m=Math.min(f.q1m,1);f.q30dConc=Math.min(f.q30dConc,0.33);break;
+      case 'overdue':  f.ovCount=0;f.latestOvMths=999;f.lian3=false;f.lei6=false;break;
+      case 'online':   f.onlineI=Math.min(f.onlineI,2);f.cfConc=Math.min(f.cfConc,0.5);break;
+      case 'cardutil': f.cardUtil=0.49;break;
+      case 'dti':      f.dti=0.4;f.disposable=f.effIncome*0.6;break;
+    }
+    return this.runScoreEngine(f);
+  }
+
+  generateXAI(result, products) {
+    const { score, level, features: f } = result;
+    const issues = [];
+
+    if (f.q3m > 3) {
+      const gain = this._cf(f,'queries').score - score;
+      issues.push({ icon:'🔍', tag:'查询过多',
+        desc:`近3月查询${f.q3m}次，超安全线${f.q3m-3}次`,
+        cost:`拉低分数约${gain}分`, fix:`今天停止申请，3个月后自然降至安全线`, months:3, gain });
+    }
+    if (f.onlineI >= 3) {
+      const gain = this._cf(f,'online').score - score;
+      issues.push({ icon:'📱', tag:'网贷超标',
+        desc:`网贷机构${f.onlineI}家，银行建议≤2家`,
+        cost:`拉低分数约${gain}分`, fix:`结清${f.onlineI-2}家并注销账户`, months:2, gain });
+    }
+    if (f.cardUtil > 0.7) {
+      const gain = this._cf(f,'cardutil').score - score;
+      issues.push({ icon:'💳', tag:'信用卡爆额',
+        desc:`信用卡使用率${Math.round(f.cardUtil*100)}%，建议控制在70%以下`,
+        cost:`拉低分数约${gain}分`, fix:`还款降使用率，当月见效`, months:1, gain });
+    }
+    if (f.ovCount > 0 && !f.curOv) {
+      const gain = this._cf(f,'overdue').score - score;
+      issues.push({ icon:'⚠️', tag:f.lian3?'连续逾期':'历史逾期',
+        desc:`历史${f.ovCount}笔逾期${f.lian3?' (含连续3次)':''}`,
+        cost:`拉低分数约${gain}分`, fix:`时间修复，距今越久银行容忍度越高`,
+        months:Math.max(0,60-(f.latestOvMths||12)), gain });
+    }
+    if (f.dti > 0.5 && f.effIncome > 0) {
+      const gain = this._cf(f,'dti').score - score;
+      issues.push({ icon:'📉', tag:'负债率偏高',
+        desc:`月还款占收入${Math.round(f.dti*100)}%，超银行50%上限`,
+        cost:`拉低分数约${gain}分`, fix:`结清部分贷款，将负债率降至50%以下`, months:3, gain });
+    }
+
+    const passRates = (products||[]).map(p => ({
+      id:p.id, bank:p.bank, product:p.product,
+      rate: this._sigmoid(score, p.hurdle||600, p.k||0.025),
+    })).sort((a,b)=>b.rate-a.rate);
+
+    return { score, level, issues:issues.slice(0,4), passRates, features:f };
+  }
+
+  compute(products) {
+    const f   = this.extractFeatures();
+    const res = this.runScoreEngine(f);
+    const xai = this.generateXAI(res, products);
+    return { ...res, xai };
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -770,7 +1070,7 @@ function _processPdf(f) {
     window._fileReady = true;
     const _cc = document.getElementById('consentCheck');
     document.getElementById('analyzeBtn').disabled = !(_cc && _cc.checked);
-    document.getElementById('analyzeBtnText').textContent = '🔬 开始AI识别分析';
+    document.getElementById('analyzeBtnText').textContent = '开始AI识别分析';
   };
   reader.onerror = () => {
     alert('文件读取失败，iOS 用户请确认：\n• PDF 已下载到本机（不是 iCloud 中的云文件）\n• 文件未损坏，可正常打开');
@@ -811,7 +1111,7 @@ function _processImages(files) {
     window._fileReady = true;
     const _cc2 = document.getElementById('consentCheck');
     document.getElementById('analyzeBtn').disabled = !(_cc2 && _cc2.checked);
-    document.getElementById('analyzeBtnText').textContent = '🔬 开始AI识别分析';
+    document.getElementById('analyzeBtnText').textContent = '开始AI识别分析';
   }
 
   files.forEach((f, i) => {
@@ -906,11 +1206,11 @@ async function startAnalysis() {
 
     const respText = await resp.text();
     if (!respText || !respText.trim()) throw new Error('服务器返回空响应，请压缩PDF后重试');
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
     let data;
     try { data = JSON.parse(respText); } catch(e) { throw new Error('响应格式异常，请重试'); }
-    if (data.error) throw new Error(data.error.message || 'API错误');
+    if (!resp.ok) throw new Error(data.error || `服务器错误 HTTP ${resp.status}`);
+    if (data.error) throw new Error(typeof data.error === 'string' ? data.error : (data.error.message || 'API错误'));
 
     const raw = data.raw;
     setStep(3); // rs4：汇总有效负债与查询数据
@@ -937,7 +1237,7 @@ async function startAnalysis() {
     document.getElementById('readingCard').style.display = 'none';
     document.getElementById('uploadCard').style.display = 'block';
     document.getElementById('analyzeBtn').disabled = false;
-    document.getElementById('analyzeBtnText').textContent = '🔬 重新分析';
+    document.getElementById('analyzeBtnText').textContent = '重新分析';
 
     let errMsg = e.message || '';
     let userMsg = '';
@@ -1049,15 +1349,24 @@ function renderResult(data) {
   const totalMonthly = calcTotalMonthly(loans, cards);
   const hasOvHistForType = data.has_overdue_history || (data.summary_overdue_accounts||0) > 0;
 
-  document.getElementById('sumLoans').textContent = loans.length + ' 笔';
-  document.getElementById('sumCards').textContent = cards.length + ' 张';
+  document.getElementById('sumLoans').textContent = loans.length;
+  document.getElementById('sumCards').textContent = cards.length;
   document.getElementById('sumMonthly').textContent = totalMonthly > 0 ? '≈ ' + fmt(Math.round(totalMonthly)) + ' 元' : '--';
   document.getElementById('sumDebtRatio').textContent = '--';
-  document.getElementById('sumDebtRatio').style.color = 'var(--gold)';
+  document.getElementById('sumDebtRatio').style.color = 'var(--accentB)';
   // 渲染基础评分 + 爆查风险
   renderCreditScore(data, null);
   renderBlastRisk(data);
   document.getElementById('sumDebtHint').textContent = '填写月收入后显示';
+  // sumTotalDebt：当前负债 = 贷款余额合计 + 信用卡已用额度合计
+  const totalLoanBalance = loans.reduce((s, l) => s + (l.balance || 0), 0);
+  const totalCardUsed = cards.reduce((s, c) => s + (c.used || 0), 0);
+  const totalDebt = totalLoanBalance + totalCardUsed;
+  const sumTotalDebtEl = document.getElementById('sumTotalDebt');
+  if (sumTotalDebtEl) sumTotalDebtEl.textContent = totalDebt > 0 ? fmt(Math.round(totalDebt)) + ' 元' : '--';
+  // sumQ30：近30天查询次数
+  const sumQ30El = document.getElementById('sumQ30');
+  if (sumQ30El) sumQ30El.textContent = (q.q30 !== undefined ? q.q30 : '--') + (q.q30 !== undefined ? ' 次' : '');
 
   // Warn/notice boxes — reset first
   document.getElementById('warnBox').style.display = 'none';
@@ -1066,25 +1375,25 @@ function renderResult(data) {
   document.getElementById('onlineStatsBox').innerHTML = '';
   const warns = [];
   if (data.overdue_current > 0) {
-    warns.push('🔴 存在 <strong>' + data.overdue_current + ' 笔</strong>当前逾期，银行不会放款，请立即结清');
+    warns.push('存在 <strong>' + data.overdue_current + ' 笔</strong>当前逾期，银行不会放款，请立即结清');
   }
   // 不良记录警告（呆账/担保代还等）
   if (data.has_bad_record === true) {
     const _badDesc = data.bad_record_notes && data.bad_record_notes !== '无'
       ? data.bad_record_notes
       : '请检查征信详情';
-    warns.push('🔴 存在严重不良记录：<strong>' + _badDesc + '</strong>。此类记录将导致所有银行产品无法申请，需优先处理');
+    warns.push('存在严重不良记录：<strong>' + _badDesc + '</strong>。此类记录将导致所有银行产品无法申请，需优先处理');
   }
 
   // 历史逾期警告
   if (data.overdue_history_notes && data.overdue_history_notes !== '无') {
-    warns.push('⚠️ 历史逾期记录（已结清）：' + data.overdue_history_notes + '。<strong>结清后6-12个月内</strong>部分银行仍会拒贷');
+    warns.push('历史逾期记录（已结清）：' + data.overdue_history_notes + '。<strong>结清后6-12个月内</strong>部分银行仍会拒贷');
   }
 
   // OCR识别质量警告
   if ((data.ocr_warnings || []).length > 0) {
     data.ocr_warnings.forEach(w => {
-      warns.push('⚠️ 识别提示：' + w + '，请核对上方数据是否准确，如有误请重新上传');
+      warns.push('识别提示：' + w + '，请核对上方数据是否准确，如有误请重新上传');
     });
   }
 
@@ -1094,16 +1403,16 @@ function renderResult(data) {
   const q3total = q3loans + q3cards;
   const q6total = q.loan_6m_total || 0;
 
-  if (q3total >= 5) warns.push('🔴 近3月审批查询 <strong>' + q3total + ' 次</strong>（贷款' + q3loans + '次+信用卡' + q3cards + '次），征信已花，建议暂停申请养3-6个月');
-  else if (q3total >= 3) warns.push('⚠️ 近3月审批查询 <strong>' + q3total + ' 次</strong>（贷款' + q3loans + '次+信用卡' + q3cards + '次），偏多，部分银行可能拒贷');
+  if (q3total >= 5) warns.push('近3月审批查询 <strong>' + q3total + ' 次</strong>（贷款' + q3loans + '次+信用卡' + q3cards + '次），征信已花，建议暂停申请养3-6个月');
+  else if (q3total >= 3) warns.push('近3月审批查询 <strong>' + q3total + ' 次</strong>（贷款' + q3loans + '次+信用卡' + q3cards + '次），偏多，部分银行可能拒贷');
 
   // 信用卡综合使用率警告
   const _cardLimitTotal = cards.reduce((s, c) => s + (c.limit || 0), 0);
   const _cardUsedTotal  = cards.reduce((s, c) => s + (c.used || 0), 0);
   const _cardUtil = _cardLimitTotal > 0 ? Math.round(_cardUsedTotal / _cardLimitTotal * 100) : 0;
-  if (_cardUtil > 70) warns.push('🔴 信用卡综合使用率 <strong>' + _cardUtil + '%</strong>，超过70%警戒线，银行审批将直接降分或拒贷');
-  else if (_cardUtil > 50) warns.push('⚠️ 信用卡综合使用率 <strong>' + _cardUtil + '%</strong>，超过50%预警线，建议降低至50%以下');
-  else if (_cardUtil > 0) warns.push('✅ 信用卡综合使用率 <strong>' + _cardUtil + '%</strong>，处于安全范围');
+  if (_cardUtil > 70) warns.push('信用卡综合使用率 <strong>' + _cardUtil + '%</strong>，超过70%警戒线，银行审批将直接降分或拒贷');
+  else if (_cardUtil > 50) warns.push('信用卡综合使用率 <strong>' + _cardUtil + '%</strong>，超过50%预警线，建议降低至50%以下');
+  else if (_cardUtil > 0) warns.push('信用卡综合使用率 <strong>' + _cardUtil + '%</strong>，处于安全范围');
 
   // 网贷机构数统计（按机构去重）
   const onlineLoans = loans.filter(l => l.type === 'online');
@@ -1128,16 +1437,16 @@ function renderResult(data) {
     const breakdown = parts.join('&nbsp;+&nbsp;');
     const totalStr  = '网贷机构合计 <strong>' + onlineInstTotal + ' 家</strong>（银行准入红线：≤4家）';
     if (onlineInstTotal >= 5) {
-      osb.style.cssText = 'display:block;border-radius:10px;padding:13px 16px;margin-bottom:12px;font-size:13px;line-height:1.8;border:1px solid rgba(192,57,43,.3);background:#fff0f0;color:var(--red)';
-      osb.innerHTML = '🔴 ' + totalStr + '<br>' + breakdown + '<br><strong>已超红线，银行类贷款大概率拒贷，建议先结清网贷后再申请。</strong>';
-      warns.push('🔴 网贷机构数 <strong>' + onlineInstTotal + ' 家</strong>，超出银行准入红线（≤4家），银行产品通过率大幅下调');
+      osb.style.cssText = 'display:block;padding:12px 14px;margin-bottom:12px;font-size:12px;line-height:1.8;border:1px solid rgba(231,76,60,0.25);border-left:2px solid var(--danger);background:rgba(231,76,60,0.06);color:var(--plat)';
+      osb.innerHTML = '<span style="color:var(--danger);font-weight:600">' + totalStr + '</span><br>' + breakdown + '<br><span style="color:var(--danger)">已超红线，银行类贷款大概率拒贷，建议先结清网贷后再申请。</span>';
+      warns.push('网贷机构数 <strong>' + onlineInstTotal + ' 家</strong>，超出银行准入红线（≤4家），银行产品通过率大幅下调');
     } else if (onlineInstTotal === 3 || onlineInstTotal === 4) {
-      osb.style.cssText = 'display:block;border-radius:10px;padding:13px 16px;margin-bottom:12px;font-size:13px;line-height:1.8;border:1px solid rgba(184,134,11,.3);background:#fff8e0;color:var(--amber)';
-      osb.innerHTML = '⚠️ ' + totalStr + '<br>' + breakdown + '<br>轻度警示，申请银行贷款存在风险，建议结清至2家以内再申请。';
-      warns.push('⚠️ 网贷机构数 <strong>' + onlineInstTotal + ' 家</strong>，轻度警示，部分银行可能拒贷');
+      osb.style.cssText = 'display:block;padding:12px 14px;margin-bottom:12px;font-size:12px;line-height:1.8;border:1px solid rgba(217,128,0,0.25);border-left:2px solid var(--warn);background:rgba(217,128,0,0.06);color:var(--plat)';
+      osb.innerHTML = '<span style="color:var(--warn);font-weight:600">' + totalStr + '</span><br>' + breakdown + '<br><span style="color:var(--warn)">轻度警示，申请银行贷款存在风险，建议结清至2家以内再申请。</span>';
+      warns.push('网贷机构数 <strong>' + onlineInstTotal + ' 家</strong>，轻度警示，部分银行可能拒贷');
     } else {
-      osb.style.cssText = 'display:block;border-radius:10px;padding:13px 16px;margin-bottom:12px;font-size:13px;line-height:1.8;border:1px solid rgba(42,122,85,.25);background:var(--green-light);color:var(--green)';
-      osb.innerHTML = '✅ ' + totalStr + '<br>' + breakdown + '<br>未超银行准入红线，网贷情况正常。';
+      osb.style.cssText = 'display:block;padding:12px 14px;margin-bottom:12px;font-size:12px;line-height:1.8;border:1px solid rgba(12,184,122,0.2);border-left:2px solid var(--success);background:rgba(12,184,122,0.06);color:var(--plat)';
+      osb.innerHTML = '<span style="color:var(--success);font-weight:600">' + totalStr + '</span><br>' + breakdown + '<br><span style="color:var(--success)">未超银行准入红线，网贷情况正常。</span>';
     }
   } else {
     osb.style.display = 'none';
@@ -1145,7 +1454,7 @@ function renderResult(data) {
 
   if (warns.length > 0) {
     document.getElementById('warnBox').style.display = 'block';
-    document.getElementById('warnBox').innerHTML = warns.join('<br>');
+    document.getElementById('warnBox').innerHTML = warns.map(w => `<div class="warn-item">${w}</div>`).join('');
   }
 
   // Loans table — split into two visual groups: regular loans vs revolving credit
@@ -1167,38 +1476,38 @@ function renderResult(data) {
     document.getElementById('loansBody').innerHTML = loans.map(l => {
       const isRev = l.is_revolving;
       // 3 separate columns: 授信额度 / 余额 / 月还款
-      const colLimit   = l.credit_limit != null ? fmt(l.credit_limit) + '元' : '<span style="color:var(--gray-mid)">--</span>';
-      const colBalance = l.balance != null      ? fmt(l.balance) + '元'      : '<span style="color:var(--gray-mid)">--</span>';
+      const colLimit   = l.credit_limit != null ? fmt(l.credit_limit) + '元' : '<span style="color:var(--muted)">--</span>';
+      const colBalance = l.balance != null      ? fmt(l.balance) + '元'      : '<span style="color:var(--muted)">--</span>';
       const estMonthly = calcLoanMonthly(l);
       const colMonthly = estMonthly > 0
-        ? fmt(estMonthly) + '元<span style="font-size:9px;color:var(--gray-mid);margin-left:3px">估算</span>'
-        : '<span style="color:var(--gray-mid)">--</span>';
-      const catMap = { mortgage:'🏠 房贷', car:'🚗 车贷', credit:'🏦 银行信用贷', finance:'📱 网贷' };
+        ? fmt(estMonthly) + '元<span style="font-size:9px;color:var(--muted);margin-left:3px">估算</span>'
+        : '<span style="color:var(--muted)">--</span>';
+      const catMap = { mortgage:'房贷', car:'车贷', credit:'银行信用贷', finance:'网贷' };
       let catLabel, badgeCls;
       if (l.type === 'online') {
-        catLabel   = l.online_subtype === 'microloan' ? '💰 小额贷款'
-                   : l.online_subtype === 'online_bank' ? '🏦 助贷银行'
-                   : '📱 消费金融';
+        catLabel   = l.online_subtype === 'microloan' ? '小额贷款'
+                   : l.online_subtype === 'online_bank' ? '助贷银行'
+                   : '消费金融';
         badgeCls   = 'badge-warn';
       } else {
-        catLabel = catMap[l.loan_category] || '🏦 银行贷款';
+        catLabel = catMap[l.loan_category] || '银行贷款';
         badgeCls = 'badge-ok';
       }
 
       const issuedFmt = (() => {
-        if (!l.issued_date) return '<span style="color:var(--gray-mid)">--</span>';
+        if (!l.issued_date) return '<span style="color:var(--muted)">--</span>';
         const d = new Date(l.issued_date);
-        if (isNaN(d)) return '<span style="color:var(--gray-mid)">--</span>';
+        if (isNaN(d)) return '<span style="color:var(--muted)">--</span>';
         return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
       })();
       return `
         <tr>
-          <td>${shortenBankName(l.name)}${isRev ? '<span style="font-size:9px;background:#e8f4ed;color:#2a7a55;padding:1px 5px;border-radius:3px;margin-left:5px">循环授信</span>' : ''}</td>
+          <td>${shortenBankName(l.name)}${isRev ? '<span style="font-size:9px;background:rgba(12,184,122,0.1);color:var(--success);padding:1px 5px;margin-left:5px">循环授信</span>' : ''}</td>
           <td><span class="badge ${badgeCls}">${catLabel}</span></td>
           <td style="text-align:right;font-weight:600">${colLimit}</td>
           <td style="text-align:right;font-weight:600">${colBalance}</td>
           <td style="text-align:right">${colMonthly}</td>
-          <td style="text-align:center;font-size:12px;color:var(--text-mid)">${issuedFmt}</td>
+          <td style="text-align:center;font-size:12px;color:var(--silver)">${issuedFmt}</td>
           <td style="text-align:center"><span class="badge ${l.status === '正常' ? 'badge-ok' : 'badge-bad'}">${l.status || '--'}</span></td>
         </tr>
       `;
@@ -1211,7 +1520,7 @@ function renderResult(data) {
     document.getElementById('cardCount').textContent = cards.length;
     document.getElementById('cardsBody').innerHTML = cards.map(c => {
       const util = c.limit > 0 ? Math.round((c.used || 0) / c.limit * 100) : null;
-      const utilColor = util == null ? 'var(--text-dark)' : util <= 30 ? 'var(--green)' : util <= 70 ? 'var(--amber)' : 'var(--red)';
+      const utilColor = util == null ? 'var(--white)' : util <= 30 ? 'var(--success)' : util <= 70 ? 'var(--warn)' : 'var(--danger)';
       return `
         <tr>
           <td>${shortenBankName(c.name)}</td>
@@ -1235,13 +1544,16 @@ function renderResult(data) {
     ];
     document.getElementById('queryGrid').innerHTML = items.map(item => {
       const v = item.val;
-      const cls = v == null ? '' : item.ok(v) ? 'ok' : item.warn(v) ? 'warn' : 'bad';
-      return `
-        <div class="query-item">
-          <div class="qi-label">${item.label}</div>
-          <div class="qi-val ${cls}">${v != null ? v + ' 次' : '--'}</div>
-        </div>
-      `;
+      const state = v == null ? 'neutral' : item.ok(v) ? 'ok' : item.warn(v) ? 'warn' : 'bad';
+      const clr = {ok:'var(--success)',warn:'var(--warn)',bad:'var(--danger)',neutral:'var(--muted)'}[state];
+      const statusTxt = {ok:'正常',warn:'偏多',bad:'超标',neutral:'--'}[state];
+      // bar: max reference is warn boundary (use 12 for 6m, 4 for others as cap)
+      const cap = item.label.includes('6月') ? 12 : 4;
+      const barPct = v != null ? Math.min(100, Math.round(v / cap * 100)) : 0;
+      const parts = item.label.split(' ');
+      const period = parts[parts.length - 1];
+      const type   = parts.slice(0, -1).join(' ');
+      return `<div class="qi-card"><div class="qi-head"><span class="qi-type">${type}</span><span class="qi-period">${period}</span></div><div class="qi-num" style="color:${clr}">${v != null ? v : '--'}</div><div class="qi-unit">次</div><div class="qi-bar-track"><div class="qi-bar-fill" style="width:${barPct}%;background:${clr}"></div></div><div class="qi-status" style="color:${clr}">${statusTxt}</div></div>`;
     }).join('');
   }
 
@@ -1250,6 +1562,13 @@ function renderResult(data) {
     document.getElementById('emptyState').style.display = 'block';
     document.getElementById('matchBtn').style.display = 'none';
   }
+
+  // 指标格数字动画
+  document.querySelectorAll('#summaryBar .mval').forEach(el => {
+    el.classList.remove('updated');
+    void el.offsetWidth; // reflow
+    el.classList.add('updated');
+  });
 
   // Render ID info bar
   renderIdInfo(data);
@@ -1349,41 +1668,41 @@ async function startMatching() {
   // 补充信息加减分评估
   const scoreItems = [];
   const eduVal = userInfo.edu || '';
-  if (eduVal.includes('本科')) scoreItems.push('✅学历加分：全日制本科及以上');
-  else if (eduVal.includes('大专')) scoreItems.push('➕学历中性：全日制大专');
-  else if (eduVal) scoreItems.push('➖学历减分：' + eduVal);
+  if (eduVal.includes('本科')) scoreItems.push('+ 学历加分：全日制本科及以上');
+  else if (eduVal.includes('大专')) scoreItems.push('+学历中性：全日制大专');
+  else if (eduVal) scoreItems.push('-学历减分：' + eduVal);
 
   const workVal = userInfo.work || '';
-  if (['政府机关/公务员','事业单位'].some(w => workVal.includes(w.split('/')[0]))) scoreItems.push('✅单位加分：' + workVal);
-  else if (['国有企业','上市公司'].some(w => workVal.includes(w.split('/')[0]))) scoreItems.push('✅单位加分：' + workVal);
-  else if (workVal && workVal !== '未填写') scoreItems.push('➖单位中性/减分：' + workVal);
+  if (['政府机关/公务员','事业单位'].some(w => workVal.includes(w.split('/')[0]))) scoreItems.push('+ 单位加分：' + workVal);
+  else if (['国有企业','上市公司'].some(w => workVal.includes(w.split('/')[0]))) scoreItems.push('+ 单位加分：' + workVal);
+  else if (workVal && workVal !== '未填写') scoreItems.push('-单位中性/减分：' + workVal);
 
   const pvd = userInfo.provident || 0;
-  if (pvd >= 1000) scoreItems.push('✅公积金加分：' + pvd + '元/月（≥1000元，满足股份制银行优质客户准入）');
-  else if (pvd >= 500) scoreItems.push('➕公积金中性：' + pvd + '元/月（500-999元）');
-  else if (pvd > 0) scoreItems.push('➖公积金较低：' + pvd + '元/月（<500元）');
-  else scoreItems.push('➖无公积金（优质产品准入受限）');
+  if (pvd >= 1000) scoreItems.push('+ 公积金加分：' + pvd + '元/月（≥1000元，满足股份制银行优质客户准入）');
+  else if (pvd >= 500) scoreItems.push('+公积金中性：' + pvd + '元/月（500-999元）');
+  else if (pvd > 0) scoreItems.push('-公积金较低：' + pvd + '元/月（<500元）');
+  else scoreItems.push('-无公积金（优质产品准入受限）');
 
-  if (socialMonths >= 12) scoreItems.push('✅社保加分：已缴' + socialMonths + '个月（≥12月，银行判定工作稳定）');
-  else if (socialMonths >= 6) scoreItems.push('➕社保中性：已缴' + socialMonths + '个月（6-11月）');
-  else if (socialMonths > 0) scoreItems.push('➖社保减分：已缴' + socialMonths + '个月（<6月，银行判定工作稳定性差）');
-  else scoreItems.push('➖无社保（银行判定工作稳定性差，大额产品受限）');
+  if (socialMonths >= 12) scoreItems.push('+ 社保加分：已缴' + socialMonths + '个月（≥12月，银行判定工作稳定）');
+  else if (socialMonths >= 6) scoreItems.push('+社保中性：已缴' + socialMonths + '个月（6-11月）');
+  else if (socialMonths > 0) scoreItems.push('-社保减分：已缴' + socialMonths + '个月（<6月，银行判定工作稳定性差）');
+  else scoreItems.push('-无社保（银行判定工作稳定性差，大额产品受限）');
 
   const hukouVal = userInfo.hukou || '';
-  if (hukouVal.includes('厦门')) scoreItems.push('✅户籍加分：厦门本地户籍（本地银行全覆盖）');
-  else if (hukouVal.includes('福建')) scoreItems.push('➕户籍中性：福建省内非厦门（多数厦门银行可做）');
-  else if (hukouVal && hukouVal !== '未填写') scoreItems.push('➖户籍减分：省外户籍（部分厦门本地银行拒贷，需本地资产佐证）');
+  if (hukouVal.includes('厦门')) scoreItems.push('+ 户籍加分：厦门本地户籍（本地银行全覆盖）');
+  else if (hukouVal.includes('福建')) scoreItems.push('+户籍中性：福建省内非厦门（多数厦门银行可做）');
+  else if (hukouVal && hukouVal !== '未填写') scoreItems.push('-户籍减分：省外户籍（部分厦门本地银行拒贷，需本地资产佐证）');
 
   const assetsVal = userInfo.assets || '';
-  if (assetsVal.includes('房产')) scoreItems.push('✅资产加分：名下有房产（银行认可最高权重资产）');
-  if (assetsVal.includes('车辆')) scoreItems.push('➕资产加分：名下有车辆');
-  if (assetsVal.includes('营业执照')) scoreItems.push('➕资产：有营业执照（部分银行小微产品加分）');
-  if (assetsVal.includes('暂无') || assetsVal === '未填写') scoreItems.push('➖无资产（无法提供抵押/增信）');
+  if (assetsVal.includes('房产')) scoreItems.push('+ 资产加分：名下有房产（银行认可最高权重资产）');
+  if (assetsVal.includes('车辆')) scoreItems.push('+资产加分：名下有车辆');
+  if (assetsVal.includes('营业执照')) scoreItems.push('+资产：有营业执照（部分银行小微产品加分）');
+  if (assetsVal.includes('暂无') || assetsVal === '未填写') scoreItems.push('-无资产（无法提供抵押/增信）');
 
   const income = userInfo.income || 0;
-  if (income >= 10000) scoreItems.push('✅收入加分：月收入' + income + '元（≥1万，大额产品无障碍）');
-  else if (income >= 5000) scoreItems.push('➕收入中性：月收入' + income + '元（5000-9999元）');
-  else if (income > 0) scoreItems.push('➖收入减分：月收入' + income + '元（<5000元，大额信用贷额度受限）');
+  if (income >= 10000) scoreItems.push('+ 收入加分：月收入' + income + '元（≥1万，大额产品无障碍）');
+  else if (income >= 5000) scoreItems.push('+收入中性：月收入' + income + '元（5000-9999元）');
+  else if (income > 0) scoreItems.push('-收入减分：月收入' + income + '元（<5000元，大额信用贷额度受限）');
 
   // Update debt ratio display in summary bar
   if (debtRatioPct != null) {
@@ -1391,14 +1710,14 @@ async function startMatching() {
     const drHint = document.getElementById('sumDebtHint');
     drEl.textContent = debtRatioPct + '%';
     if (debtRatioPct > 70) {
-      drEl.style.color = 'var(--red)';
-      drHint.textContent = '⚠️ 警告：负债率过高';
+      drEl.style.color = 'var(--danger)';
+      drHint.textContent = '警告：负债率过高';
     } else if (debtRatioPct >= 50) {
-      drEl.style.color = 'var(--amber)';
-      drHint.textContent = '⚡ 预警：接近风险线';
+      drEl.style.color = 'var(--warn)';
+      drHint.textContent = '预警：接近风险线';
     } else {
-      drEl.style.color = 'var(--green)';
-      drHint.textContent = '✅ 安全线以内';
+      drEl.style.color = 'var(--success)';
+      drHint.textContent = '安全线以内';
     }
   }
 
@@ -1461,6 +1780,14 @@ async function startMatching() {
     return reasons.length > 0 ? reasons.join('；') : '无主要排除原因';
   })();
 
+  // ── V2.0 ScoreEngine（本地运行，不阻塞）──
+  let _v2Result = null;
+  try {
+    const _v2Engine = new ScoreEngine(_recognizedData || {}, userInfo);
+    _v2Result = _v2Engine.compute(typeof BANK_PRODUCTS !== 'undefined' ? BANK_PRODUCTS : []);
+    window._v2Result = _v2Result;
+  } catch(e) { console.warn('ScoreEngine error:', e); }
+
   // ── 立刻显示本地结果，不等 AI ──
   clearInterval(mlTimer);
   mlSteps.forEach(id => {
@@ -1472,8 +1799,8 @@ async function startMatching() {
     optimized_products: Math.min(_localProds.length + 3, 8),
     client_type:        _clientType,
     products:           _localProds,
-    cs_score:           _localResult.cs_score,
-    cs_tier:            _localResult.cs_tier,
+    cs_score:           _v2Result ? _v2Result.score : _localResult.cs_score,
+    cs_tier:            _v2Result ? (_v2Result.level==='A'?'bank':_v2Result.level==='B'?'mixed':'finance') : _localResult.cs_tier,
     user_info_summary: [
       eduVal   ? `学历：${eduVal}` : null,
       income>0 ? `月收入：${income}元` : null,
@@ -1487,6 +1814,7 @@ async function startMatching() {
   setTimeout(() => {
     document.getElementById('matchingLoading').style.display = 'none';
     renderMatchResult(_baseResult);
+    if (_v2Result) renderV2XAI(_v2Result);
     window._isMatching = false;
   }, 400);
 
@@ -1536,7 +1864,7 @@ async function startMatching() {
         const _esc = s => s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '';
         if (aiResult.optimization?.length > 0) {
           const el = document.getElementById('optimizationSection');
-          if (el) { el.style.display = 'block'; document.getElementById('optimizationBody').innerHTML = aiResult.optimization.map((o,i) => `<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${_esc(o.step)}</div><div class="as-impact">${_esc(o.goal)}</div><div class="as-step-meta"><span class="as-step-tag">⏱ ${_esc(o.time)}</span><span class="as-step-tag">🎯 ${_esc(o.unlock)}</span></div></div></div>`).join(''); }
+          if (el) { el.style.display = 'block'; document.getElementById('optimizationBody').innerHTML = aiResult.optimization.map((o,i) => `<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${_esc(o.step)}</div><div class="as-impact">${_esc(o.goal)}</div><div class="as-step-meta"><span class="as-step-tag">${_esc(o.time)}</span><span class="as-step-tag">${_esc(o.unlock)}</span></div></div></div>`).join(''); }
         }
         if (aiResult.advice) {
           const adv = aiResult.advice;
@@ -1549,7 +1877,7 @@ async function startMatching() {
               if(_aiIssuesSub) _aiIssuesSub.style.display = '';
               document.getElementById('adviceIssuesBody').innerHTML = adv.issues.map(s => `<div class="as-item"><div class="as-dot as-dot-red"></div><div><div class="as-point">${_esc(s.point)}</div><div class="as-impact">${_esc(s.impact)}</div></div></div>`).join('');
             }
-            if (adv.suggestions?.length > 0) document.getElementById('adviceSuggestionsBody').innerHTML = adv.suggestions.map((s,i) => `<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${_esc(s.action)}</div><div class="as-impact">${_esc(s.goal)}</div><div class="as-step-meta"><span class="as-step-tag">⏱ ${_esc(s.time)}</span><span class="as-step-tag">✨ ${_esc(s.effect)}</span></div></div></div>`).join('');
+            if (adv.suggestions?.length > 0) document.getElementById('adviceSuggestionsBody').innerHTML = adv.suggestions.map((s,i) => `<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${_esc(s.action)}</div><div class="as-impact">${_esc(s.goal)}</div><div class="as-step-meta"><span class="as-step-tag">${_esc(s.time)}</span><span class="as-step-tag">${_esc(s.effect)}</span></div></div></div>`).join('');
           }
         }
         if (aiResult.key_risk) {
@@ -1565,6 +1893,75 @@ async function startMatching() {
 }
 
 // localFallbackMatch 已移至 BANK_PRODUCTS 区块
+
+function renderV2XAI(v2) {
+  const wrap = document.getElementById('v2xaiWrap');
+  if (!wrap || !v2) return;
+  const xai = v2.xai || {};
+  const ds  = v2.domainScores || {};
+  const lvColor = { A:'#4ade80', B:'#60a5fa', C:'#fbbf24', D:'#f87171' };
+  const col = lvColor[v2.level] || '#60a5fa';
+
+  // 四域分数条
+  const domainBar = document.getElementById('v2DomainBar');
+  if (domainBar) {
+    const domains = [
+      { name:'信用行为', val:ds.credit,    w:'40%' },
+      { name:'稳定性',   val:ds.stability, w:'30%' },
+      { name:'资产偿债', val:ds.asset,     w:'25%' },
+      { name:'反欺诈',   val:ds.fraud,     w:'5%'  },
+    ];
+    domainBar.innerHTML = domains.map(d => {
+      const pct = Math.min(100, Math.round(d.val || 0));
+      const c = pct>=70?'#4ade80':pct>=45?'#fbbf24':'#f87171';
+      return `<div style="flex:1;min-width:80px;background:var(--raised);border-radius:8px;padding:8px 10px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${d.name} <span style="color:var(--muted);font-size:10px">${d.w}</span></div>
+        <div style="font-size:16px;font-weight:700;color:${c}">${pct}</div>
+        <div style="height:3px;background:var(--border);border-radius:2px;margin-top:4px">
+          <div style="width:${pct}%;height:100%;background:${c};border-radius:2px;transition:width .6s"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // 风险诊断列表
+  const issueList = document.getElementById('v2IssueList');
+  if (issueList) {
+    if ((xai.issues||[]).length === 0) {
+      issueList.innerHTML = `<div style="color:var(--success);padding:10px 0;font-size:14px">✅ 未发现显著风控问题</div>`;
+    } else {
+      issueList.innerHTML = (xai.issues||[]).map(iss => `
+        <div style="background:var(--raised);border-radius:10px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #f87171">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="font-size:15px">${esc(iss.icon)}</span>
+            <span style="font-size:13px;font-weight:600;color:var(--text)">${esc(iss.tag)}</span>
+            <span style="font-size:11px;color:var(--danger);margin-left:auto">${esc(iss.cost)}</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px">${esc(iss.desc)}</div>
+          <div style="font-size:12px;color:var(--accent)">💡 ${esc(iss.fix)}${iss.months>0?' （约'+iss.months+'个月）':''}</div>
+        </div>`).join('');
+    }
+  }
+
+  // 主要产品通过率
+  const prEl = document.getElementById('v2PassRates');
+  if (prEl && (xai.passRates||[]).length > 0) {
+    const top5 = xai.passRates.slice(0, 5);
+    prEl.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:8px">主要产品通过率（Sigmoid模型估算）</div>` +
+      top5.map(p => {
+        const c = p.rate>=70?'#4ade80':p.rate>=40?'#fbbf24':'#f87171';
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:12px;flex:1;color:var(--text)">${esc(p.bank)}</span>
+          <div style="width:100px;height:6px;background:var(--border);border-radius:3px">
+            <div style="width:${p.rate}%;height:100%;background:${c};border-radius:3px;transition:width .6s"></div>
+          </div>
+          <span style="font-size:12px;font-weight:600;color:${c};width:36px;text-align:right">${p.rate}%</span>
+        </div>`;
+      }).join('');
+  }
+
+  wrap.style.display = 'block';
+}
 
 function renderMatchResult(r) {
   if (!r) return;
@@ -1615,8 +2012,25 @@ function renderMatchResult(r) {
   const _tier    = r.cs_tier || (curRate>=80?'bank':curRate>=60?'mixed':'finance');
   const _clientT = r.client_type || (_tier==='bank'?'A':_tier==='mixed'?'B':'C');
 
-  // 更新产品数量
+  // 更新产品数量，切换header锁定提示
   document.getElementById('matchCount').textContent = products.length;
+  const _lockHint = document.getElementById('matchLockHint');
+  const _countWrap = document.getElementById('matchCountWrap');
+  if (_lockHint) _lockHint.style.display = 'none';
+  if (_countWrap) _countWrap.style.display = '';
+
+  // 更新评分卡底部统计（当前/优化后可申请）
+  const _ssEl = document.getElementById('scoreStats');
+  if (_ssEl) {
+    const _curCnt = document.getElementById('csCurrentCount');
+    const _optCnt = document.getElementById('csOptCount');
+    if (_curCnt) _curCnt.textContent = products.length + ' 款产品';
+    if (_optCnt) {
+      const _optCount = r.optimized_products_count || r.current_products || (products.length + 2);
+      _optCnt.textContent = _optCount + ' 款产品';
+    }
+    _ssEl.style.display = 'block';
+  }
 
   // ① 顶部总结区
   const topEl = document.getElementById('convTop');
@@ -1662,7 +2076,7 @@ function renderMatchResult(r) {
   const probEl=document.getElementById('convProb');
   if(probEl&&dp.length>0){
     probEl.style.display='block';
-    document.getElementById('convProbList').innerHTML=dp.map((p,i)=>`<div class="prob-item"><div class="prob-n">${i+1}</div><div><div class="prob-name"><strong>${esc(p.name)}：${esc(p.value)}</strong></div><div class="prob-desc">→ ${esc(p.threshold)}${p.severity==='high'?' ⚠️ 影响较大':''}</div></div></div>`).join('');
+    document.getElementById('convProbList').innerHTML=dp.map((p,i)=>`<div class="prob-item"><div class="prob-n">${i+1}</div><div><div class="prob-name"><strong>${esc(p.name)}：${esc(p.value)}</strong></div><div class="prob-desc">→ ${esc(p.threshold)}${p.severity==='high'?' · 影响较大':''}</div></div></div>`).join('');
   }
 
   // ③ 损失对比
@@ -1704,12 +2118,12 @@ function renderMatchResult(r) {
     const ab=document.getElementById('convLiftAmtB');if(ab)ab.textContent=_isAmtNum(curAmt)?'额度 '+curAmt+' 万':curAmt;
     const aa=document.getElementById('convLiftAmtA');if(aa)aa.textContent=_isAmtNum(optAmt)?'额度 '+optAmt+' 万':optAmt;
     const lg=document.getElementById('convLiftGap');
-    if(lg)lg.textContent=gapW>0?'📈 优化后可多拿约 '+gapW+' 万额度':'📈 优化后可多申请 '+(op-cp)+' 款产品';
+    if(lg)lg.textContent=gapW>0?'优化后可多拿约 '+gapW+' 万额度':'优化后可多申请 '+(op-cp)+' 款产品';
   }
 
-  // ⑤ 操作路径
+  // ⑤ 操作路径（仅付费后展示）
   const pathEl=document.getElementById('convPath');
-  if(pathEl){
+  if(pathEl && getPayToken()){
     pathEl.style.display='block';
     const _bankProds = products.filter(p=>p.type==='bank');
     const _finProds  = products.filter(p=>p.type!=='bank');
@@ -1727,10 +2141,13 @@ function renderMatchResult(r) {
   if(ctEl){
     ctEl.style.display='block';
     let icon,type,title,desc;
-    if(_clientT==='A'||curRate>=80){icon='⭐';type='优质型';title='你的资质属于优质客户';desc='征信健康，当前可直接申请银行产品，按正确顺序申请，符合多数银行准入区间';}
-    else if(_clientT==='B'||curRate>=60){icon='📋';type='可优化型';title='你的情况优化空间大';desc='征信有小瑕疵，但核心数据健康，做2-3个调整后，可申请产品会明显增加';}
-    else{icon='🔧';type='需养征信';title='建议先优化再申请';desc='当前资质直接申请被拒风险高，优化周期1-3个月，之后可大幅提升通过率';}
-    const ci=document.getElementById('convClientIcon');if(ci)ci.textContent=icon;
+    const _svgA=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`;
+    const _svgB=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/><polyline points="9 7 12 4 15 7"/></svg>`;
+    const _svgC=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+    if(_clientT==='A'||curRate>=80){icon=_svgA;type='优质型';title='你的资质属于优质客户';desc='征信健康，当前可直接申请银行产品，按正确顺序申请，符合多数银行准入区间';}
+    else if(_clientT==='B'||curRate>=60){icon=_svgB;type='可优化型';title='你的情况优化空间大';desc='征信有小瑕疵，但核心数据健康，做2-3个调整后，可申请产品会明显增加';}
+    else{icon=_svgC;type='需养征信';title='建议先优化再申请';desc='当前资质直接申请被拒风险高，优化周期1-3个月，之后可大幅提升通过率';}
+    const ci=document.getElementById('convClientIcon');if(ci)ci.innerHTML=icon;
     const ct=document.getElementById('convClientType');if(ct)ct.textContent=type;
     const ctit=document.getElementById('convClientTitle');if(ctit)ctit.textContent=title;
     const cd=document.getElementById('convClientDesc');if(cd)cd.textContent=desc;
@@ -1785,10 +2202,12 @@ function renderMatchResult(r) {
     }
   }
   if (!isPaid) {
-    const _paywallMsg = products.length > 0
-      ? `检测到 <strong style="color:#b45309;font-size:18px">${products.length}</strong> 家机构符合您的资质，付费后查看完整匹配结果与申请顺序`
-      : '已完成征信分析，付费后查看专属优化方案';
-    document.getElementById('productsGrid').innerHTML = `<div style="background:rgba(200,169,110,.1);border:1px solid rgba(200,169,110,.4);border-radius:12px;padding:22px 16px;text-align:center"><div style="font-size:14px;color:#4a3728;margin-bottom:16px;line-height:1.6">${_paywallMsg}</div><button onclick="showPayModal(()=>startMatching())" style="background:var(--gold);color:var(--navy);border:none;border-radius:8px;padding:12px 36px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">9.9元 解锁《个人资产优化建议书》</button></div>`;
+    const _ghostCard = () => `<div class="pw-ghost"><div class="pw-ghost-l"><div class="pw-ghost-name"></div><div class="pw-ghost-sub"></div></div><div class="pw-ghost-r"><div class="pw-ghost-pct"></div><div class="pw-ghost-rate"></div></div></div>`;
+    const _lockOverlay = `<div class="pw-lock-overlay"><div class="pw-lock-ring"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="pw-lock-lbl">REPORT LOCKED</div></div>`;
+    const _countHint = products.length > 0
+      ? `检测到 <span style="color:var(--accentB);font-size:17px;font-weight:700">${products.length}</span> 家机构符合您的资质`
+      : '征信分析已完成';
+    document.getElementById('productsGrid').innerHTML = `<div class="pw-wrap"><div class="pw-preview">${_ghostCard()}${_ghostCard()}${_ghostCard()}${_lockOverlay}<div class="pw-fade"></div></div><div class="pw-hint">${_countHint}</div><button class="pw-btn" onclick="showPayModal(()=>startMatching())">解锁完整分析报告 &nbsp; ¥9.9</button></div>`;
     document.getElementById('matchResult').style.display='block';
     document.getElementById('matchResult').scrollIntoView({behavior:'smooth',block:'start'});
     window._isMatching = false;
@@ -1797,32 +2216,32 @@ function renderMatchResult(r) {
 
   const _mkCard = p => {
     const pct=p.probPct||0;
-    const bc=pct>=75?'var(--green)':pct>=55?'var(--gold)':'var(--red)';
+    const bc=pct>=75?'var(--success)':pct>=55?'var(--accentB)':'var(--danger)';
     const isNotRec=p.prob==='不推荐';
     const cardStyle=isNotRec?'opacity:0.55;filter:grayscale(30%)':'';
     const badgeCls=p.prob==='高'?'badge-ok':p.prob==='中'?'badge-warn':'badge-bad';
-    const notRecTag=isNotRec?`<span class="pc-tag" style="color:#f87171;background:rgba(192,57,43,.12)">⚠️ 当前评分偏低</span>`:'';
-    return `<div class="product-card" style="${cardStyle}"><div class="pc-top"><span class="pc-emoji">${esc(p.emoji)||'🏦'}</span><div class="pc-info"><div class="pc-bank">${esc(p.bank)}</div><div class="pc-product">${esc(p.product)}</div></div><div class="pc-rate">${esc(p.rate)}</div></div><div class="pc-prob"><div class="pc-prob-bar"><div class="pc-prob-fill" style="width:${pct}%;background:${bc}"></div></div><div class="pc-prob-val">${pct}%</div></div><div class="pc-tags"><span class="badge ${badgeCls}">${esc(p.prob)}概率</span>${notRecTag}${(p.tags||[]).map(t=>`<span class="pc-tag">${esc(t)}</span>`).join('')}<span class="pc-tag">${esc(p.amount)}</span></div><div class="pc-reason" onclick="var d=this.nextElementSibling;if(d&&d.classList.contains('pc-reason-detail')){d.classList.toggle('show');this.querySelector('.pc-reason-toggle')?.classList.toggle('open')}"><span class="pc-reason-text">${esc(p.reason)||''}</span>${p.reason_detail?'<span class="pc-reason-toggle">▾</span>':''}</div>${p.reason_detail?'<div class="pc-reason-detail">'+esc(p.reason_detail)+'</div>':''}</div>`;
+    const notRecTag=isNotRec?`<span class="pc-tag" style="color:#f87171;background:rgba(192,57,43,.12)">当前评分偏低</span>`:'';
+    return `<div class="product-card" style="${cardStyle}"><div class="pc-top"><div class="pc-info"><div class="pc-bank">${esc(p.bank)}</div><div class="pc-product">${esc(p.product)}</div></div><div class="pc-rate">${esc(p.rate)}</div></div><div class="pc-prob"><div class="pc-prob-bar"><div class="pc-prob-fill" style="width:${pct}%;background:${bc}"></div></div><div class="pc-prob-val">${pct}%</div></div><div class="pc-tags"><span class="badge ${badgeCls}">${esc(p.prob)}概率</span>${notRecTag}${(p.tags||[]).map(t=>`<span class="pc-tag">${esc(t)}</span>`).join('')}<span class="pc-tag">${esc(p.amount)}</span></div><div class="pc-reason" onclick="var d=this.nextElementSibling;if(d&&d.classList.contains('pc-reason-detail')){d.classList.toggle('show');this.querySelector('.pc-reason-toggle')?.classList.toggle('open')}"><span class="pc-reason-text">${esc(p.reason)||''}</span>${p.reason_detail?'<span class="pc-reason-toggle">▾</span>':''}</div>${p.reason_detail?'<div class="pc-reason-detail">'+esc(p.reason_detail)+'</div>':''}</div>`;
   };
-  const _tierHd = (txt,sub)=>`<div style="grid-column:1/-1;margin:12px 0 4px;padding:7px 10px;border-left:3px solid var(--gold);background:rgba(200,169,110,.06);border-radius:0 6px 6px 0"><span style="font-size:12px;font-weight:700;color:#c8a96e">${txt}</span>${sub?`<span style="font-size:11px;color:rgba(255,255,255,.4);margin-left:6px">${sub}</span>`:''}` + `</div>`;
+  const _tierHd = (txt,sub)=>`<div style="grid-column:1/-1;margin:12px 0 4px;padding:7px 10px;border-left:3px solid var(--accentB);background:var(--glow)"><span style="font-size:12px;font-weight:700;color:var(--accentB)">${txt}</span>${sub?`<span style="font-size:11px;color:var(--silver);margin-left:6px">${sub}</span>`:''}` + `</div>`;
   if(products.length===0){
     // 根据实际数据生成具体的问题诊断和修复步骤
     const _zxProblems=[];
-    if((data2.overdue_current||0)>0) _zxProblems.push({icon:'🔴',text:`当前逾期 ${data2.overdue_current} 笔未结清，银行一票否决，必须立即结清`});
-    if(q3>6) _zxProblems.push({icon:'🔴',text:`近3个月审批查询 ${q3} 次，超出银行安全线（≤6次），需停止申请3个月待查询自然冷却`});
-    if(onlineI>4) _zxProblems.push({icon:'🟠',text:`网贷机构 ${onlineI} 家未结清，超出银行红线（≤4家），建议结清 ${onlineI-2} 家后再申请`});
-    if(income>0&&dr>70) _zxProblems.push({icon:'🟠',text:`负债率 ${dr}%，超出银行安全线（≤70%），需降低负债后申请`});
-    if(cUtil>90) _zxProblems.push({icon:'🟠',text:`信用卡使用率 ${cUtil}%，严重超标（≤70%），建议还款至50%以下`});
-    if(_zxProblems.length===0) _zxProblems.push({icon:'🟡',text:r.key_risk||'综合征信指标偏弱，建议联系顾问获取针对性优化方案'});
+    if((data2.overdue_current||0)>0) _zxProblems.push({icon:'',text:`当前逾期 ${data2.overdue_current} 笔未结清，银行一票否决，必须立即结清`});
+    if(q3>6) _zxProblems.push({icon:'',text:`近3个月审批查询 ${q3} 次，超出银行安全线（≤6次），需停止申请3个月待查询自然冷却`});
+    if(onlineI>4) _zxProblems.push({icon:'',text:`网贷机构 ${onlineI} 家未结清，超出银行红线（≤4家），建议结清 ${onlineI-2} 家后再申请`});
+    if(income>0&&dr>70) _zxProblems.push({icon:'',text:`负债率 ${dr}%，超出银行安全线（≤70%），需降低负债后申请`});
+    if(cUtil>90) _zxProblems.push({icon:'',text:`信用卡使用率 ${cUtil}%，严重超标（≤70%），建议还款至50%以下`});
+    if(_zxProblems.length===0) _zxProblems.push({icon:'',text:r.key_risk||'综合征信指标偏弱，建议联系顾问获取针对性优化方案'});
     const _zxSteps=[];
     if((data2.overdue_current||0)>0) _zxSteps.push(`结清全部逾期账户（预计1-2周，结清后征信状态改善）`);
     if(q3>6) _zxSteps.push(`停止所有贷款/信用卡申请，等待3个月查询冷却`);
     if(onlineI>4) _zxSteps.push(`优先结清通过率最低的网贷账户，目标降至4家以内`);
     if(cUtil>90) _zxSteps.push(`信用卡账单日前还款，将使用率降至50%以下`);
     if(_zxSteps.length===0) _zxSteps.push(`联系贷款顾问获取针对您情况的专属优化方案`);
-    const _problemsHtml=_zxProblems.map(p=>`<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)"><span style="flex-shrink:0;font-size:13px">${p.icon}</span><span style="font-size:12px;color:#7c2d12;line-height:1.6">${esc(p.text)}</span></div>`).join('');
-    const _stepsHtml=_zxSteps.map((s,i)=>`<div style="display:flex;gap:10px;align-items:flex-start;padding:7px 0"><div style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:var(--gold);color:var(--navy);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</div><span style="font-size:12px;color:#1e293b;line-height:1.6">${esc(s)}</span></div>`).join('');
-    document.getElementById('productsGrid').innerHTML=`<div style="background:#fff8f0;border-radius:14px;border:1px solid rgba(200,100,80,.25);padding:16px;margin-bottom:8px"><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><div style="font-size:20px">📋</div><div><div style="font-size:14px;font-weight:700;color:#92400e">你的征信诊断报告</div><div style="font-size:11px;color:#78716c;margin-top:2px">当前资质暂无可直接申请的银行产品，需优化后再申请</div></div></div><div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">问题诊断</div>${_problemsHtml}<div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin:12px 0 4px">优化步骤</div>${_stepsHtml}<div style="margin-top:12px;padding:10px;background:rgba(200,169,110,.12);border-radius:8px;border:1px solid rgba(200,169,110,.35)"><div style="font-size:11px;color:#78716c;margin-bottom:4px">优化后预计通过率</div><div style="font-size:16px;font-weight:700;color:#16a34a">${optRate}%+</div><div style="font-size:11px;color:#78716c;margin-top:2px">完成以上步骤后可申请银行产品</div></div><button onclick="(function(){const t=document.createElement('textarea');t.value='Xmdzhun';document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);alert('微信号已复制：Xmdzhun');})()" style="display:block;width:100%;text-align:center;background:var(--gold);color:var(--navy);padding:11px;border-radius:8px;font-weight:700;font-size:13px;border:none;cursor:pointer;font-family:inherit;margin-top:12px">💬 加客服微信，获取专属执行计划</button></div>`;
+    const _problemsHtml=_zxProblems.map(p=>`<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="flex-shrink:0;width:6px;height:6px;border-radius:50%;background:var(--danger);margin-top:6px;flex-shrink:0"></span><span style="font-size:12px;color:var(--plat);line-height:1.6">${esc(p.text)}</span></div>`).join('');
+    const _stepsHtml=_zxSteps.map((s,i)=>`<div style="display:flex;gap:10px;align-items:flex-start;padding:7px 0"><div style="flex-shrink:0;width:20px;height:20px;border:1px solid var(--accentB);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;color:var(--accentB)">${i+1}</div><span style="font-size:12px;color:var(--plat);line-height:1.6">${esc(s)}</span></div>`).join('');
+    document.getElementById('productsGrid').innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);padding:16px;margin-bottom:8px"><div style="margin-bottom:12px"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px">DIAGNOSIS</div><div style="font-size:14px;font-weight:600;color:var(--white)">征信诊断报告</div><div style="font-size:11px;color:var(--silver);margin-top:2px">当前资质暂无可直接申请的银行产品，需优化后再申请</div></div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">问题诊断</div>${_problemsHtml}<div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:12px 0 4px">优化步骤</div>${_stepsHtml}<div style="margin-top:12px;padding:10px;background:var(--glow);border:1px solid rgba(59,123,246,.25)"><div style="font-size:11px;color:var(--silver);margin-bottom:4px">优化后预计通过率</div><div style="font-size:16px;font-weight:700;color:var(--success)">${optRate}%+</div><div style="font-size:11px;color:var(--silver);margin-top:2px">完成以上步骤后可申请银行产品</div></div><button onclick="(function(){const t=document.createElement('textarea');t.value='Xmdzhun';document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);alert('微信号已复制：Xmdzhun');})()" style="display:block;width:100%;text-align:center;background:var(--accentB);color:#fff;padding:12px;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:inherit;margin-top:12px;letter-spacing:.06em">加客服微信，获取专属执行计划</button></div>`;
     // 零产品路径：convProb 和 adviceSection 与诊断报告内容重叠，隐藏
     const _cpEl = document.getElementById('convProb'); if (_cpEl) _cpEl.style.display = 'none';
     const _asEl = document.getElementById('adviceSection'); if (_asEl) _asEl.style.display = 'none';
@@ -1831,9 +2250,9 @@ function renderMatchResult(r) {
     const _othBank  = products.filter(p=>p.type==='bank'&&!(p.tags||[]).includes('国有大行'));
     const _finProds = products.filter(p=>p.type!=='bank');
     let _gridHtml='';
-    if(_bigBank.length)  _gridHtml += _tierHd('🏛 国有大行','优先申请，利率最低') + _bigBank.map(_mkCard).join('');
-    if(_othBank.length)  _gridHtml += _tierHd('🏦 股份制 / 城商行','') + _othBank.map(_mkCard).join('');
-    if(_finProds.length) _gridHtml += _tierHd('💳 消费金融','备选，最后申请') + _finProds.map(_mkCard).join('');
+    if(_bigBank.length)  _gridHtml += _tierHd('国有大行','优先申请，利率最低') + _bigBank.map(_mkCard).join('');
+    if(_othBank.length)  _gridHtml += _tierHd('股份制 / 城商行','') + _othBank.map(_mkCard).join('');
+    if(_finProds.length) _gridHtml += _tierHd('消费金融','备选，最后申请') + _finProds.map(_mkCard).join('');
     document.getElementById('productsGrid').innerHTML=_gridHtml;
   }
 
@@ -1849,19 +2268,19 @@ function renderMatchResult(r) {
     } else {
       if(_issuesSub)_issuesSub.style.display='none';
     }
-    if((adv.suggestions||[]).length>0) document.getElementById('adviceSuggestionsBody').innerHTML=adv.suggestions.map((s,i)=>`<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${esc(s.action)}</div><div class="as-impact">${esc(s.goal)}</div><div class="as-step-meta"><span class="as-step-tag">⏱ ${esc(s.time)}</span><span class="as-step-tag">✨ ${esc(s.effect)}</span></div></div></div>`).join('');
+    if((adv.suggestions||[]).length>0) document.getElementById('adviceSuggestionsBody').innerHTML=adv.suggestions.map((s,i)=>`<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${esc(s.action)}</div><div class="as-impact">${esc(s.goal)}</div><div class="as-step-meta"><span class="as-step-tag">${esc(s.time)}</span><span class="as-step-tag">${esc(s.effect)}</span></div></div></div>`).join('');
   }
   if((r.rejected_products||[]).length>0){document.getElementById('rejectedSection').style.display='block';document.getElementById('rejectedBody').innerHTML=r.rejected_products.map(rp=>`<div class="as-item"><div class="as-dot as-dot-amber"></div><div><div class="as-point">${esc(rp.type)}</div><div class="as-impact">${esc(rp.reason)}</div></div></div>`).join('');}
-  if((r.optimization||[]).length>0){document.getElementById('optimizationSection').style.display='block';document.getElementById('optimizationBody').innerHTML=r.optimization.map((o,i)=>`<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${esc(o.step)}</div><div class="as-impact">${esc(o.goal)}</div><div class="as-step-meta"><span class="as-step-tag">⏱ ${esc(o.time)}</span><span class="as-step-tag">🎯 ${esc(o.unlock)}</span></div></div></div>`).join('');}
+  if((r.optimization||[]).length>0){document.getElementById('optimizationSection').style.display='block';document.getElementById('optimizationBody').innerHTML=r.optimization.map((o,i)=>`<div class="as-item"><div class="as-step-num">${i+1}</div><div><div class="as-point">${esc(o.step)}</div><div class="as-impact">${esc(o.goal)}</div><div class="as-step-meta"><span class="as-step-tag">${esc(o.time)}</span><span class="as-step-tag">${esc(o.unlock)}</span></div></div></div>`).join('');}
   if(r.post_optimization){document.getElementById('postOptSection').style.display='block';document.getElementById('postOptBody').textContent=r.post_optimization;}
   document.getElementById('analysisReport').style.display='block';
 
   // 风险banner
-  const riskMap={'健康':{cls:'risk-healthy',icon:'🟢',label:'征信状态：健康',desc:'整体征信良好，无明显风控风险'},'轻微瑕疵':{cls:'risk-mild',icon:'🟡',label:'征信状态：轻微瑕疵',desc:'存在轻微不足，不影响主要银行产品申请'},'中度风险':{cls:'risk-medium',icon:'🟠',label:'征信状态：中度风险',desc:'存在影响银行审批的关键问题，需优化后再申请'},'高风险':{cls:'risk-high',icon:'🔴',label:'征信状态：高风险',desc:'已触碰银行硬红线，当前申请银行产品大概率拒贷'}};
+  const riskMap={'健康':{cls:'risk-healthy',icon:'',label:'征信状态：健康',desc:'整体征信良好，无明显风控风险'},'轻微瑕疵':{cls:'risk-mild',icon:'',label:'征信状态：轻微瑕疵',desc:'存在轻微不足，不影响主要银行产品申请'},'中度风险':{cls:'risk-medium',icon:'',label:'征信状态：中度风险',desc:'存在影响银行审批的关键问题，需优化后再申请'},'高风险':{cls:'risk-high',icon:'',label:'征信状态：高风险',desc:'已触碰银行硬红线，当前申请银行产品大概率拒贷'}};
   const rl=r.risk_level||'轻微瑕疵';
   const rDef=riskMap[rl]||riskMap['轻微瑕疵'];
   const banner=document.getElementById('riskLevelBanner');
-  if(banner){banner.className='risk-banner '+rDef.cls;banner.innerHTML=`<span class="rb-icon">${rDef.icon}</span><div><div class="rb-level">${rDef.label}</div><div class="rb-desc">${esc(r.key_risk)||rDef.desc}</div></div>`;}
+  if(banner){banner.className='risk-banner '+rDef.cls;banner.innerHTML=`<div><div class="rb-level">${rDef.label}</div><div class="rb-desc">${esc(r.key_risk)||rDef.desc}</div></div>`;}
 
   document.getElementById('matchResult').style.display='block';
   document.getElementById('matchResult').scrollIntoView({behavior:'smooth',block:'start'});
@@ -1908,7 +2327,7 @@ function toggleAssetBtn(type, el) {
   ['house','car','biz','none'].forEach(k => {
     const el2 = document.getElementById('asset-' + k);
     const chk = el2.querySelector('.ia-check');
-    if (_assetState[k]) { el2.classList.add('selected'); chk.textContent = '✅'; }
+    if (_assetState[k]) { el2.classList.add('selected'); chk.textContent = '✓'; }
     else { el2.classList.remove('selected'); chk.textContent = '☐'; }
   });
 }
@@ -1943,8 +2362,9 @@ function collectInfoData() {
     hukou:        hukouMap[hukouVal] || hukouVal || '未填写',
     edu:          eduMap[eduVal] || eduVal || '未填写',
     social:       _socialState.val === 'yes' ? ('有缴纳' + (v('if-social-months') ? '，已缴' + v('if-social-months') + '月' : '')) : _socialState.val === 'no' ? '无缴纳' : '未填写',
-    provident:    v('if-provident') ? parseInt(v('if-provident')) : null,
-    assets:       assets.length > 0 ? assets.join(' / ') : '未填写',
+    provident:      v('if-provident') ? parseInt(v('if-provident')) : null,
+    fixed_expense:  v('if-fixed-expense') ? parseInt(v('if-fixed-expense')) : null,
+    assets:         assets.length > 0 ? assets.join(' / ') : '未填写',
   };
 }
 
@@ -2003,7 +2423,7 @@ function renderTableFooters(loans, cards) {
     const totalLimit = cards.reduce((s, c) => s + (c.limit || 0), 0);
     const totalUsed  = cards.reduce((s, c) => s + (c.used  || 0), 0);
     const totalUtil  = totalLimit > 0 ? Math.round(totalUsed / totalLimit * 100) : null;
-    const utilColor  = totalUtil == null ? '' : totalUtil <= 30 ? 'var(--green)' : totalUtil <= 70 ? 'var(--amber)' : 'var(--red)';
+    const utilColor  = totalUtil == null ? '' : totalUtil <= 30 ? 'var(--success)' : totalUtil <= 70 ? 'var(--warn)' : 'var(--danger)';
     document.getElementById('cards-total-limit').innerHTML = totalLimit > 0 ? '<strong>' + fmt(totalLimit) + ' 元</strong>' : '--';
     document.getElementById('cards-total-used').innerHTML  = totalUsed  > 0 ? '<strong>' + fmt(totalUsed)  + ' 元</strong>' : '--';
     document.getElementById('cards-total-util').innerHTML  = totalUtil  != null
@@ -2082,7 +2502,7 @@ function buildReportText() {
   const totalMonthly  = calcTotalMonthly(loans, cards);
 
   const productLines = products.map((p, i) =>
-    `  ${i+1}. ${p.emoji||'🏦'} ${p.bank} · ${p.product}`
+    `  ${i+1}. ${p.bank} · ${p.product}`
     + `\n     利率: ${p.rate} | 授信上限: ${p.amount}`
     + ` | 通过概率: ${p.probPct}% (${p.prob})`
     + `\n     推荐理由: ${p.reason||'--'}`
@@ -2145,7 +2565,7 @@ async function autoSendReport() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        '来源':     _currentAgent ? `🔗 代理商渠道 · ${_currentAgent.name}（${_currentAgent.id}）` : '⭐ 贷准官网 · AI征信匹配报告',
+        '来源':     _currentAgent ? `代理商渠道 · ${_currentAgent.name}（${_currentAgent.id}）` : '贷准官网 · AI征信匹配报告',
         '客户姓名': name,
         '提交时间': new Date().toLocaleString('zh-CN'),
         '渠道代理': _currentAgent ? `${_currentAgent.name} / ${_currentAgent.phone} / ID:${_currentAgent.id}` : '直客',
@@ -2291,6 +2711,15 @@ const _isWeChat = /micromessenger/i.test(navigator.userAgent);
 document.addEventListener('DOMContentLoaded', () => {
   initContactPhone();
   loadProducts();
+
+  // 实时时钟
+  (function tickClock(){
+    const el = document.getElementById('hClock');
+    if(!el) return;
+    const now = new Date();
+    el.textContent = now.toLocaleTimeString('zh-CN',{hour12:false});
+    setTimeout(tickClock, 1000);
+  })();
 
   // 支付宝 WAP 支付回跳检测
   const _urlParamsInit  = new URLSearchParams(location.search);

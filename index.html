@@ -4,79 +4,83 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>贷准 · AI信用数据分析与方案建议</title>
-<link rel="stylesheet" href="style.css?v=1775095696">
+<link href="https://fonts.loli.net/css2?family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" onerror="this.remove()">
+<link rel="stylesheet" href="style.css?v=1775430000">
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 </head>
 <body>
 
-<!-- NAV -->
-<nav>
-  <a class="nav-logo" href="#"><em>贷</em>准</a>
-  <span class="nav-tag">AI · 信用数据分析与方案建议</span>
-</nav>
+<div class="scanline"></div>
 
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-grid"></div>
-  <div class="hero-orb hero-orb1"></div>
-  <div class="hero-orb hero-orb2"></div>
-
-  <div class="eyebrow">AI 驱动 · 精准匹配 · 厦门专属</div>
-  <h1>上传征信报告<br><em>AI秒出匹配产品</em></h1>
-  <p class="hero-sub">无需手动填数，AI自动读取报告，识别有效负债与查询记录，精准匹配可申请银行产品</p>
-  <div class="hero-steps">
-    <div class="hs-step"><span class="hs-num">1</span> 上传 PDF 或截图</div>
-    <span class="hs-arrow">→</span>
-    <div class="hs-step"><span class="hs-num">2</span> AI识别有效账户</div>
-    <span class="hs-arrow">→</span>
-    <div class="hs-step"><span class="hs-num">3</span> 补充基本信息</div>
-    <span class="hs-arrow">→</span>
-    <div class="hs-step"><span class="hs-num">4</span> 匹配可申请产品</div>
+<!-- ── Header ── -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <rect x="1" y="1" width="5" height="5" stroke="#3B7BF6" stroke-width="1"/>
+        <rect x="8" y="1" width="5" height="5" fill="#3B7BF6" opacity=".4"/>
+        <rect x="1" y="8" width="5" height="5" fill="#3B7BF6" opacity=".2"/>
+        <rect x="8" y="8" width="5" height="5" stroke="#3B7BF6" stroke-width="1" stroke-dasharray="1.5 1"/>
+      </svg>
+    </div>
+    <div class="logo-text"><em>贷</em>准科技</div>
+    <div class="logo-sep"></div>
+    <div class="logo-sub">CREDIT INTELLIGENCE</div>
   </div>
-  <div class="hero-cta">
-    <button class="cta-btn" onclick="document.getElementById('upload-section').scrollIntoView({behavior:'smooth'})">
-      <span>📄</span> 立即上传分析
-    </button>
+  <div class="header-r">
+    <div class="h-badge">SYSTEM ONLINE</div>
+    <div class="h-clock" id="hClock">--:--:--</div>
+    <div class="h-icp">闽ICP备2026009746号</div>
   </div>
-</section>
+</header>
 
-<!-- MAIN -->
-<div class="main-section" id="upload-section">
+<!-- ── Main ── -->
+<main>
+<div class="container">
+
+  <div class="pg-eyebrow">智能征信分析平台</div>
+  <div class="pg-h1">个人征信智能解析</div>
+  <div class="pg-sub">上传简版征信报告，AI识别负债结构，精准匹配可申请金融产品</div>
 
   <!-- STEP 1: UPLOAD -->
-  <div class="upload-card" id="uploadCard">
-    <div class="card-header">
-      <div class="card-header-num">1</div>
-      <div>
-        <div class="card-header-title">上传征信报告</div>
-      </div>
-      <div class="card-header-sub">支持 PDF · JPG · PNG</div>
+  <div class="pcard" id="uploadCard">
+    <div class="card-bar">
+      <span class="step-tag">STEP 01</span>
+      <span class="card-title">上传人行简版征信报告</span>
+      <span class="card-status"><span class="dot"></span>READY</span>
     </div>
-    <div class="card-body">
+    <div class="cbody">
       <div class="upload-zone" id="uploadZone"
         ondragover="event.preventDefault();this.classList.add('dragover')"
         ondragleave="this.classList.remove('dragover')"
         ondrop="handleDrop(event)"
         onclick="document.getElementById('fileInput').click()">
         <input type="file" id="fileInput" accept=".pdf,image/*" multiple style="display:none" onchange="handleFiles(this.files)">
-        <span class="uz-icon">📑</span>
+        <div class="uz-ring">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B7BF6" stroke-width="1.5" stroke-linecap="square">
+            <path d="M12 15V3"/><path d="M7 8l5-5 5 5"/>
+            <path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/>
+          </svg>
+        </div>
         <div class="uz-title">拖拽或点击上传征信报告</div>
         <div class="uz-hint">
           支持人行征信中心导出的 PDF 文件<br>
           或手机截图（JPG / PNG），可多页
         </div>
-        <button class="uz-btn" onclick="event.stopPropagation();document.getElementById('fileInput').click()">
-          <span>📂</span> 选择文件
-        </button>
+        <button class="uz-btn" onclick="event.stopPropagation();document.getElementById('fileInput').click()">选择文件</button>
         <div class="uz-formats">
-          <div class="uz-format">📑 PDF</div>
-          <div class="uz-format">🖼 JPG</div>
-          <div class="uz-format">🖼 PNG</div>
+          <div class="uz-format">PDF</div>
+          <div class="uz-format">JPG</div>
+          <div class="uz-format">PNG</div>
         </div>
       </div>
 
       <div class="file-info" id="fileInfo">
-        <span class="fi-icon" id="fileIcon">📄</span>
+        <span class="fi-icon" id="fileIcon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0CB87A" stroke-width="1.5" stroke-linecap="square">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </span>
         <div>
           <div class="fi-name" id="fileName">--</div>
           <div class="fi-size" id="fileSize">--</div>
@@ -84,88 +88,128 @@
         <button class="fi-remove" onclick="clearFile()" title="移除">×</button>
       </div>
 
-      <div class="consent-row" style="display:flex;align-items:flex-start;gap:8px;margin:12px 0 8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;font-size:12px;color:rgba(255,255,255,.7);line-height:1.5">
-        <input type="checkbox" id="consentCheck" style="margin-top:2px;flex-shrink:0;accent-color:var(--gold)" onchange="document.getElementById('analyzeBtn').disabled=!(this.checked&&window._fileReady)">
-        <label for="consentCheck">我已阅读并同意 <a href="/privacy.html" target="_blank" style="color:var(--gold)">《个人信息保护政策》</a> 及 <a href="/auth.html" target="_blank" style="color:var(--gold)">《征信数据分析授权协议》</a>，数据仅用于本次AI算法本地解析，不留存、不泄露</label>
+      <div class="consent-row">
+        <input type="checkbox" id="consentCheck" onchange="document.getElementById('analyzeBtn').disabled=!(this.checked&&window._fileReady)">
+        <label for="consentCheck">我已阅读并同意 <a href="/privacy.html" target="_blank">《个人信息保护政策》</a> 及 <a href="/auth.html" target="_blank">《征信数据分析授权协议》</a>，数据仅用于本次AI算法本地解析，不留存、不泄露</label>
       </div>
-      <button class="analyze-btn" id="analyzeBtn" onclick="startAnalysis()" disabled>
-        <span>🔬</span>
+      <button class="btn-cta" id="analyzeBtn" onclick="startAnalysis()" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+        </svg>
         <span id="analyzeBtnText">请先上传征信报告</span>
       </button>
-      <div class="privacy-note">🔒 加密上传征信报告，数据仅用于AI算法本地解析，不留存、不泄露</div>
+      <div class="sec-note">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+        </svg>
+        TLS 加密传输 · 识别完成即销毁 · 不留存原始图片
+      </div>
     </div>
   </div>
 
   <!-- STEP 2: READING ANIMATION -->
-  <div class="upload-card" id="readingCard" style="display:none">
-    <div class="card-header">
-      <div class="card-header-num">2</div>
-      <div class="card-header-title">AI 正在识别分析</div>
-      <div class="card-header-sub">约 15-30 秒</div>
+  <div class="pcard" id="readingCard" style="display:none">
+    <div class="card-bar">
+      <span class="step-tag">STEP 02</span>
+      <span class="card-title">征信数据识别中</span>
+      <span class="card-status">
+        <span style="width:8px;height:8px;border:1.5px solid var(--accentB);border-top-color:transparent;border-radius:50%;animation:rotateCW .7s linear infinite;display:inline-block"></span>
+        PROCESSING
+      </span>
     </div>
-    <div class="card-body">
-      <div class="reading-anim" id="readingAnim" style="display:block">
-        <div class="ra-scanner">
-          <div class="ra-line"></div><div class="ra-line" style="width:80%"></div>
-          <div class="ra-line" style="width:90%"></div><div class="ra-line" style="width:70%"></div>
-          <div class="ra-line"></div>
-          <div class="ra-beam"></div>
-        </div>
-        <div class="ra-title">AI 正在读取征信报告</div>
-        <div class="ra-sub">识别有效账户，过滤已结清与销户记录</div>
-        <div class="ra-steps">
-          <div class="ra-step active" id="rs1"><div class="ra-dot"></div>解析文件内容</div>
-          <div class="ra-step" id="rs2"><div class="ra-dot"></div>提取贷款 / 信用卡账户</div>
-          <div class="ra-step" id="rs3"><div class="ra-dot"></div>过滤结清 / 销户 / 贷后查询</div>
-          <div class="ra-step" id="rs4"><div class="ra-dot"></div>汇总有效负债与查询数据</div>
-          <div class="ra-step" id="rs5"><div class="ra-dot"></div>准备AI产品匹配</div>
-        </div>
+    <div class="loading-wrap">
+      <div class="geo-loader">
+        <div class="geo-outer"></div>
+        <div class="geo-mid"></div>
+        <div class="geo-inner"></div>
       </div>
+      <div class="ld-eyebrow">AI CREDIT ANALYSIS ENGINE</div>
+      <div class="ld-title">正在解析征信数据</div>
+      <ul class="steps-list">
+        <li class="sl-item" id="rs1">
+          <span class="sl-n">01</span>
+          <span class="sl-idle"></span>
+          图片加密上传完成
+        </li>
+        <li class="sl-item" id="rs2">
+          <span class="sl-n">02</span>
+          <span class="sl-idle"></span>
+          账户及负债信息提取
+        </li>
+        <li class="sl-item" id="rs3">
+          <span class="sl-n">03</span>
+          <span class="sl-idle"></span>
+          AI 结构化解析中
+        </li>
+        <li class="sl-item" id="rs4">
+          <span class="sl-n">04</span>
+          <span class="sl-idle"></span>
+          负债率 / 查询风险计算
+        </li>
+        <li class="sl-item" id="rs5">
+          <span class="sl-n">05</span>
+          <span class="sl-idle"></span>
+          生成征信分析报告
+        </li>
+      </ul>
     </div>
   </div>
 
   <!-- STEP 3: RECOGNITION RESULT -->
   <div id="resultArea" style="display:none">
 
-    <div class="upload-card">
-      <div class="card-header">
-        <div class="card-header-num">2</div>
-        <div class="card-header-title">识别结果</div>
-        <div class="card-header-sub" style="color:rgba(255,255,255,.5);font-size:11px">已过滤结清 · 销户 · 贷后查询</div>
+    <div class="pcard">
+      <div class="card-bar">
+        <span class="step-tag">STEP 02</span>
+        <span class="card-title">识别结果</span>
+        <span class="card-status">已过滤结清 · 销户 · 贷后查询</span>
       </div>
-      <div class="card-body">
+      <div class="cbody">
 
         <!-- Notice -->
-        <div class="notice-tag">✅ 仅展示当前有效账户，已自动过滤所有已结清、销户及贷后管理查询</div>
+        <div class="notice-tag">仅展示当前有效账户，已自动过滤所有已结清、销户及贷后管理查询</div>
 
         <!-- ID Card info bar -->
-        <div class="id-info-bar" id="idInfoBar" style="display:none">
+        <div class="id-info-grid" id="idInfoBar" style="display:none">
           <div class="iib-item">
-            <span class="iib-icon">👤</span>
+            <span class="iib-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E7D9C" stroke-width="1.5" stroke-linecap="square">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+            </span>
             <div>
               <div class="iib-label">姓名</div>
               <div class="iib-val" id="iib-name">--</div>
             </div>
           </div>
-          <div class="iib-divider"></div>
           <div class="iib-item">
-            <span class="iib-icon">🆔</span>
+            <span class="iib-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E7D9C" stroke-width="1.5" stroke-linecap="square">
+                <rect x="2" y="5" width="20" height="14" rx="1"/><path d="M2 10h20"/>
+              </svg>
+            </span>
             <div>
               <div class="iib-label">身份证号</div>
               <div class="iib-val iib-idno" id="iib-idno">--</div>
             </div>
           </div>
-          <div class="iib-divider"></div>
           <div class="iib-item">
-            <span class="iib-icon">📅</span>
+            <span class="iib-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E7D9C" stroke-width="1.5" stroke-linecap="square">
+                <rect x="3" y="4" width="18" height="18" rx="1"/><path d="M16 2v4M8 2v4M3 10h18"/>
+              </svg>
+            </span>
             <div>
               <div class="iib-label">实际年龄</div>
               <div class="iib-val" id="iib-age">--</div>
             </div>
           </div>
-          <div class="iib-divider"></div>
           <div class="iib-item">
-            <span class="iib-icon">📋</span>
+            <span class="iib-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E7D9C" stroke-width="1.5" stroke-linecap="square">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
+              </svg>
+            </span>
             <div>
               <div class="iib-label">报告时间</div>
               <div class="iib-val" id="iib-report-date">--</div>
@@ -174,59 +218,127 @@
         </div>
 
         <!-- Summary bar -->
-        <div class="summary-bar" id="summaryBar">
-          <div class="sb-item"><div class="sb-val" id="sumLoans">--</div><div class="sb-label">未结清贷款笔数</div></div>
-          <div class="sb-item"><div class="sb-val" id="sumCards">--</div><div class="sb-label">未销户信用卡数</div></div>
-          <div class="sb-item"><div class="sb-val" id="sumMonthly">--</div><div class="sb-label">月还款估算</div></div>
-          <div class="sb-item"><div class="sb-val" id="sumDebtRatio" style="font-size:18px">--</div><div class="sb-label">月还款负债率</div><div class="sb-debt-hint" id="sumDebtHint" style="font-size:10px;margin-top:3px;opacity:.7"></div></div>
+        <div class="metrics-grid" id="summaryBar">
+          <div class="mcell">
+            <div class="mlabel">当前负债 <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="12" height="4" rx="1"/><rect x="3" y="5" width="10" height="4" rx="1"/><rect x="4" y="1" width="8" height="4" rx="1"/></svg></div>
+            <div class="mval" id="sumTotalDebt">--</div>
+            <div class="msub">贷款+信用卡合计</div>
+          </div>
+          <div class="mcell">
+            <div class="mlabel">月均还款 <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><line x1="5" y1="1" x2="5" y2="5"/><line x1="11" y1="1" x2="11" y2="5"/><line x1="2" y1="7" x2="14" y2="7"/><polyline points="8,10 10,10 10,12"/><line x1="8" y1="10" x2="8" y2="12"/></svg></div>
+            <div class="mval" id="sumMonthly">--</div>
+            <div class="msub">估算值</div>
+          </div>
+          <div class="mcell">
+            <div class="mlabel">月还款负债率 <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10 A6 6 0 0 1 14 10"/><line x1="8" y1="10" x2="8" y2="4"/><circle cx="8" cy="10" r="1.5" fill="currentColor" stroke="none"/><line x1="4" y1="13" x2="12" y2="13"/></svg></div>
+            <div class="mval" id="sumDebtRatio">--</div>
+            <div class="msub" id="sumDebtHint"></div>
+          </div>
+          <div class="mcell">
+            <div class="mlabel">未结清贷款 <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2 L10 2 L13 5 L13 14 L3 14 Z"/><polyline points="10,2 10,5 13,5"/><line x1="5" y1="8" x2="11" y2="8"/><line x1="5" y1="11" x2="9" y2="11"/></svg></div>
+            <div class="mval" id="sumLoans">--</div>
+            <div class="msub">笔</div>
+          </div>
+          <div class="mcell">
+            <div class="mlabel">未销户信用卡 <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="14" height="9" rx="1.5"/><line x1="1" y1="7" x2="15" y2="7"/><line x1="4" y1="10.5" x2="6" y2="10.5" stroke-width="2"/><line x1="8" y1="10.5" x2="11" y2="10.5"/></svg></div>
+            <div class="mval" id="sumCards">--</div>
+            <div class="msub">张</div>
+          </div>
+          <div class="mcell">
+            <div class="mlabel">近30天查询 <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg></div>
+            <div class="mval" id="sumQ30">--</div>
+            <div class="msub">次</div>
+          </div>
         </div>
 
-
-        <!-- ════ 征信评分系统 ════ -->
-        <div class="cs-wrap" id="csWrap" style="display:none">
-          <div class="cs-row">
-            <div class="cs-gauge">
-              <svg viewBox="0 0 84 84"><circle class="cs-gauge-bg" cx="42" cy="42" r="33"/><circle class="cs-gauge-fill" id="csGaugeFill" cx="42" cy="42" r="33" stroke-dasharray="207" stroke-dashoffset="207"/></svg>
-              <div class="cs-num"><div class="cs-num-val" id="csScoreVal">--</div><div class="cs-num-lbl">评分</div></div>
-            </div>
-            <div class="cs-info">
-              <div class="cs-info-title">征信综合评分 <span id="scoreInfoBtn" title="本评分基于贷准AI模型对102个风控维度的模拟演算，非官方人行评分，仅供金融方案参考。" style="cursor:help;font-size:11px;color:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.25);border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;line-height:1">?</span></div>
-              <div class="cs-level" id="csLevel">计算中…</div>
-              <div class="cs-hint" id="csHint"></div>
-              <div class="cs-unlock" id="csUnlock" style="display:none" onclick="document.getElementById('matchBtn')?.click();document.getElementById('matchBtn')?.scrollIntoView({behavior:'smooth'})">
-                <span style="font-size:15px">🔓</span>
-                <div class="cs-unlock-txt">补充收入、社保、户籍等信息<br>可提升评分准确度</div>
-                <div class="cs-unlock-btn">立即补充 →</div>
+        <!-- 爆查风险指标 -->
+        <div class="br-wrap" id="brWrap" style="display:none">
+          <div class="card-bar" style="background:var(--raised)">
+            <span class="step-tag">RISK</span>
+            <span class="card-title">征信风险指标</span>
+            <span class="card-status" id="brBadge"></span>
+          </div>
+          <div class="risk-rows">
+            <div class="risk-row">
+              <div class="risk-top">
+                <span class="risk-name">爆查风险指数</span>
+                <span class="risk-v" id="brRiskScore">--</span>
               </div>
+              <div class="bar-track"><div class="bar-fill" id="brRiskBar" style="width:0%"></div></div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-top">
+                <span class="risk-name">近7天查询</span>
+                <span class="risk-v" id="brQ7">--</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill" id="brQ7Bar" style="width:0%"></div></div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-top">
+                <span class="risk-name">近1月查询</span>
+                <span class="risk-v" id="brQ30">--</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill" id="brQ30Bar" style="width:0%"></div></div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-top">
+                <span class="risk-name">近3月查询</span>
+                <span class="risk-v" id="brQ90">--</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill" id="brQ90Bar" style="width:0%"></div></div>
+            </div>
+            <div class="risk-row" style="border-bottom:none">
+              <div class="risk-top">
+                <span class="risk-name">集中度</span>
+                <span class="risk-v" id="brConc">--%</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill" id="brConcBar" style="width:0%"></div></div>
+            </div>
+          </div>
+          <div class="br-tip" id="brTip"></div>
+        </div>
+
+        <!-- 征信综合评分 -->
+        <div class="score-card" id="csWrap" style="display:none">
+          <div class="score-card-eyebrow">综合评分 <span id="scoreInfoBtn" onclick="alert('本评分基于贷准AI模型对征信关键风控维度的综合演算，非官方人行征信评分，仅供贷款方案参考，实际审批以银行为准。')" style="cursor:pointer;font-size:10px;color:var(--silver);border:1px solid var(--border2);border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;line-height:1">?</span></div>
+          <div class="ring-wrap">
+            <svg width="120" height="120" viewBox="0 0 84 84" style="transform:rotate(-90deg)">
+              <circle class="cs-gauge-bg" cx="42" cy="42" r="33"/>
+              <circle class="cs-gauge-fill" id="csGaugeFill" cx="42" cy="42" r="33" stroke-dasharray="207" stroke-dashoffset="207" stroke-linecap="butt"/>
+            </svg>
+            <div class="ring-center">
+              <div class="ring-num" id="csScoreVal">--</div>
+              <div class="ring-lbl">/ 100</div>
+            </div>
+          </div>
+          <div class="score-tier" id="csLevel">计算中…</div>
+          <div class="score-desc" id="csHint"></div>
+          <div class="cs-unlock" id="csUnlock" style="display:none" onclick="document.getElementById('matchBtn')?.click();document.getElementById('matchBtn')?.scrollIntoView({behavior:'smooth'})">
+            <div class="cs-unlock-txt">补充基础信息，可提升评分准确度</div>
+            <div class="cs-unlock-btn">立即补充 →</div>
+          </div>
+          <div class="score-stats" id="scoreStats" style="display:none">
+            <div class="score-stat-row">
+              <span class="score-stat-lbl">当前可申请</span>
+              <span class="score-stat-val" id="csCurrentCount">-- 款产品</span>
+            </div>
+            <div class="score-stat-row">
+              <span class="score-stat-lbl">优化后可申请</span>
+              <span class="score-stat-val green" id="csOptCount">-- 款产品</span>
             </div>
           </div>
           <div class="cs-dims" id="csDims"></div>
         </div>
 
-        <!-- ════ 爆查风险指数 ════ -->
-        <div class="br-wrap" id="brWrap" style="display:none">
-          <div class="br-top">
-            <div class="br-title">⚡ 爆查风险指数</div>
-            <div class="br-badge" id="brBadge"></div>
-          </div>
-          <div class="br-meters">
-            <div class="br-meter"><div class="br-meter-val" id="brQ7">--</div><div class="br-meter-lbl">近7天</div></div>
-            <div class="br-meter"><div class="br-meter-val" id="brQ30">--</div><div class="br-meter-lbl">近1月</div></div>
-            <div class="br-meter"><div class="br-meter-val" id="brQ90">--</div><div class="br-meter-lbl">近3月</div></div>
-            <div class="br-meter"><div class="br-meter-val" id="brConc">--%</div><div class="br-meter-lbl">集中度</div></div>
-          </div>
-          <div class="br-tip" id="brTip"></div>
-        </div>
         <!-- 网贷机构统计栏 -->
-        <div id="onlineStatsBox" style="display:none;border-radius:10px;padding:13px 16px;margin-bottom:12px;font-size:13px;line-height:1.8;border-width:1px;border-style:solid"></div>
+        <div id="onlineStatsBox" style="display:none;border-radius:0;padding:13px 16px;margin-bottom:12px;font-size:13px;line-height:1.8;border-width:1px;border-style:solid"></div>
 
-        <!-- Warn box (if any) -->
+        <!-- Warn box -->
         <div class="warn-box" id="warnBox" style="display:none"></div>
 
         <!-- Loans table -->
         <div class="result-section" id="loansSection" style="display:none">
           <div class="rs-header">
-            <span class="rs-icon">🏦</span>
             <span class="rs-title">贷款账户（未结清）</span>
             <span class="rs-count" id="loanCount">0</span>
           </div>
@@ -246,11 +358,11 @@
                 </thead>
                 <tbody id="loansBody"></tbody>
                 <tfoot id="loansTfoot" style="display:none">
-                  <tr style="background:rgba(10,22,40,0.06);font-weight:700;font-size:13px">
-                    <td colspan="2" style="padding:10px 10px;color:var(--navy)">合计</td>
-                    <td style="padding:10px 10px;text-align:right;color:var(--navy)" id="loans-total-limit">--</td>
-                    <td style="padding:10px 10px;text-align:right;color:var(--red)" id="loans-total-balance">--</td>
-                    <td style="padding:10px 10px;text-align:right;color:var(--gold)" id="loans-total-monthly">--</td>
+                  <tr style="background:rgba(59,123,246,0.06);font-weight:700;font-size:12px">
+                    <td colspan="2" style="padding:10px;color:var(--plat)">合计</td>
+                    <td style="padding:10px;text-align:right;color:var(--plat)" id="loans-total-limit">--</td>
+                    <td style="padding:10px;text-align:right;color:var(--danger)" id="loans-total-balance">--</td>
+                    <td style="padding:10px;text-align:right;color:var(--accentB)" id="loans-total-monthly">--</td>
                     <td colspan="2"></td>
                   </tr>
                 </tfoot>
@@ -262,7 +374,6 @@
         <!-- Cards table -->
         <div class="result-section" id="cardsSection" style="display:none">
           <div class="rs-header">
-            <span class="rs-icon">💳</span>
             <span class="rs-title">信用卡账户（未销户）</span>
             <span class="rs-count" id="cardCount">0</span>
           </div>
@@ -280,11 +391,11 @@
                 </thead>
                 <tbody id="cardsBody"></tbody>
                 <tfoot id="cardsTfoot" style="display:none">
-                  <tr style="background:rgba(10,22,40,0.06);font-weight:700;font-size:13px">
-                    <td style="padding:10px 10px;color:var(--navy)">合计</td>
-                    <td style="padding:10px 10px;text-align:right;color:var(--navy)" id="cards-total-limit">--</td>
-                    <td style="padding:10px 10px;text-align:right;color:var(--red)" id="cards-total-used">--</td>
-                    <td style="padding:10px 10px;text-align:right;color:var(--amber);font-weight:700" id="cards-total-util">--</td>
+                  <tr style="background:rgba(59,123,246,0.06);font-weight:700;font-size:12px">
+                    <td style="padding:10px;color:var(--plat)">合计</td>
+                    <td style="padding:10px;text-align:right;color:var(--plat)" id="cards-total-limit">--</td>
+                    <td style="padding:10px;text-align:right;color:var(--danger)" id="cards-total-used">--</td>
+                    <td style="padding:10px;text-align:right;color:var(--warn);font-weight:700" id="cards-total-util">--</td>
                     <td></td>
                   </tr>
                 </tfoot>
@@ -294,24 +405,25 @@
         </div>
 
         <!-- Query stats -->
-        <div class="result-section" id="querySection" style="display:none">
-          <div class="rs-header">
-            <span class="rs-icon">🔍</span>
-            <span class="rs-title">查询记录（贷款审批 / 信用卡审批，已排除贷后管理）</span>
+        <div class="pcard" id="querySection" style="display:none">
+          <div class="card-bar">
+            <span class="step-tag">QUERY</span>
+            <span class="card-title">查询记录</span>
+            <span style="margin-left:auto;font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace">贷款审批 / 信用卡审批</span>
           </div>
-          <div class="rs-body">
-            <div class="query-grid" id="queryGrid"></div>
-          </div>
+          <div class="query-grid" id="queryGrid"></div>
         </div>
 
         <!-- Empty state -->
         <div class="empty-state" id="emptyState" style="display:none">
-          📭 未识别到有效账户信息<br>请确认上传的是人行征信报告（简版或详版）
+          未识别到有效账户信息<br>请确认上传的是人行征信报告（简版或详版）
         </div>
 
         <!-- Go to info form button -->
-        <button class="analyze-btn" id="matchBtn" onclick="showInfoForm()" style="margin-top:8px">
-          <span>📝</span>
+        <button class="btn-cta" id="matchBtn" onclick="showInfoForm()" style="margin-top:8px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
           <span>下一步：补充基本信息 →</span>
         </button>
 
@@ -319,16 +431,14 @@
     </div>
 
     <!-- STEP 3: INFO FORM -->
-    <div class="upload-card" id="infoCard" style="display:none">
-      <div class="card-header">
-        <div class="card-header-num">3</div>
-        <div>
-          <div class="card-header-title">补充基本信息</div>
-        </div>
-        <div class="card-header-sub">帮助AI更精准匹配</div>
+    <div class="pcard" id="infoCard" style="display:none">
+      <div class="card-bar">
+        <span class="step-tag">STEP 03</span>
+        <span class="card-title">补充基本信息</span>
+        <span class="card-status">帮助AI更精准匹配</span>
       </div>
-      <div class="card-body">
-        <div style="text-align:center;font-size:13px;color:rgba(255,180,0,0.85);margin-bottom:14px;padding:10px 16px;background:rgba(255,180,0,0.08);border-radius:8px;border:1px solid rgba(255,180,0,0.2);">⚠️ 请填写真实信息，以便更精准地匹配适合您的产品。</div>
+      <div class="cbody">
+        <div style="text-align:center;font-size:12px;color:var(--warn);margin-bottom:14px;padding:10px 14px;background:rgba(217,128,0,0.08);border:1px solid rgba(217,128,0,0.2);">请填写真实信息，以便更精准地匹配适合您的产品。</div>
         <div class="info-form-grid" id="infoFormGrid">
 
           <!-- 月收入 -->
@@ -379,8 +489,8 @@
           <div class="if-group">
             <label class="if-label">社保缴纳情况</label>
             <div class="if-toggle-row">
-              <button class="if-toggle" id="social-yes" onclick="selectToggle('social','yes',this)">✓ 有缴纳</button>
-              <button class="if-toggle" id="social-no"  onclick="selectToggle('social','no',this)">✗ 无缴纳</button>
+              <button class="if-toggle" id="social-yes" onclick="selectToggle('social','yes',this)">有缴纳</button>
+              <button class="if-toggle" id="social-no"  onclick="selectToggle('social','no',this)">无缴纳</button>
             </div>
             <div id="social-months-wrap" style="display:none;margin-top:8px">
               <input type="number" id="if-social-months" class="if-input" placeholder="已连续缴纳月数（如 24）">
@@ -393,33 +503,55 @@
             <input type="number" id="if-provident" class="if-input" placeholder="个人+单位合计，无则填 0">
           </div>
 
+          <!-- 月固定支出 -->
+          <div class="if-group">
+            <label class="if-label">月固定生活支出（元）</label>
+            <input type="number" id="if-fixed-expense" class="if-input" placeholder="房租/餐饮/交通等，不含贷款还款">
+          </div>
+
           <!-- 资产情况 -->
           <div class="if-group if-group-full">
             <label class="if-label">名下资产（可多选）</label>
             <div class="if-asset-grid">
               <div class="if-asset" id="asset-house" onclick="toggleAssetBtn('house',this)">
-                <span class="ia-icon">🏠</span>
+                <span class="ia-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6E7D9C" stroke-width="1.5" stroke-linecap="square">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                  </svg>
+                </span>
                 <span class="ia-label">名下有房产</span>
-                <span class="ia-check">☐</span>
+                <span class="ia-check"></span>
               </div>
               <div class="if-asset" id="asset-car" onclick="toggleAssetBtn('car',this)">
-                <span class="ia-icon">🚗</span>
+                <span class="ia-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6E7D9C" stroke-width="1.5" stroke-linecap="square">
+                    <rect x="1" y="8" width="22" height="10" rx="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 8l3-5h6l3 5"/>
+                  </svg>
+                </span>
                 <span class="ia-label">名下有车辆</span>
-                <span class="ia-check">☐</span>
+                <span class="ia-check"></span>
               </div>
               <div class="if-asset" id="asset-biz" onclick="toggleAssetBtn('biz',this)">
-                <span class="ia-icon">🏢</span>
+                <span class="ia-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6E7D9C" stroke-width="1.5" stroke-linecap="square">
+                    <rect x="2" y="7" width="20" height="15" rx="1"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+                  </svg>
+                </span>
                 <span class="ia-label">名下有营业执照</span>
-                <span class="ia-check">☐</span>
+                <span class="ia-check"></span>
               </div>
               <div class="if-asset" id="asset-none" onclick="toggleAssetBtn('none',this)">
-                <span class="ia-icon">—</span>
+                <span class="ia-icon" style="font-size:20px;color:var(--muted)">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333D5A" stroke-width="1.5" stroke-linecap="square">
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                </span>
                 <span class="ia-label">暂无以上资产</span>
-                <span class="ia-check">☐</span>
+                <span class="ia-check"></span>
               </div>
             </div>
             <!-- 房产子选项 -->
-            <div id="house-sub" style="display:none;margin-top:10px;background:var(--off-white);border-radius:8px;padding:12px 14px;border-left:3px solid var(--gold)">
+            <div id="house-sub" style="display:none;margin-top:10px;background:var(--raised);border-left:2px solid var(--accentB);padding:12px 14px">
               <label class="if-label" style="font-size:11px;margin-bottom:6px">房产状态</label>
               <select id="if-house-status" class="if-select">
                 <option value="">请选择</option>
@@ -432,27 +564,37 @@
 
         </div>
 
-        <button class="analyze-btn" id="startMatchBtn" onclick="startMatching()" style="margin-top:8px">
-          <span>🤖</span>
+        <button class="btn-cta" id="startMatchBtn" onclick="startMatching()" style="margin-top:8px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+            <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+          </svg>
           <span>开始AI产品匹配 →</span>
         </button>
-        <div class="privacy-note">以上信息仅用于本次匹配分析，不作其他用途</div>
+        <div class="sec-note">以上信息仅用于本次匹配分析，不作其他用途</div>
       </div>
     </div>
 
     <!-- STEP 4: MATCHING -->
-          <div id="incomeWarnBanner" style="display:none;margin-bottom:12px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;font-size:13px;color:#856404">
-            ⚠️ <strong>提示：未填写月收入</strong>，系统无法计算负债率，部分超负债上限的产品可能仍会显示——建议返回补充月收入后重新分析，结果将更准确。
-          </div>
-    <div class="upload-card" id="matchingCard" style="display:none">
-      <div class="card-header">
-        <div class="card-header-num">4</div>
-        <div class="card-header-title">AI 产品匹配</div>
+    <div id="incomeWarnBanner" style="display:none;margin-bottom:12px;background:rgba(217,128,0,0.08);border:1px solid rgba(217,128,0,0.25);padding:12px 16px;font-size:13px;color:var(--warn)">
+      <strong style="color:var(--white)">提示：未填写月收入</strong>，系统无法计算负债率，部分超负债上限的产品可能仍会显示——建议返回补充月收入后重新分析，结果将更准确。
+    </div>
+    <div class="pcard" id="matchingCard" style="display:none">
+      <div class="card-bar">
+        <span class="step-tag">STEP 04</span>
+        <span class="card-title">AI 产品匹配</span>
+        <span class="card-status">
+          <span style="width:8px;height:8px;border:1.5px solid var(--accentB);border-top-color:transparent;border-radius:50%;animation:rotateCW .7s linear infinite;display:inline-block"></span>
+          PROCESSING
+        </span>
       </div>
-      <div class="card-body">
+      <div class="cbody">
         <!-- Loading -->
         <div class="matching-loading" id="matchingLoading" style="display:block">
-          <div class="ml-spinner"></div>
+          <div class="geo-loader">
+            <div class="geo-outer"></div>
+            <div class="geo-mid"></div>
+            <div class="geo-inner"></div>
+          </div>
           <div class="ml-title">正在匹配可申请产品</div>
           <div class="ml-sub">综合分析负债率、查询记录、逾期情况…</div>
           <div class="ml-steps">
@@ -465,7 +607,7 @@
 
         <!-- Result -->
         <div id="matchResult" style="display:none">
-          <!-- ① 顶部总结区 -->
+          <!-- 顶部总结区 -->
           <div class="conv-top" id="convTop" style="display:none">
             <div class="conv-eyebrow">AI 信贷分析报告</div>
             <div class="conv-headline" id="convHeadline"></div>
@@ -473,18 +615,18 @@
               <div class="conv-col bad">
                 <div class="conv-col-lbl">当前状态</div>
                 <div class="conv-col-rate red" id="convRateCur">--</div>
-                <div class="conv-col-amt" id="convAmtCurRow" style="font-size:12px;color:rgba(255,255,255,.55)">当前通过率</div>
+                <div class="conv-col-amt" id="convAmtCurRow" style="font-size:12px;color:var(--silver)">当前通过率</div>
               </div>
               <div class="conv-arrow">→</div>
               <div class="conv-col good">
                 <div class="conv-col-lbl">优化后</div>
                 <div class="conv-col-rate green" id="convRateOpt">--</div>
-                <div class="conv-col-amt" id="convAmtOptRow" style="font-size:12px;color:rgba(255,255,255,.55)">优化后通过率</div>
+                <div class="conv-col-amt" id="convAmtOptRow" style="font-size:12px;color:var(--silver)">优化后通过率</div>
               </div>
             </div>
-            <div id="convNoIncomeHint" style="display:none;background:rgba(200,169,110,.07);border:1px dashed rgba(200,169,110,.28);border-radius:9px;padding:10px 12px;text-align:center;margin-bottom:10px">
-              <div style="font-size:12px;color:rgba(200,169,110,.7);margin-bottom:6px">补充月收入后可查看额度对比</div>
-              <button onclick="document.getElementById('matchBtn')?.click();document.getElementById('infoCard')?.scrollIntoView({behavior:'smooth'})" style="font-size:11px;background:rgba(200,169,110,.15);border:1px solid rgba(200,169,110,.35);color:#c8a96e;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:inherit">补充收入信息 →</button>
+            <div id="convNoIncomeHint" style="display:none;background:rgba(59,123,246,0.06);border:1px dashed rgba(59,123,246,0.2);padding:10px 12px;text-align:center;margin-bottom:10px">
+              <div style="font-size:12px;color:var(--silver);margin-bottom:6px">补充月收入后可查看额度对比</div>
+              <button onclick="document.getElementById('matchBtn')?.click();document.getElementById('infoCard')?.scrollIntoView({behavior:'smooth'})" style="font-size:11px;background:rgba(59,123,246,0.1);border:1px solid rgba(59,123,246,0.25);color:var(--accentB);padding:5px 14px;cursor:pointer;font-family:inherit">补充收入信息 →</button>
             </div>
             <div class="conv-gap">
               <div class="conv-gap-lbl">优化后通过率提升</div>
@@ -493,24 +635,32 @@
             </div>
           </div>
 
-          <!-- ② 问题拆解区 -->
+          <!-- 问题拆解区 -->
           <div class="conv-sec" id="convProb" style="display:none">
-            <div class="conv-sec-hd"><span class="conv-sec-icon">⚠️</span><span class="conv-sec-title">当前核心问题</span></div>
+            <div class="conv-sec-hd"><span class="conv-sec-title">当前核心问题</span></div>
             <div id="convProbList"></div>
           </div>
 
-          <!-- ③ 损失对比区 -->
+          <!-- V2.0 风险诊断 & 通过率 -->
+          <div class="conv-sec" id="v2xaiWrap" style="display:none">
+            <div class="conv-sec-hd"><span class="conv-sec-title">📊 102维风控诊断</span></div>
+            <div id="v2DomainBar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
+            <div id="v2IssueList"></div>
+            <div id="v2PassRates" style="margin-top:14px"></div>
+          </div>
+
+          <!-- 损失对比区 -->
           <div class="conv-sec" id="convLoss" style="display:none">
-            <div class="conv-sec-hd"><span class="conv-sec-icon">📉</span><span class="conv-sec-title">现在直接申请，代价是什么</span></div>
+            <div class="conv-sec-hd"><span class="conv-sec-title">现在直接申请，代价是什么</span></div>
             <div class="loss-cols">
               <div class="loss-col now">
-                <span class="loss-tag">❌ 现在申请</span>
+                <span class="loss-tag">现在申请</span>
                 <div class="loss-type" id="convLossNowType">消费金融为主</div>
                 <div class="loss-rate" id="convLossNowRate">年利率：15%–24%</div>
                 <div class="loss-interest" id="convIntNow">--</div>
               </div>
               <div class="loss-col opt">
-                <span class="loss-tag">✅ 优化后申请</span>
+                <span class="loss-tag">优化后申请</span>
                 <div class="loss-type">银行信用贷</div>
                 <div class="loss-rate">年利率：3.6%–6%</div>
                 <div class="loss-interest" id="convIntOpt">--</div>
@@ -522,9 +672,9 @@
             </div>
           </div>
 
-          <!-- ④ 提升空间区 -->
+          <!-- 提升空间区 -->
           <div class="lift-sec" id="convLift" style="display:none">
-            <div class="conv-sec-hd"><span class="conv-sec-icon">💡</span><span class="conv-sec-title">你的提升空间</span></div>
+            <div class="conv-sec-hd"><span class="conv-sec-title">你的提升空间</span></div>
             <div id="convLiftActions"></div>
             <div class="lift-compare">
               <div class="lift-col">
@@ -541,44 +691,39 @@
             <div class="lift-gap" id="convLiftGap"></div>
           </div>
 
-          <!-- ⑤ 操作路径区 -->
-          <div class="conv-sec" id="convPath" style="display:none">
-            <div class="conv-sec-hd"><span class="conv-sec-icon">🗺️</span><span class="conv-sec-title">最优申请路径（顺序很关键）</span></div>
-            <div class="path-warn">⚠️ <strong>90% 的人失败，是因为申请顺序错了</strong><br>同时申请多家 → 查询暴增 → 全部被拒</div>
-            <div id="convPathSteps"></div>
-            <div class="path-cta">你的具体申请顺序需要结合征信定制，联系顾问获取专属方案<div style="display:flex;gap:10px;margin-top:12px"><button onclick="(function(){const t=document.createElement('textarea');t.value='Xmdzhun';document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);const b=document.getElementById('pathCopyBtn');if(b){b.textContent='✓ 已复制';setTimeout(()=>b.textContent='📋 复制微信号',1500);}})()" id="pathCopyBtn" style="flex:1;background:var(--gold);color:var(--navy);border:none;border-radius:8px;padding:10px 0;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">📋 复制微信号</button><button onclick="showQrModal()" style="flex:1;background:rgba(200,169,110,.15);color:#e8c98e;border:1px solid rgba(200,169,110,.4);border-radius:8px;padding:10px 0;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">📷 扫码添加</button></div></div>
-          </div>
-
-          <!-- ⑥ 客户标签区 -->
+          <!-- 客户标签区 -->
           <div class="ct-sec" id="convClient" style="display:none">
+            <div class="ct-scan"></div>
             <div class="ct-row">
-              <div class="ct-badge"><div class="ct-badge-icon" id="convClientIcon">📋</div><div class="ct-badge-type" id="convClientType">--</div></div>
+              <div class="ct-badge"><div class="ct-badge-icon" id="convClientIcon"></div><div class="ct-badge-type" id="convClientType">--</div></div>
               <div><div class="ct-title" id="convClientTitle"></div><div class="ct-desc" id="convClientDesc"></div></div>
             </div>
           </div>
 
           <!-- 白名单职业提醒 -->
           <div class="wl-tip" id="wlTip" style="display:none">
-            <div class="wl-hd"><span style="font-size:17px">🌟</span><span class="wl-title">专属优惠提醒</span></div>
-            <div class="wl-body">您的职业背景符合多家银行白名单条件，部分银行针对<strong style="color:#e8c98e">公务员 / 事业单位 / 国企</strong>提供专属利率通道、更高额度和简化审批，这类产品不公开，需要人工对接。</div>
+            <div class="wl-hd"><span style="font-size:17px">★</span><span class="wl-title">专属优惠提醒</span></div>
+            <div class="wl-body">您的职业背景符合多家银行白名单条件，部分银行针对<strong>公务员 / 事业单位 / 国企</strong>提供专属利率通道、更高额度和简化审批，这类产品不公开，需要人工对接。</div>
             <button class="wl-btn" onclick="window.location.href='tel:'+(window._agentPhone||CONTACT_PHONE)">联系专属顾问，了解专属方案</button>
           </div>
 
-          <!-- ⑦ 紧迫提醒区 -->
+          <!-- 紧迫提醒区 -->
           <div class="urgent-sec" id="convUrgent" style="display:none">
-            <div class="urgent-title">⏰ 重要提醒</div>
+            <div class="urgent-title">重要提醒</div>
             <div class="urgent-body" id="convUrgentBody"></div>
             <div class="urgent-result" id="convUrgentResult"></div>
           </div>
 
-
-          <!-- 预计可申请额度长条 -->
-          <div id="mrEstimate" style="display:none;width:100%;box-sizing:border-box;background:linear-gradient(90deg,rgba(251,191,36,.22),rgba(217,119,6,.15));border:1px solid rgba(217,119,6,.5);border-radius:10px;padding:12px 16px;margin-bottom:10px;font-size:15px;font-weight:700;color:#78350f;text-align:center;letter-spacing:.3px"></div>
+          <!-- 预计可申请额度 -->
+          <div id="mrEstimate" style="display:none;width:100%;box-sizing:border-box;background:rgba(59,123,246,0.08);border:1px solid rgba(59,123,246,0.3);padding:12px 16px;margin-bottom:10px;font-size:15px;font-weight:700;color:var(--accentB);text-align:center;letter-spacing:.3px;font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace"></div>
 
           <!-- 可申请产品列表 -->
-          <div id="productsWrap" style="margin-bottom:10px">
-            <div style="padding:6px 2px 7px">
-              <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.65)"><span id="matchCount">0</span> 款可申请产品</div>
+          <div id="productsWrap" class="pcard" style="margin-bottom:10px">
+            <div class="card-bar">
+              <span class="step-tag">MATCH</span>
+              <span class="card-title">匹配产品列表</span>
+              <span id="matchLockHint" style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.04em">付费解锁后显示</span>
+              <span id="matchCountWrap" style="display:none;margin-left:auto;font-size:11px;color:var(--silver)"><span id="matchCount">0</span> 款可申请</span>
             </div>
             <div class="products-grid" id="productsGrid"></div>
           </div>
@@ -590,19 +735,19 @@
             <div id="riskLevelBanner" class="risk-banner"></div>
 
             <!-- 专属优化建议 -->
-            <div class="analysis-section" id="adviceSection" style="display:none;margin-bottom:14px">
-              <div class="as-header"><span class="as-icon">📊</span><span class="as-title">专属优化建议</span></div>
+            <div class="analysis-section" id="adviceSection" style="display:none;margin-bottom:12px">
+              <div class="as-header"><span class="as-title">专属优化建议</span></div>
               <div style="padding:0">
                 <div class="adv-sub">
-                  <div class="adv-sub-header adv-green">✅ 客户核心优点（银行风控高评分项）</div>
+                  <div class="adv-sub-header adv-green">客户核心优点（银行风控高评分项）</div>
                   <div class="adv-sub-body" id="adviceStrengthsBody"></div>
                 </div>
                 <div class="adv-sub" id="adviceIssuesSub">
-                  <div class="adv-sub-header adv-red">❌ 客户当前具体问题/缺点（银行风控核心扣分项）</div>
+                  <div class="adv-sub-header adv-red">客户当前具体问题/缺点（银行风控核心扣分项）</div>
                   <div class="adv-sub-body" id="adviceIssuesBody"></div>
                 </div>
                 <div class="adv-sub">
-                  <div class="adv-sub-header adv-gold">🎯 专业改善建议</div>
+                  <div class="adv-sub-header adv-gold">专业改善建议</div>
                   <div class="adv-sub-body" id="adviceSuggestionsBody"></div>
                 </div>
               </div>
@@ -610,22 +755,30 @@
 
             <!-- 不可申请产品 -->
             <div class="analysis-section" id="rejectedSection" style="display:none">
-              <div class="as-header"><span class="as-icon">❌</span><span class="as-title">不可申请的产品类型</span></div>
+              <div class="as-header"><span class="as-title">不可申请的产品类型</span></div>
               <div class="as-body" id="rejectedBody"></div>
             </div>
 
             <!-- 征信优化方案 -->
             <div class="analysis-section" id="optimizationSection" style="display:none">
-              <div class="as-header"><span class="as-icon">📋</span><span class="as-title">征信优化方案（可落地）</span></div>
+              <div class="as-header"><span class="as-title">征信优化方案（可落地）</span></div>
               <div class="as-body" id="optimizationBody"></div>
             </div>
 
             <!-- 优化后可匹配产品 -->
             <div class="analysis-section" id="postOptSection" style="display:none">
-              <div class="as-header"><span class="as-icon">🚀</span><span class="as-title">优化后可匹配的产品</span></div>
+              <div class="as-header"><span class="as-title">优化后可匹配的产品</span></div>
               <div class="as-body"><div class="as-post-opt" id="postOptBody"></div></div>
             </div>
 
+          </div>
+
+          <!-- 建议申请路径 -->
+          <div class="conv-sec" id="convPath" style="display:none;margin-top:20px">
+            <div class="conv-sec-hd"><span class="conv-sec-title">建议申请路径（顺序影响通过率）</span></div>
+            <div class="path-warn"><strong>申请顺序直接影响审批通过率</strong><br>同时申请多家 → 查询暴增 → 互相拉低通过率</div>
+            <div id="convPathSteps"></div>
+            <div class="path-cta">你的具体申请顺序已根据征信定制，如需人工解读请联系下方顾问。</div>
           </div>
 
           <!-- QR Modal -->
@@ -634,25 +787,25 @@
               <div class="qr-modal-title">添加客服微信</div>
               <div class="qr-modal-sub">扫码添加，人工协助申请</div>
               <img id="qrCodeImg" src="" alt="客服微信二维码" style="display:none">
-              <div id="qrFallback" style="display:none;padding:20px;text-align:center;color:#666;font-size:13px">二维码加载失败，请拨打电话<br><strong id="qrPhoneNum" style="font-size:16px;color:#0a1628"></strong></div>
+              <div id="qrFallback" style="display:none;padding:20px;text-align:center;color:var(--silver);font-size:13px">二维码加载失败，请拨打电话<br><strong id="qrPhoneNum" style="font-size:16px;color:var(--white)"></strong></div>
               <button class="qr-modal-close" onclick="hideQrModal()">关闭</button>
             </div>
           </div>
 
-          <!-- ⑧ 转化按钮区（移至底部，restart按钮上方） -->
+          <!-- 转化按钮区 -->
           <div class="conv-cta" id="convCta">
-            <div class="conv-cta-sub" id="convCtaSub" style="font-size:16px;font-weight:700;color:#e8c98e;line-height:1.6">这些因素可能影响你的最终额度和通过率<br>联系顾问获取针对你的定制方案</div>
-            <div class="conv-cta-badge">📊 定制方案已准备好</div>
+            <div class="conv-cta-sub" id="convCtaSub" style="font-size:15px;font-weight:700;color:var(--white);line-height:1.6">这些因素可能影响你的最终额度和通过率<br>联系顾问获取针对你的定制方案</div>
+            <div class="conv-cta-badge">定制方案已准备好</div>
             <div class="conv-btns">
-              <button class="conv-btn-p" onclick="window.location.href='tel:'+(window._agentPhone||CONTACT_PHONE)">📞 联系专属顾问</button>
-              <button class="conv-btn-s" onclick="showQrModal()">💬 添加微信咨询</button>
+              <button class="conv-btn-p" onclick="window.location.href='tel:'+(window._agentPhone||CONTACT_PHONE)">联系专属顾问</button>
+              <button class="conv-btn-s" onclick="showQrModal()">添加微信咨询</button>
             </div>
             <div class="conv-proof">今日已有多位客户完成咨询</div>
           </div>
 
-          <div style="text-align:center;font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:10px;line-height:1.6;">本网站不会保留您任何信息数据，退出网站即销毁，如需保存匹配信息请自行截图。</div>
+          <div style="text-align:center;font-size:11px;color:var(--silver);margin-bottom:10px;line-height:1.6;">本网站不会保留您任何信息数据，退出网站即销毁，如需保存匹配信息请自行截图。</div>
           <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px">
-            <button class="restart-btn" style="margin:0" onclick="rematch()">✏️ 修改信息重新匹配</button>
+            <button class="restart-btn" style="margin:0" onclick="rematch()">修改信息重新匹配</button>
             <button class="restart-btn" style="margin:0" onclick="restartAll()">← 重新上传分析</button>
           </div>
         </div>
@@ -661,18 +814,19 @@
 
   </div><!-- /resultArea -->
 
-</div><!-- /main-section -->
+</div><!-- /container -->
+</main>
 
 <footer>
-  <div class="footer-logo"><em>贷</em>准 · AI智能贷款匹配</div>
+  <div class="footer-logo"><em>贷</em>准 · 智能信贷分析平台</div>
   <div class="footer-disc">
     以上产品信息及利率仅供参考，实际以银行审批为准。贷准仅提供贷款咨询匹配服务，不承担金融责任。<br>
-    © 2026 贷准 dzhun.com.cn · 厦门贷准科技有限公司 &nbsp;|&nbsp; <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" style="color:rgba(255,255,255,.3)">闽ICP备2026009746号</a>
+    © 2026 贷准 dzhun.com.cn · 厦门贷准科技有限公司 &nbsp;|&nbsp; <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">闽ICP备2026009746号</a>
   </div>
 </footer>
 
-<script src="config.js?v=1775095696"></script>
-<script src="app.js?v=1775095696"></script>
+<script src="config.js?v=1775370000"></script>
+<script src="app.js?v=1775410000"></script>
 
 <!-- PAYMENT MODAL -->
 <div class="pay-overlay" id="payOverlay">
@@ -681,42 +835,61 @@
 
     <!-- Step 1: 选择支付方式 -->
     <div id="payStep1">
-      <div style="font-size:38px;margin-bottom:10px">🔒</div>
-      <div style="font-size:17px;font-weight:700;color:var(--navy);margin-bottom:4px">查看AI产品匹配结果</div>
-      <div style="font-size:12px;color:var(--gray-mid);line-height:1.8;margin-bottom:6px">
+      <div style="margin-bottom:10px">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#3B7BF6" stroke-width="1.5" stroke-linecap="square" style="display:inline-block">
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+        </svg>
+      </div>
+      <div style="font-size:16px;font-weight:700;color:var(--white);margin-bottom:4px">查看AI产品匹配结果</div>
+      <div style="font-size:12px;color:var(--silver);line-height:1.8;margin-bottom:6px">
         征信识别结果免费查看<br>匹配产品 · 通过率分析 · 优化建议 · 单次付费
       </div>
       <div class="pay-price">¥<span style="font-size:44px">9.9</span></div>
       <div class="pay-btn-row">
-        <button class="pay-btn pay-btn-wechat" onclick="choosePay('wechat')">微信支付</button>
-        <button class="pay-btn pay-btn-alipay" onclick="choosePay('alipay')">支付宝</button>
+        <button id="payBtnWechat" class="pay-btn pay-btn-wechat" onclick="choosePay('wechat')">微信支付</button>
+        <button id="payBtnAlipay" class="pay-btn pay-btn-alipay" onclick="choosePay('alipay')">支付宝</button>
       </div>
-      <div style="font-size:11px;color:var(--gray-mid);line-height:1.7">
+      <div style="font-size:11px;color:var(--silver);line-height:1.7;">
         付费后1小时内可重新匹配
       </div>
     </div>
 
     <!-- Step 2: 等待支付 -->
     <div id="payStep2" style="display:none">
-      <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px" id="payStep2Title">等待支付确认</div>
-      <div style="font-size:12px;color:var(--gray-mid);margin-bottom:12px;line-height:1.8">
+      <div style="font-size:14px;font-weight:700;color:var(--white);margin-bottom:4px" id="payStep2Title">等待支付确认</div>
+      <div style="font-size:12px;color:var(--silver);margin-bottom:12px;line-height:1.8">
         已为您打开支付页面<br>完成支付后此页面将自动跳转
       </div>
       <div class="pay-spinner"></div>
       <div id="payLinkWrap" style="display:none;margin-bottom:12px">
-        <a id="payLinkBtn" href="#" target="_blank" style="font-size:13px;color:var(--gold);text-decoration:underline">重新打开支付页面</a>
+        <a id="payLinkBtn" href="#" target="_blank" style="font-size:13px;color:var(--accentB);text-decoration:underline">重新打开支付页面</a>
       </div>
-      <button onclick="cancelPay()" style="background:none;border:1px solid var(--gray-light);border-radius:8px;padding:8px 20px;font-size:13px;color:var(--gray-mid);cursor:pointer;font-family:inherit">取消</button>
+      <button onclick="cancelPay()" style="background:none;border:1px solid var(--border2);padding:8px 20px;font-size:12px;color:var(--silver);cursor:pointer;font-family:inherit">取消</button>
     </div>
 
     <!-- Step 3: 支付成功 -->
     <div id="payStep3" style="display:none">
-      <div style="font-size:48px;margin-bottom:12px">✅</div>
-      <div style="font-size:18px;font-weight:700;color:var(--green);margin-bottom:6px">支付成功</div>
-      <div style="font-size:13px;color:var(--gray-mid)">正在生成匹配结果…</div>
+      <div style="margin-bottom:12px">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0CB87A" stroke-width="1.5" stroke-linecap="square" style="display:inline-block">
+          <circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>
+        </svg>
+      </div>
+      <div style="font-size:17px;font-weight:700;color:var(--success);margin-bottom:6px">支付成功</div>
+      <div style="font-size:13px;color:var(--silver)">正在生成匹配结果…</div>
     </div>
   </div>
 </div>
 
+<script>
+// 根据环境只显示对应支付方式
+(function(){
+  var isWx = /micromessenger/i.test(navigator.userAgent);
+  if (isWx) {
+    document.getElementById('payBtnAlipay').style.display = 'none';
+  } else {
+    document.getElementById('payBtnWechat').style.display = 'none';
+  }
+})();
+</script>
 </body>
 </html>
