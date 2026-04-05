@@ -3081,7 +3081,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const _pendingValid   = !!_pendingOrderId && (Date.now() - _pendingTs < 10 * 60 * 1000);
   const _savedData      = localStorage.getItem('_alipayPendingData');
 
-  console.log('[alipay-return] fromAlipay=', _fromAlipay, 'pendingOrderId=', _pendingOrderId, 'pendingValid=', _pendingValid, 'url=', location.search);
 
   if (_fromAlipay || _pendingValid) {
     history.replaceState(null, '', location.pathname);
@@ -3103,7 +3102,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
           const r = await fetch(PROXY_URL + '/api/v1/pay/alipay/verify-return?' + _urlParamsInit.toString());
           const d = await r.json();
-          console.log('[alipay-return] verify-return:', d);
           if (d.status === 'paid' && d.token) gotToken = d.token;
         } catch(e) { console.warn('[alipay-return] verify-return 失败:', e); }
       }
