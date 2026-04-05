@@ -1691,9 +1691,10 @@ async function startMatching() {
 
   function _termTick() {
     if (!_termLog || _termBooting) return;
-    if (_termIdx > 0 && _termRows[_termIdx - 1]) {
-      _termRows[_termIdx - 1].className = 'term-row ok';
-      _termRows[_termIdx - 1].querySelector('.term-state').textContent = 'OK';
+    if (_termIdx > 0 && _termRows.length > 0) {
+      const _prev = _termRows[_termRows.length - 1];
+      _prev.className = 'term-row ok';
+      _prev.querySelector('.term-state').textContent = 'OK';
     }
     if (_termIdx >= _TERM_DIMS.length) return;
     const dim = _TERM_DIMS[_termIdx];
