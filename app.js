@@ -2542,13 +2542,29 @@ function renderMatchResult(r) {
     const _cpEl = document.getElementById('convProb'); if (_cpEl) _cpEl.style.display = 'none';
     const _asEl = document.getElementById('adviceSection'); if (_asEl) _asEl.style.display = 'none';
   } else {
-    const _bigBank  = products.filter(p=>p.type==='bank'&&(p.tags||[]).includes('国有大行'));
-    const _othBank  = products.filter(p=>p.type==='bank'&&!(p.tags||[]).includes('国有大行'));
-    const _finProds = products.filter(p=>p.type!=='bank');
-    let _gridHtml='';
-    if(_bigBank.length)  _gridHtml += _tierHd('国有大行','优先申请，利率最低') + _bigBank.map(_mkCard).join('');
-    if(_othBank.length)  _gridHtml += _tierHd('股份制 / 城商行','') + _othBank.map(_mkCard).join('');
-    if(_finProds.length) _gridHtml += _tierHd('消费金融','备选，最后申请') + _finProds.map(_mkCard).join('');
+    const _parseRate = p => parseFloat((p.rate || '').replace('%','').replace('起','')) || 99;
+    let _gridHtml = '';
+    if (v2Level === 'A') {
+      // A级：全部产品按利率升序，单一列表不分层（便于比价）
+      const _sorted = [...products].sort((a, b) => _parseRate(a) - _parseRate(b));
+      _gridHtml = _tierHd('全部产品', '已按利率从低到高排序') + _sorted.map(_mkCard).join('');
+    } else if (v2Level === 'D') {
+      // D级：只展示消费金融保底产品，不显示大量被拒产品
+      const _fallback = products.filter(p => p.type !== 'bank');
+      if (_fallback.length > 0) {
+        _gridHtml = _tierHd('当前可申请', '银行产品暂不可申请，以下为保底方案') + _fallback.map(_mkCard).join('');
+      } else {
+        _gridHtml = `<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">当前暂无可直接申请的产品<br>请参考下方恢复路线图</div>`;
+      }
+    } else {
+      // B/C级：保持原有三层分组
+      const _bigBank  = products.filter(p=>p.type==='bank'&&(p.tags||[]).includes('国有大行'));
+      const _othBank  = products.filter(p=>p.type==='bank'&&!(p.tags||[]).includes('国有大行'));
+      const _finProds = products.filter(p=>p.type!=='bank');
+      if(_bigBank.length)  _gridHtml += _tierHd('国有大行','优先申请，利率最低') + _bigBank.map(_mkCard).join('');
+      if(_othBank.length)  _gridHtml += _tierHd('股份制 / 城商行','') + _othBank.map(_mkCard).join('');
+      if(_finProds.length) _gridHtml += _tierHd('消费金融','备选，最后申请') + _finProds.map(_mkCard).join('');
+    }
     document.getElementById('productsGrid').innerHTML=_gridHtml;
   }
 
