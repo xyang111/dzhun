@@ -1857,7 +1857,6 @@ async function startMatching() {
         if (_v2Result) renderV2XAI(_v2Result);
       } catch(renderErr) {
         console.error('[renderMatchResult error]', renderErr);
-        alert('结果渲染出错：' + renderErr.message);
       }
       window._isMatching = false;
     }, 380);
