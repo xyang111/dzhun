@@ -847,6 +847,14 @@ class ScoreEngine {
 
   runScoreEngine(f) {
     if (!f) f = this.extractFeatures();
+    // ── 硬规则一票否决：当前逾期（M1+）→ 强制D级，跳过所有加权计算 ──
+    if (f.curOv) {
+      return {
+        score: 300, rawScore: 300, penalty: 700, level: 'D', forcedD: true,
+        domainScores: { credit: 0, stability: 0, asset: 0, fraud: 0 },
+        features: f,
+      };
+    }
     // ── 权重归一化校验（开发期安全网）──
     if (typeof console !== 'undefined') {
       const _domainW = 0.40+0.30+0.25+0.05;
@@ -951,6 +959,24 @@ class ScoreEngine {
   }
 
   generateXAI(result, products) {
+    // 硬规则触发：当前逾期强制D级，不做counterfactual计算
+    if (result.forcedD) {
+      const f = result.features || {};
+      const ovCount = f.overdue_current || 1;
+      return {
+        score: 300, level: 'D',
+        issues: [{
+          icon: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+          tag: '当前逾期（一票否决）',
+          desc: `征信显示当前有未结清逾期，银行系统自动拒贷`,
+          cost: `所有银行信贷产品无法申请，通过率0%`,
+          fix: `立即结清全部逾期账户（通常1-2周），结清后等1-3个月征信更新`,
+          months: 3, gain: 500,
+        }],
+        passRates: [],
+        features: f,
+      };
+    }
     const { score, level, features: f } = result;
     // gain 用未截断分数计算（避免 300 底线把所有差值压成 0）
     const _unclamp = r => r.rawScore - r.penalty;
