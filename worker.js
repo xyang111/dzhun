@@ -9,10 +9,6 @@ var REPORT_FROM     = "report@dzhun.com.cn";
 var ALLOWED_ORIGINS = [
   "https://dzhun.com.cn",
   "https://www.dzhun.com.cn",
-  "http://dzhun.com.cn",
-  "http://www.dzhun.com.cn",
-  "http://8.136.1.233",
-  "https://8.136.1.233",
 ];
 var PRODUCT_PRICE = 990;
 
@@ -275,7 +271,16 @@ const PROMPT_OCR = `你是银行信贷审核员，精通人行简版征信报告
 【账户过滤规则（严格执行）】
 1. 贷款账户：只提取当前未结清账户。已结清账户跳过，但若有历史逾期需记入 overdue_history_notes。
 2. 信用卡账户：只提取人民币账户且未销户的贷记卡。外币账户跳过不提取。已销户账户跳过不提取。
-3. 查询记录：只提取「贷款审批」和「信用卡审批」两类，其余全部跳过。担保资格审查归入「贷款审批」类型。
+3. 查询记录：严格逐条核对查询原因列，规则如下——
+   ✅ 以下4类才能写入 query_records，type 字段必须原文照抄：
+     - 查询原因为「贷款审批」→ type 写 "贷款审批"
+     - 查询原因为「担保资格审查」→ type 写 "担保资格审查"
+     - 查询原因为「资信审查」→ type 写 "资信审查"
+     - 查询原因为「信用卡审批」→ type 写 "信用卡审批"
+   ❌ 其余所有查询原因一律跳过，禁止写入（包括但不限于）：
+     贷后管理、本人查询、贷前管理、保险资格审查、特约商户资格审查、司法调查、异议申请、其他
+   ⚠️ 极易混淆警告：「贷后管理」在报告中出现频率极高，与「贷款审批」字形相近，必须逐条核对原文，绝不能把「贷后管理」误写为「贷款审批」。
+   ⚠️ 自查：识别完所有记录后，逐条检查 query_records，凡 type 不是「贷款审批」「担保资格审查」「资信审查」「信用卡审批」之一的，立即删除。
 
 【多张图片处理】
 如果上传了多张图片，必须逐张检查所有页面，将所有页面的查询记录合并后一起输出，不得遗漏任何一张图片中的查询记录。
@@ -290,12 +295,12 @@ name 字段格式统一为「银行简称-账户类型」：
 ▌ type = "bank"（银行类贷款）
 机构名称含「银行」「韩亚」「农商」「农信」「村镇银行」，均归为银行类。
 ⚠️ 以下机构名称虽含「银行」，但属于互联网助贷银行，必须归入 type="online"：
-众邦、通商银行、蓝海银行、三湘银行、苏宁银行、富民银行、亿联银行、振兴银行、苏商银行、新网银行、锡商银行、中关村银行
+众邦、通商银行、蓝海银行、三湘银行、苏宁银行、富民银行、亿联银行、振兴银行、苏商银行、新网银行、锡商银行、中关村银行、长安银行、微众银行、网商银行、百信银行、裕民银行、华通银行、江南农商银行
 
 ▌ type = "online"（网贷）—— 三类：
 ① online_subtype = "consumer_finance"：机构名含「消费金融、招联、马上、中邮、捷信、哈银、盛银、北银、小米消费金融」
 ② online_subtype = "microloan"：机构名含「小额贷款、小贷、蚂蚁小贷、京东小贷、度小满小贷、美团小贷」
-③ online_subtype = "online_bank"：众邦、通商银行、蓝海银行、三湘银行、苏宁银行、富民银行、亿联银行、振兴银行、苏商银行、新网银行、锡商银行、中关村银行
+③ online_subtype = "online_bank"：众邦、通商银行、蓝海银行、三湘银行、苏宁银行、富民银行、亿联银行、振兴银行、苏商银行、新网银行、锡商银行、中关村银行、长安银行、微众银行、网商银行、百信银行、裕民银行、华通银行、江南农商银行
 
 ▌ type = "credit"（信用卡账户）
 
@@ -337,7 +342,8 @@ name 字段格式统一为「银行简称-账户类型」：
   ],
   "query_records": [
     {"date": "2025-11-20", "type": "贷款审批"},
-    {"date": "2025-10-15", "type": "信用卡审批"}
+    {"date": "2025-10-15", "type": "信用卡审批"},
+    {"date": "2025-10-02", "type": "担保资格审查"}
   ],
   "overdue_current": 0,
   "overdue_history_notes": "无",
@@ -478,16 +484,15 @@ export default {
     const allowed = ALLOWED_ORIGINS.some(o => origin === o || referer.startsWith(o));
     if (!allowed) return jsonResp({ error: 'Forbidden' }, 403, request);
 
-    // GET 路由
-    if (request.method === 'GET' && path.startsWith('/pay/status/')) {
-      return handlePayStatus(request, env, path);
+    // GET 路由（/api/v1/* 规范路径 + 旧路径兼容）
+    const gNormPath = path.replace(/^\/api\/v1/, '');
+    if (request.method === 'GET' && (gNormPath.startsWith('/pay/status/'))) {
+      return handlePayStatus(request, env, gNormPath);
     }
-    // GET /pay/wechat/oauth — 用 code 换 openid
-    if (request.method === 'GET' && path === '/pay/wechat/oauth') {
+    if (request.method === 'GET' && gNormPath === '/pay/wechat/oauth') {
       return handleWechatOAuth(request, env);
     }
-    // 支付宝回跳验证：用回跳 URL 参数（含签名）直接在同节点确认支付并返回 token
-    if (request.method === 'GET' && path === '/pay/alipay/verify-return') {
+    if (request.method === 'GET' && gNormPath === '/pay/alipay/verify-return') {
       return handleAlipayVerifyReturn(request, env);
     }
 
@@ -495,12 +500,15 @@ export default {
       return new Response('Method Not Allowed', { status: 405, headers: corsHeaders(request) });
     }
 
-    // POST 路由
-    if (path === '/pay/create')        return handlePayCreate(request, env);
-    if (path === '/pay/wechat/confirm') return handleWechatConfirm(request, env);
-    if (path === '/report')            return handleReport(request, env);
-    if (path === '/ocr')               return handleOCR(request, env);
-    if (path === '/match')             return handleMatch(request, env);
+    // POST 路由（/api/v1/* 规范路径 + 旧路径兼容）
+    const normPath = path.replace(/^\/api\/v1/, ''); // 去掉版本前缀后统一匹配
+    if (normPath === '/pay/create')        return handlePayCreate(request, env);
+    if (normPath === '/pay/wechat/confirm') return handleWechatConfirm(request, env);
+    if (normPath === '/report')            return handleReport(request, env);
+    if (normPath === '/ocr')               return handleOCR(request, env);
+    if (normPath === '/match')             return handleMatch(request, env);
+    if (normPath === '/score')             return handleScore(request, env);
+    if (normPath === '/analytics')         return handleAnalytics(request, env);
 
     // 兼容旧路由：无 path 或 / 走 Claude 代理
     return handleClaude(request, env);
@@ -1019,6 +1027,76 @@ async function markOrderPaid(env, orderId) {
   order.paidAt = Date.now();
   order.token  = token;
   await env.ORDERS.put(`order:${orderId}`, JSON.stringify(order), { expirationTtl: 86400 });
+}
+
+// ═══════════════════════════════════════════
+// /api/v1/score — 评分记录存 D1（运营分析用，前端异步 fire-and-forget）
+// ═══════════════════════════════════════════
+async function handleScore(request, env) {
+  if (!env.DB) return jsonResp({ ok: false, error: 'DB not bound' }, 503, request);
+  let body;
+  try { body = await request.json(); } catch (e) {
+    return jsonResp({ error: '请求格式错误' }, 400, request);
+  }
+  const { sessionId, score, rawScore, penalty, level, domainScores, features, agentId } = body || {};
+  if (!sessionId || !score || !level) return jsonResp({ error: '缺少必要字段' }, 400, request);
+
+  const ds = domainScores || {};
+  const f  = features    || {};
+  try {
+    await env.DB.prepare(`
+      INSERT OR IGNORE INTO score_records
+        (created_at, session_id, score, raw_score, penalty, level,
+         cb_score, st_score, as_score, fr_score,
+         q3m, online_inst, dti, card_util,
+         has_overdue, has_bad_rec, income, work_type, agent_id)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    `).bind(
+      Date.now(), sessionId,
+      Math.round(score), +(rawScore||0), Math.round(penalty||0), level,
+      +(ds.credit||0).toFixed(1), +(ds.stability||0).toFixed(1),
+      +(ds.asset||0).toFixed(1),  +(ds.fraud||0).toFixed(1),
+      f.q3m ?? null, f.onlineI ?? null,
+      f.dti  != null ? +f.dti.toFixed(3) : null,
+      f.cardUtil != null ? +f.cardUtil.toFixed(3) : null,
+      f.curOv  ? 1 : 0,
+      f.badRec ? 1 : 0,
+      f.income ?? null,
+      f.workType ?? null,
+      agentId ?? null,
+    ).run();
+  } catch (e) {
+    // 静默失败：不影响前端主流程
+    console.error('[handleScore] D1 write error:', e.message);
+  }
+  return jsonResp({ ok: true }, 200, request);
+}
+
+// /api/v1/analytics — 行为事件埋点（fire-and-forget，无需鉴权）
+// ═══════════════════════════════════════════
+async function handleAnalytics(request, env) {
+  if (!env.DB) return jsonResp({ ok: true }, 200, request);
+  let body;
+  try { body = await request.json(); } catch (e) {
+    return jsonResp({ ok: true }, 200, request);
+  }
+  const { event, sessionId, agentId, props } = body || {};
+  if (!event) return jsonResp({ ok: true }, 200, request);
+  try {
+    await env.DB.prepare(`
+      INSERT INTO page_events (created_at, event, session_id, agent_id, props)
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(
+      Date.now(),
+      String(event).slice(0, 50),
+      sessionId ? String(sessionId).slice(0, 36) : null,
+      agentId   ? String(agentId).slice(0, 20)   : null,
+      props     ? JSON.stringify(props).slice(0, 500) : null,
+    ).run();
+  } catch (e) {
+    console.error('[analytics] D1 error:', e.message);
+  }
+  return jsonResp({ ok: true }, 200, request);
 }
 
 async function handleReport(request, env) {
