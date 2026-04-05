@@ -2040,6 +2040,19 @@ function renderV2XAI(v2) {
   const lvColor = { A:'#4ade80', B:'#60a5fa', C:'#fbbf24', D:'#f87171' };
   const col = lvColor[v2.level] || '#60a5fa';
 
+  // 标题：贷准102维模型评分 + 分数 + 等级徽章
+  const titleEl = wrap.querySelector('.conv-sec-title');
+  if (titleEl && v2.score > 0) {
+    const lvLabel = { A:'优质', B:'良好', C:'修复中', D:'修复期' };
+    const scoreInt = parseInt(v2.score, 10);
+    titleEl.innerHTML =
+      `<span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);vertical-align:middle">贷准102维模型</span>` +
+      `<span style="margin-left:8px;font-size:15px;font-weight:700;color:#fff;vertical-align:middle">评分：</span>` +
+      `<span style="font-size:22px;font-weight:800;color:${col};font-family:'JetBrains Mono',monospace;vertical-align:middle">${scoreInt}</span>` +
+      `<span style="font-size:13px;color:var(--muted);vertical-align:middle">分</span>` +
+      `<span style="margin-left:10px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:3px;background:${col}22;color:${col};border:1px solid ${col}60;letter-spacing:.1em;vertical-align:middle">${v2.level || ''}级 · ${lvLabel[v2.level] || ''}</span>`;
+  }
+
   // 五维雷达图
   const radarWrap = document.getElementById('v2RadarWrap');
   if (radarWrap) {
@@ -2161,16 +2174,23 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt) {
 
   if (level === 'B') {
     const nOpt = Array.isArray(r.optimization) ? r.optimization.length : 3;
-    const gainText = gapW > 0 ? `多拿 <span style="color:#4ade80">${gapW}万</span> 额度`
-                               : `多申请 <span style="color:#4ade80">${op - cp}款</span> 产品`;
+    const gainText = gapW > 0
+      ? `多拿 <span style="color:#4ade80">${gapW}万</span> 额度`
+      : op > cp
+        ? `多申请 <span style="color:#4ade80">${op - cp}款</span> 产品`
+        : `提升整体<span style="color:#4ade80">通过率</span>`;
+    const subLine = op > cp
+      ? `当前资质符合${cp}款产品 · 优化后可达${op}款 · 最快3个月见效`
+      : `当前资质符合${cp}款产品 · 按推荐顺序申请可提升通过率`;
+    const showCompare = gapW > 0 || (curAmt !== '填写收入后显示' && optAmt !== '填写收入后显示');
     el.innerHTML = `<div class="hero-wrap hero-b">
       <div class="hero-eyebrow">B级 · OPTIMIZATION GAP</div>
       <div class="hero-title">做${nOpt}个优化，可以${gainText}</div>
-      <div class="hero-sub">当前资质符合${cp}款产品 · 优化后可达${op}款 · 最快3个月见效</div>
-      <div class="hero-metrics cols-2">
+      <div class="hero-sub">${subLine}</div>
+      ${showCompare ? `<div class="hero-metrics cols-2">
         ${_metricBox('当前可贷额度', curAmt !== '填写收入后显示' ? curAmt + '万' : curAmt, '')}
-        ${_metricBox('优化后可达', optAmt !== '填写收入后显示' ? optAmt + '万 <span style="font-size:11px">↑多' + gapW + '万</span>' : optAmt, 'gain')}
-      </div>
+        ${_metricBox('优化后可达', optAmt !== '填写收入后显示' && gapW > 0 ? optAmt + '万 <span style="font-size:11px">↑多' + gapW + '万</span>' : optAmt !== '填写收入后显示' ? optAmt + '万' : optAmt, 'gain')}
+      </div>` : ''}
       <div class="hero-note">⚡ 申请顺序搞错会多等3个月 · 客服给你精准执行计划</div>
     </div>`;
     return;
@@ -2313,7 +2333,8 @@ function renderMatchResult(r) {
   const optRate  = r.optimized_rate||Math.min(92,curRate+20);
   const _isEstimated = !_aiCurRate; // true=本地估算，false=AI计算
   // 提到外层作用域，所有区块（convLoss/convPath/convClient/productsGrid）共享
-  const _tier    = r.cs_tier || (curRate>=80?'bank':curRate>=60?'mixed':'finance');
+  // v2Level A/B 说明 ScoreEngine 评分>=650，产品层级必然是 bank，不依赖 AI 返回的 cs_tier
+  const _tier    = r.cs_tier || (v2Level === 'A' || v2Level === 'B' ? 'bank' : curRate>=80?'bank':curRate>=60?'mixed':'finance');
   const _clientT = r.client_type || (_tier==='bank'?'A':_tier==='mixed'?'B':'C');
 
   // 更新产品数量，切换header锁定提示
