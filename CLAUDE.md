@@ -25,6 +25,35 @@
 - 检查项：白底白字（文字不可见）、overflow 隐藏元素、触控目标尺寸是否足够大
 - 动态 HTML 由 `app.js` 生成，CSS 类名改动必须同步检查 `app.js` 里的字符串引用
 
+## Architecture Map
+
+| 文件 | 用途 | 部署位置 | 注意事项 |
+|------|------|---------|---------|
+| `index.html` | HTML 骨架，引用所有静态资源 | 阿里云 ECS `/usr/share/nginx/html/` | 改动后必须更新 `?v=` 版本号 |
+| `style.css` | 全部 CSS 样式 | 阿里云 ECS | 类名改动必须同步检查 `app.js` 字符串引用 |
+| `config.js` | PROXY_URL / AGENTS / BANK_PRODUCTS | 阿里云 ECS | **必须在 `app.js` 之前加载**，最高频改动文件 |
+| `app.js` | 全部业务逻辑，ScoreEngine V2.0，47个函数 | 阿里云 ECS | 含动态 HTML 生成，CSS 改动需联动检查 |
+| `worker.js` | API 代理、OCR、Match、支付、D1写入 | Cloudflare Worker（`api.dzhun.com.cn`） | ⚠️ CEO 可能直接在 Dashboard 编辑，编辑前先下载线上版本确认一致 |
+| `wrangler.toml` | Worker 部署配置，KV×2 + D1 绑定 | 本地配置文件 | 绑定变量名不能随意改，与 Worker 代码耦合 |
+| `qr.jpg` | 默认客服微信二维码 | 阿里云 ECS | 禁止内嵌 base64 |
+| `qr_agent_1.jpg` | 代理商 XY001 二维码 | 阿里云 ECS | 禁止内嵌 base64 |
+
+**API 路由（Cloudflare Worker）**
+
+| 路由 | 功能 | 调用的 AI |
+|------|------|---------|
+| `POST /api/v1/ocr` | 征信截图识别 | Claude Vision（`ANTHROPIC_API_KEY`） |
+| `POST /api/v1/match` | 产品匹配文字分析 | DeepSeek（`DEEPSEEK_API_KEY`） |
+| `POST /api/v1/score` | 写入评分记录到 D1 | 无 |
+| `POST /api/v1/pay/create` | 创建支付订单 | 无 |
+| `POST /api/v1/report` | 发送邮件报告 | 无 |
+
+**关键依赖关系**
+- `config.js` → `app.js`（加载顺序强依赖）
+- `app.js` ScoreEngine → `worker.js` buildMatchPrompt（评分逻辑需两端同步）
+- Cloudflare KV `ORDERS`：支付 token 存储 | `CACHE`：OCR 结果缓存（2小时）
+- Cloudflare D1 `dzhun-scores`：评分记录，`score_records` 表，session_id 唯一索引
+
 ## 当前状态（2026-04）
 - 网站正常运行，ICP备案已通过（闽ICP备2026009746号）
 - 支付宝 WAP支付：✅ 正常
