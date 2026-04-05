@@ -1158,7 +1158,16 @@ async function startAnalysis() {
     setStep(4); // rs5：准备AI产品匹配（完成）
     setTimeout(() => {
       document.getElementById('readingCard').style.display = 'none';
-      renderResult(extracted);
+      try {
+        renderResult(extracted);
+      } catch(renderErr) {
+        window._isAnalyzing = false;
+        document.getElementById('uploadCard').style.display = 'block';
+        document.getElementById('analyzeBtn').disabled = false;
+        document.getElementById('analyzeBtnText').textContent = '重新分析';
+        alert('渲染结果时出错：' + renderErr.message + '\n\n请截图此提示发给技术支持');
+        console.error('[renderResult error]', renderErr);
+      }
     }, 600);
 
   } catch(e) {
