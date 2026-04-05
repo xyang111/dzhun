@@ -2136,7 +2136,7 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt) {
   const el = document.getElementById('heroContent');
   if (!el) return;
   const score = (window._v2Result && window._v2Result.score) || r.cs_score || 0;
-  const scoreDisp = score > 0 ? score : '--';
+  const scoreDisp = score > 0 ? (parseInt(score, 10) || '--') : '--';
 
   const _metricBox = (label, val, cls, sub) =>
     `<div class="hero-metric"><div class="hero-metric-label">${label}</div>` +
@@ -2177,6 +2177,7 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt) {
   }
 
   if (level === 'C') {
+    // +9款/+6款 是设计文案（代表各层次的典型解锁数量），非实时产品数
     el.innerHTML = `<div class="hero-wrap hero-c">
       <div class="hero-eyebrow">C级 · RECOVERY PATH</div>
       <div class="hero-title">当前有 <span style="color:#fbbf24">${cp}款</span> 产品可立即申请</div>
@@ -2360,7 +2361,7 @@ function renderMatchResult(r) {
 
   // ③ 损失对比
   const lossEl=document.getElementById('convLoss');
-  if(lossEl){
+  if(lossEl && v2Level !== 'A' && v2Level !== 'D'){
     lossEl.style.display='block';
     // 银行tier客户已能申请银行产品，改为"顺序"对比；否则保持"消费金融vs银行"
     const nt=document.getElementById('convLossNowType');
@@ -2387,7 +2388,7 @@ function renderMatchResult(r) {
   if(q3>3) lActs.push({action:'停止所有贷款查询'+(q3>6?'1个月':'2-3周'),impact:'查询风险下降，银行通过率提升约'+(q3>6?'30%':'15%')});
   const da=(acts.length>0?acts:lActs).slice(0,3);
   const liftEl=document.getElementById('convLift');
-  if(liftEl&&da.length>0){
+  if(liftEl&&da.length>0 && v2Level !== 'D'){
     liftEl.style.display='block';
     document.getElementById('convLiftActions').innerHTML=da.map(a=>`<div class="lift-action"><div class="lift-check"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div><div class="lift-txt">${esc(a.action)}（${esc(a.impact)}）</div></div>`).join('');
     const cp=r.current_products||products.length;
@@ -2577,18 +2578,8 @@ function renderMatchResult(r) {
   const banner=document.getElementById('riskLevelBanner');
   if(banner){banner.className='risk-banner '+rDef.cls;banner.innerHTML=`<div><div class="rb-level">${rDef.label}</div><div class="rb-desc">${esc(r.key_risk)||rDef.desc}</div></div>`;}
 
-  // ── 按等级隐藏不相关区块 ──
-  if (v2Level === 'A') {
-    const _lossEl = document.getElementById('convLoss');
-    if (_lossEl) _lossEl.style.display = 'none';
-  }
-  if (v2Level === 'D') {
-    const _lossEl = document.getElementById('convLoss');
-    const _liftEl = document.getElementById('convLift');
-    if (_lossEl) _lossEl.style.display = 'none';
-    if (_liftEl) _liftEl.style.display = 'none';
-    if (typeof _renderRehabRoadmap === 'function') _renderRehabRoadmap(r);
-  }
+  // ── D级：显示恢复路线图 ──
+  if (v2Level === 'D') _renderRehabRoadmap(r);
 
   document.getElementById('matchResult').style.display='block';
   document.getElementById('matchResult').scrollIntoView({behavior:'smooth',block:'start'});
