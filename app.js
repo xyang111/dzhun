@@ -3137,6 +3137,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('payStep2Title').textContent = '正在确认支付结果…';
         document.getElementById('payLinkWrap').style.display = 'none';
         clearInterval(_pollTimer);
+        _pollCount = 0;
         _pollTimer = setInterval(pollPayStatus, 2000);
       }
     })();
@@ -3295,6 +3296,7 @@ function rematch() {
 
 let _payCallback = null;
 let _pollTimer   = null;
+let _pollCount   = 0;
 let _payOrderId  = null;
 let _payUrl      = null;
 let _confirmed   = false;
@@ -3416,6 +3418,7 @@ async function choosePay(channel) {
       }
       // 兜底：依赖微信服务端回调
       clearInterval(_pollTimer);
+      _pollCount = 0;
       _pollTimer = setInterval(pollPayStatus, 3000);
     } catch(e) {
       alert('创建支付订单失败：' + e.message);
@@ -3458,6 +3461,7 @@ async function choosePay(channel) {
 
     // 开始轮询
     clearInterval(_pollTimer);
+    _pollCount = 0;
     _pollTimer = setInterval(pollPayStatus, 2000);
 
   } catch(e) {
@@ -3469,11 +3473,20 @@ async function choosePay(channel) {
 
 async function pollPayStatus() {
   if (!_payOrderId || _confirmed) return;
+  _pollCount++;
+  if (_pollCount > 90) {
+    clearInterval(_pollTimer);
+    _pollTimer = null;
+    const titleEl = document.getElementById('payStep2Title');
+    if (titleEl) titleEl.textContent = '支付确认超时，请重试';
+    return;
+  }
   try {
     const resp = await fetch(PROXY_URL + '/api/v1/pay/status/' + _payOrderId);
     const data = await resp.json();
     if (data.status === 'paid' && data.token) {
       clearInterval(_pollTimer);
+      _pollTimer = null;
       _trackEvent('payment_success', { method: 'poll' });
       localStorage.setItem('_payToken', data.token);
       localStorage.setItem('_payTokenExp', String(Date.now() + 3600000));
