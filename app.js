@@ -3199,10 +3199,11 @@ function restartAll() {
   // Reset matching
   ['ml1','ml2','ml3','ml4'].forEach(id => {
     const el = document.getElementById(id);
-    el.classList.remove('active','done');
+    if (el) el.classList.remove('active','done');
   });
   document.getElementById('matchingLoading').style.display = 'block';
-  document.getElementById('ml1').classList.add('active'); // re-activate first step
+  const _ml1 = document.getElementById('ml1');
+  if (_ml1) _ml1.classList.add('active'); // re-activate first step
   document.getElementById('matchResult').style.display = 'none';
   document.getElementById('productsGrid').innerHTML = '';
 
@@ -3266,7 +3267,7 @@ function restartAll() {
   // Show upload
   document.getElementById('readingCard').style.display = 'none';
   document.getElementById('uploadCard').style.display = 'block';
-  document.getElementById('upload-section').scrollIntoView({ behavior:'smooth' });
+  document.getElementById('uploadCard').scrollIntoView({ behavior:'smooth' });
 }
 
 function rematch() {
