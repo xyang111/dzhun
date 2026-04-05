@@ -601,7 +601,7 @@ function calcLoanMonthly(loan) {
 function calcTotalMonthly(loans, cards) {
   const loanPart = loans.reduce((s, l) => s + calcLoanMonthly(l), 0);
   // 银行审批口径：信用卡按【已用额度×2%】折算月供（银行实际通用口径）
-  const cardPart = cards.reduce((s, c) => s + Math.round((c.used || 0) * 0.02), 0);
+  const cardPart = cards.reduce((s, c) => s + Math.round(Math.max(0, c.used || 0) * 0.02), 0);
   return loanPart + cardPart;
 }
 
