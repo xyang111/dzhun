@@ -2845,6 +2845,7 @@ async function autoSendReport() {
 // UTILS
 // ═══════════════════════════════════════════
 function extractJson(text) {
+  if (!text) return null;
   try { return JSON.parse(text.trim()); } catch(e) {}
   const stripped = text.replace(/```json[\s\S]*?```|```[\s\S]*?```/g, s => s.replace(/```json|```/g,'').trim()).trim();
   try { return JSON.parse(stripped); } catch(e) {}
