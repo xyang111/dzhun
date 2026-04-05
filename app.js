@@ -2125,9 +2125,150 @@ function renderV2XAI(v2) {
   wrap.style.display = 'block';
 }
 
+function _deriveLevel(score) {
+  if (score >= 800) return 'A';
+  if (score >= 650) return 'B';
+  if (score >= 500) return 'C';
+  return 'D';
+}
+
+function _renderHero(level, r, cp, op, gapW, curAmt, optAmt) {
+  const el = document.getElementById('heroContent');
+  if (!el) return;
+  const score = (window._v2Result && window._v2Result.score) || r.cs_score || 0;
+  const scoreDisp = score > 0 ? score : '--';
+
+  const _metricBox = (label, val, cls, sub) =>
+    `<div class="hero-metric"><div class="hero-metric-label">${label}</div>` +
+    `<div class="hero-metric-val${cls ? ' ' + cls : ''}">${val}</div>` +
+    (sub ? `<div class="hero-metric-sub">${sub}</div>` : '') +
+    `</div>`;
+
+  if (level === 'A') {
+    el.innerHTML = `<div class="hero-wrap hero-a">
+      <div class="hero-eyebrow">A级 · PREMIUM ACCESS</div>
+      <div class="hero-title">您已进入银行优质准入区间</div>
+      <div class="hero-sub">征信状态优质 · ${cp}款产品可直接申请 · 利率可谈至最低档</div>
+      <div class="hero-metrics cols-3">
+        ${_metricBox('可申请最低利率', '3.0%', '')}
+        ${_metricBox('综合评分', scoreDisp, '')}
+        ${_metricBox('符合产品数', cp + '款', '')}
+      </div>
+      <div class="hero-note">💎 <strong style="color:#fff">专属白名单通道：</strong>您的资质符合银行优先审批条件，最低利率需人工对接谈判</div>
+    </div>`;
+    return;
+  }
+
+  if (level === 'B') {
+    const nOpt = Array.isArray(r.optimization) ? r.optimization.length : 3;
+    const gainText = gapW > 0 ? `多拿 <span style="color:#4ade80">${gapW}万</span> 额度`
+                               : `多申请 <span style="color:#4ade80">${op - cp}款</span> 产品`;
+    el.innerHTML = `<div class="hero-wrap hero-b">
+      <div class="hero-eyebrow">B级 · OPTIMIZATION GAP</div>
+      <div class="hero-title">做${nOpt}个优化，可以${gainText}</div>
+      <div class="hero-sub">当前资质符合${cp}款产品 · 优化后可达${op}款 · 最快3个月见效</div>
+      <div class="hero-metrics cols-2">
+        ${_metricBox('当前可贷额度', curAmt !== '填写收入后显示' ? curAmt + '万' : curAmt, '')}
+        ${_metricBox('优化后可达', optAmt !== '填写收入后显示' ? optAmt + '万 <span style="font-size:11px">↑多' + gapW + '万</span>' : optAmt, 'gain')}
+      </div>
+      <div class="hero-note">⚡ 申请顺序搞错会多等3个月 · 客服给你精准执行计划</div>
+    </div>`;
+    return;
+  }
+
+  if (level === 'C') {
+    el.innerHTML = `<div class="hero-wrap hero-c">
+      <div class="hero-eyebrow">C级 · RECOVERY PATH</div>
+      <div class="hero-title">当前有 <span style="color:#fbbf24">${cp}款</span> 产品可立即申请</div>
+      <div class="hero-sub">3–6个月优化后，可进入主流股份制银行区间</div>
+      <div class="hero-metrics cols-3">
+        ${_metricBox('现在可申请', cp + '款', '', '城商行 + 消金')}
+        ${_metricBox('3个月后解锁', '+9款 🔒', 'locked', '股份制银行')}
+        ${_metricBox('6个月后解锁', '+6款 🔒', 'locked', '国有大行')}
+      </div>
+      <div class="hero-note">📋 过渡方案可用，但申请顺序很关键 · 顺序错了影响后续恢复</div>
+    </div>`;
+    return;
+  }
+
+  // D级
+  el.innerHTML = `<div class="hero-wrap hero-d">
+    <div class="hero-eyebrow">D级 · REHABILITATION PLAN</div>
+    <div class="hero-title">银行通道暂时关闭</div>
+    <div class="hero-sub">专属征信修复路线图已生成 · 预计 <strong style="color:#fff">9个月</strong> 后重新达到银行准入</div>
+    <div class="hero-metrics cols-3">
+      ${_metricBox('当前保底方案', '2款消金', '')}
+      ${_metricBox('第一里程碑', '第3个月', 'milestone')}
+      ${_metricBox('恢复银行准入', '第9个月', 'recovery')}
+    </div>
+    <div class="hero-note">🤝 恢复期全程陪伴 · 每月进度同步 · 不是一次性报告</div>
+  </div>`;
+}
+
+function _renderRehabRoadmap(r) {
+  const secEl = document.getElementById('convRehab');
+  const contentEl = document.getElementById('rehabContent');
+  if (!secEl || !contentEl) return;
+  secEl.style.display = 'block';
+
+  const steps = [
+    {
+      dotCls: 'now',
+      month: '当前 · 立即执行',
+      task: '停止所有贷款申请，避免查询次数增加',
+      unlock: '保底可申请：消费金融保底方案（2款）',
+      unlockCls: 'active',
+      hasLine: true,
+    },
+    {
+      dotCls: 'm3',
+      month: '第3个月',
+      task: '查询冷却完成 + 完成1笔按时还款记录',
+      unlock: '解锁：城商行产品（+4款）',
+      unlockCls: '',
+      hasLine: true,
+    },
+    {
+      dotCls: 'm6',
+      month: '第6个月',
+      task: '持续良好还款记录，网贷机构降至安全线',
+      unlock: '解锁：股份制银行产品（+9款）',
+      unlockCls: '',
+      hasLine: true,
+    },
+    {
+      dotCls: 'm9',
+      month: '第9个月 · 目标节点',
+      task: '征信状态恢复至C级，可申请主流银行',
+      unlock: '解锁：国有大行产品，利率可达5%-7%',
+      unlockCls: 'active',
+      hasLine: false,
+    },
+  ];
+
+  contentEl.innerHTML = `<div class="rehab-timeline">` +
+    steps.map(s => `
+      <div class="rehab-step">
+        <div class="rehab-left">
+          <div class="rehab-dot ${s.dotCls}"></div>
+          ${s.hasLine ? '<div class="rehab-vline"></div>' : ''}
+        </div>
+        <div class="rehab-body">
+          <div class="rehab-month">${s.month}</div>
+          <div class="rehab-task">${s.task}</div>
+          <div class="rehab-unlock ${s.unlockCls}">${s.unlock}</div>
+        </div>
+      </div>`
+    ).join('') +
+    `</div>`;
+}
+
 function renderMatchResult(r) {
   if (!r) return;
   window._lastMatchResult = r;
+
+  // ── V2.0 等级驱动的差异化渲染 ──
+  const v2Level = (window._v2Result && window._v2Result.level) || _deriveLevel(r.cs_score || 0);
 
   // ── 基础数据计算 ──
   const income  = parseFloat(document.getElementById('if-income')?.value)||0;
@@ -2194,38 +2335,13 @@ function renderMatchResult(r) {
     _ssEl.style.display = 'block';
   }
 
-  // ① 顶部总结区
+  // ① 顶部英雄区（差异化）
   const topEl = document.getElementById('convTop');
-  if(topEl){
-    topEl.style.display='block';
-    const hl = document.getElementById('convHeadline');
-    const _csScoreRaw = r.cs_score || 0;
-    const _csScoreDisp = _csScoreRaw > 0 ? `${_csScoreRaw}<span style="font-size:0.6em;opacity:0.6">/1000</span>` : '--';
-    if(hl){
-      if(_clientT==='A'&&['gov','institution','state'].includes(wt))
-        hl.innerHTML=`风控评分 <em>${_csScoreDisp}</em>，白名单职业<br>可申请<em>专属利率通道</em>，额度和利率均有优势`;
-      else if(_clientT==='A')
-        hl.innerHTML=`风控评分 <em>${_csScoreDisp}</em>，资质优质<br>按正确顺序申请，可拿到<em>更高授信上限+更优利率组合</em>`;
-      else if(_clientT==='B')
-        hl.innerHTML=`风控评分 <em>${_csScoreDisp}</em>，有优化空间<br>做<em>2-3个调整</em>后，可申请产品明显增加`;
-      else
-        hl.innerHTML=`风控评分 <em>${_csScoreDisp}</em><br>需先解决核心问题，<em>最短X个月后</em>可正常申请`;
-    }
-    const rc=document.getElementById('convRateCur');
-    if(rc){
-      rc.textContent=curRate+'%'+(_isEstimated?' ≈':'');
-      rc.style.color=curRate>=70?'#4ade80':'#f87171';
-      rc.title=_isEstimated?'本地估算（AI未返回精确值）':'AI计算结果';
-    }
-    const ro=document.getElementById('convRateOpt');if(ro)ro.textContent=optRate+'%';
-    // convAmtCurRow / convAmtOptRow 固定显示通过率标签，不再覆盖
-    // 无收入时隐藏compare区域，显示引导
-    const compareEl=document.getElementById('convCompareWrap');
-    if(compareEl) compareEl.style.display = income>0?'grid':'none';
-    const noIncomeHint=document.getElementById('convNoIncomeHint');
-    if(noIncomeHint) noIncomeHint.style.display = income>0?'none':'block';
-    const gp=document.getElementById('convGap');
-    if(gp){const rateGap=optRate-curRate;if(rateGap>0){gp.textContent='+'+rateGap+'%';gp.style.fontSize='';gp.style.color='#4ade80';}else{gp.textContent='已达最优';gp.style.fontSize='13px';gp.style.color='rgba(255,255,255,0.4)';}}
+  if (topEl) {
+    topEl.style.display = 'block';
+    const cp = products.length;
+    const op = Math.max(cp, r.optimized_products || (cp + 2));
+    _renderHero(v2Level, r, cp, op, gapW, curAmt, optAmt);
   }
 
   // ② 问题拆解
@@ -2460,6 +2576,19 @@ function renderMatchResult(r) {
   const rDef=riskMap[rl]||riskMap['轻微瑕疵'];
   const banner=document.getElementById('riskLevelBanner');
   if(banner){banner.className='risk-banner '+rDef.cls;banner.innerHTML=`<div><div class="rb-level">${rDef.label}</div><div class="rb-desc">${esc(r.key_risk)||rDef.desc}</div></div>`;}
+
+  // ── 按等级隐藏不相关区块 ──
+  if (v2Level === 'A') {
+    const _lossEl = document.getElementById('convLoss');
+    if (_lossEl) _lossEl.style.display = 'none';
+  }
+  if (v2Level === 'D') {
+    const _lossEl = document.getElementById('convLoss');
+    const _liftEl = document.getElementById('convLift');
+    if (_lossEl) _lossEl.style.display = 'none';
+    if (_liftEl) _liftEl.style.display = 'none';
+    if (typeof _renderRehabRoadmap === 'function') _renderRehabRoadmap(r);
+  }
 
   document.getElementById('matchResult').style.display='block';
   document.getElementById('matchResult').scrollIntoView({behavior:'smooth',block:'start'});

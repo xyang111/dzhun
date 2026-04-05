@@ -607,30 +607,8 @@
         <div id="matchResult" style="display:none">
           <!-- 顶部总结区 -->
           <div class="conv-top" id="convTop" style="display:none">
-            <div class="conv-eyebrow">AI 信贷分析报告</div>
-            <div class="conv-headline" id="convHeadline"></div>
-            <div class="conv-compare" id="convCompareWrap">
-              <div class="conv-col bad">
-                <div class="conv-col-lbl">当前状态</div>
-                <div class="conv-col-rate red" id="convRateCur">--</div>
-                <div class="conv-col-amt" id="convAmtCurRow" style="font-size:12px;color:var(--silver)">当前通过率</div>
-              </div>
-              <div class="conv-arrow">→</div>
-              <div class="conv-col good">
-                <div class="conv-col-lbl">优化后</div>
-                <div class="conv-col-rate green" id="convRateOpt">--</div>
-                <div class="conv-col-amt" id="convAmtOptRow" style="font-size:12px;color:var(--silver)">优化后通过率</div>
-              </div>
-            </div>
-            <div id="convNoIncomeHint" style="display:none;background:rgba(59,123,246,0.06);border:1px dashed rgba(59,123,246,0.2);padding:10px 12px;text-align:center;margin-bottom:10px">
-              <div style="font-size:12px;color:var(--silver);margin-bottom:6px">补充月收入后可查看额度对比</div>
-              <button onclick="document.getElementById('matchBtn')?.click();document.getElementById('infoCard')?.scrollIntoView({behavior:'smooth'})" style="font-size:11px;background:rgba(59,123,246,0.1);border:1px solid rgba(59,123,246,0.25);color:var(--accentB);padding:5px 14px;cursor:pointer;font-family:inherit">补充收入信息 →</button>
-            </div>
-            <div class="conv-gap">
-              <div class="conv-gap-lbl">优化后通过率提升</div>
-              <div class="conv-gap-val" id="convGap">--</div>
-              <div class="conv-gap-sub">按推荐顺序申请可实现</div>
-            </div>
+            <!-- 英雄区差异化内容由 _renderHero() 注入 -->
+            <div id="heroContent"></div>
           </div>
 
           <!-- 问题拆解区 -->
@@ -690,6 +668,12 @@
               </div>
             </div>
             <div class="lift-gap" id="convLiftGap"></div>
+          </div>
+
+          <!-- D级恢复路线图 -->
+          <div class="rehab-sec" id="convRehab" style="display:none">
+            <div class="conv-sec-hd"><span class="conv-sec-title">征信恢复路线图</span></div>
+            <div id="rehabContent"></div>
           </div>
 
           <!-- 客户标签区 -->
