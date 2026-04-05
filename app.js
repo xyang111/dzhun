@@ -1372,8 +1372,8 @@ function renderResult(data) {
   const totalMonthly = calcTotalMonthly(loans, cards);
   const hasOvHistForType = data.has_overdue_history || (data.summary_overdue_accounts||0) > 0;
 
-  document.getElementById('sumLoans').textContent = loans.length + '笔';
-  document.getElementById('sumCards').textContent = cards.length + '张';
+  document.getElementById('sumLoans').textContent = loans.length;
+  document.getElementById('sumCards').textContent = cards.length;
   document.getElementById('sumMonthly').textContent = totalMonthly > 0 ? '≈ ' + fmt(Math.round(totalMonthly)) + ' 元' : '--';
   document.getElementById('sumDebtRatio').textContent = '--';
   document.getElementById('sumDebtRatio').style.color = 'var(--accentB)';
@@ -1392,7 +1392,7 @@ function renderResult(data) {
   if (sumOnlineInstEl) {
     const _onlineL2 = loans.filter(l => l.type === 'online');
     const _onlineInstCnt2 = [...new Set(_onlineL2.map(l => l.name.split('-')[0]))].length;
-    sumOnlineInstEl.textContent = _onlineInstCnt2 + '家';
+    sumOnlineInstEl.textContent = _onlineInstCnt2;
     sumOnlineInstEl.style.color = _onlineInstCnt2 >= 5 ? 'var(--danger)' : _onlineInstCnt2 >= 3 ? 'var(--warn)' : 'var(--success)';
   }
 
@@ -1467,11 +1467,9 @@ function renderResult(data) {
     if (onlineInstTotal >= 5) {
       osb.style.cssText = 'display:block;padding:12px 14px;margin-bottom:12px;font-size:12px;line-height:1.8;border:1px solid rgba(231,76,60,0.25);border-left:2px solid var(--danger);background:rgba(231,76,60,0.06);color:var(--plat)';
       osb.innerHTML = '<span style="color:var(--danger);font-weight:600">' + totalStr + '</span><br>' + breakdown + '<br><span style="color:var(--danger)">已超红线，银行类贷款大概率拒贷，建议先结清网贷后再申请。</span>';
-      warns.push('网贷机构数 <strong>' + onlineInstTotal + ' 家</strong>，超出银行准入红线（≤4家），银行产品通过率大幅下调');
     } else if (onlineInstTotal === 3 || onlineInstTotal === 4) {
       osb.style.cssText = 'display:block;padding:12px 14px;margin-bottom:12px;font-size:12px;line-height:1.8;border:1px solid rgba(217,128,0,0.25);border-left:2px solid var(--warn);background:rgba(217,128,0,0.06);color:var(--plat)';
       osb.innerHTML = '<span style="color:var(--warn);font-weight:600">' + totalStr + '</span><br>' + breakdown + '<br><span style="color:var(--warn)">轻度警示，申请银行贷款存在风险，建议结清至2家以内再申请。</span>';
-      warns.push('网贷机构数 <strong>' + onlineInstTotal + ' 家</strong>，轻度警示，部分银行可能拒贷');
     } else {
       osb.style.cssText = 'display:block;padding:12px 14px;margin-bottom:12px;font-size:12px;line-height:1.8;border:1px solid rgba(12,184,122,0.2);border-left:2px solid var(--success);background:rgba(12,184,122,0.06);color:var(--plat)';
       osb.innerHTML = '<span style="color:var(--success);font-weight:600">' + totalStr + '</span><br>' + breakdown + '<br><span style="color:var(--success)">未超银行准入红线，网贷情况正常。</span>';
