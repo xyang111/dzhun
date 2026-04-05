@@ -783,7 +783,10 @@ class ScoreEngine {
     if (f.ov90d > 0)        penalty += 80;
     penalty += Math.max(0, f.q3m - 3) * 20;
     penalty += f.ovCount * 50;
-    if (f.onlineI >= 5)     penalty += 30;
+    // 网贷机构数递增惩罚：家数越多惩罚越重，14家≠5家
+    if (f.onlineI >= 5) penalty += f.onlineI >= 12 ? 95 : f.onlineI >= 9 ? 70 : f.onlineI >= 7 ? 48 : 30;
+    // 负债率递增惩罚：月还款超过月收入后额外惩罚（360%应远比130%严重）
+    if (f.dti > 1.0 && f.effIncome > 0) penalty += Math.min(130, Math.round((f.dti - 1.0) * 80));
 
     const ovTf  = tf(f.latestOvMths);
     const cbW   = 0.10*tf(1)+0.06*tf(1)+0.04*tf(1)+0.14*ovTf+0.08*ovTf+0.08+0.06+0.06+0.06+0.05+0.06*tf(1)+0.06+0.06+0.04+0.03+0.06+0.06*tf(3);
@@ -2407,7 +2410,11 @@ function renderMatchResult(r) {
   const mrEl=document.getElementById('mrEstimate');
   if(mrEl&&income>0&&estHi>0&&v2Level!=='B'){
     mrEl.style.display='block';
-    mrEl.textContent='根据现有资质，预计可申请：'+fw(estLo)+'–'+fw(estHi)+' 万';
+    if (products.length === 0) {
+      mrEl.textContent='恢复后预计可申请：'+fw(estLo)+'–'+fw(estHi)+' 万（当前无匹配产品，此为征信修复后的参考额度）';
+    } else {
+      mrEl.textContent='根据现有资质，预计可申请：'+fw(estLo)+'–'+fw(estHi)+' 万';
+    }
   }
 
   // ⑧ 转化区
