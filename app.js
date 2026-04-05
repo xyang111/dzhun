@@ -2191,7 +2191,7 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt) {
     const subLine = op > cp
       ? `当前资质符合${cp}款产品 · 优化后可达${op}款 · 最快3个月见效`
       : `当前资质符合${cp}款产品 · 按推荐顺序申请可提升通过率`;
-    const showCompare = gapW > 0 || (curAmt !== '填写收入后显示' && optAmt !== '填写收入后显示');
+    const showCompare = gapW > 0 || (_isAmtNum(curAmt) && _isAmtNum(optAmt));
     el.innerHTML = `<div class="hero-wrap hero-b">
       <div class="hero-eyebrow">B级 · OPTIMIZATION GAP</div>
       <div class="hero-title">做${nOpt}个优化，可以${gainText}</div>
@@ -2382,7 +2382,7 @@ function renderMatchResult(r) {
   if(cUtil>70) lProbs.push({name:'信用卡使用率高',value:cUtil+'%',threshold:'银行红线≤70%',severity:'medium'});
   const dp=(probs.length>0?probs:lProbs).slice(0,4);
   const probEl=document.getElementById('convProb');
-  if(probEl&&dp.length>0){
+  if(probEl&&dp.length>0 && v2Level !== 'A'){
     probEl.style.display='block';
     document.getElementById('convProbList').innerHTML=dp.map((p,i)=>`<div class="prob-item"><div class="prob-n">${i+1}</div><div><div class="prob-name"><strong>${esc(p.name)}：${esc(p.value)}</strong></div><div class="prob-desc">→ ${esc(p.threshold)}${p.severity==='high'?' · 影响较大':''}</div></div></div>`).join('');
   }
@@ -2407,6 +2407,7 @@ function renderMatchResult(r) {
     const la=income>0?Math.max(1,Math.round(Math.min(estHi>0?estHi:3e4,1e5)/1e4)):10;
     const n=document.getElementById('convIntNow');if(n)n.textContent=la+'万/年利息：约'+(la*0.15).toFixed(1)+'–'+(la*0.24).toFixed(1)+'万（年化利率APR 15%–24%）';
     const o=document.getElementById('convIntOpt');if(o)o.textContent=la+'万/年利息：约'+(la*0.036).toFixed(1)+'–'+(la*0.06).toFixed(1)+'万（年化利率APR 3.6%–6.0%）';
+    const dEl=document.getElementById('convIntDiff');if(dEl)dEl.textContent='约 '+(la*0.09).toFixed(1)+'–'+(la*0.204).toFixed(1)+' 万';
   }
 
   // ④ 提升空间
@@ -2426,10 +2427,15 @@ function renderMatchResult(r) {
     document.getElementById('convLiftActions').innerHTML=da.map(a=>`<div class="lift-action"><div class="lift-check"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div><div class="lift-txt">${esc(a.action)}（${esc(a.impact)}）</div></div>`).join('');
     const cp=r.current_products||products.length;
     const op=Math.max(cp, r.optimized_products || (cp + 2));
-    const pb=document.getElementById('convLiftProdB');if(pb)pb.textContent=cp+' 款';
-    const pa=document.getElementById('convLiftProdA');if(pa)pa.textContent=op+' 款';
-    const ab=document.getElementById('convLiftAmtB');if(ab)ab.textContent=_isAmtNum(curAmt)?'额度 '+curAmt+' 万':curAmt;
-    const aa=document.getElementById('convLiftAmtA');if(aa)aa.textContent=_isAmtNum(optAmt)?'额度 '+optAmt+' 万':optAmt;
+    // B级的对比数据已在 hero 区展示，convLift 只保留行动清单和 gap 文字
+    const _liftCompare=liftEl.querySelector('.lift-compare');
+    if(_liftCompare) _liftCompare.style.display = v2Level === 'B' ? 'none' : '';
+    if(v2Level !== 'B'){
+      const pb=document.getElementById('convLiftProdB');if(pb)pb.textContent=cp+' 款';
+      const pa=document.getElementById('convLiftProdA');if(pa)pa.textContent=op+' 款';
+      const ab=document.getElementById('convLiftAmtB');if(ab)ab.textContent=_isAmtNum(curAmt)?'额度 '+curAmt+' 万':curAmt;
+      const aa=document.getElementById('convLiftAmtA');if(aa)aa.textContent=_isAmtNum(optAmt)?'额度 '+optAmt+' 万':optAmt;
+    }
     const lg=document.getElementById('convLiftGap');
     const _liftDiff=op-cp;
     if(lg)lg.textContent=gapW>0?'优化后可多拿约 '+gapW+' 万额度':_liftDiff>0?'优化后可多申请 '+_liftDiff+' 款产品':'优化后通过率大幅提升';
@@ -2465,22 +2471,9 @@ function renderMatchResult(r) {
     ).join('');
   }
 
-  // ⑥ 客户标签
+  // ⑥ 客户标签（已被 hero 区替代，不再展示）
   const ctEl=document.getElementById('convClient');
-  if(ctEl){
-    ctEl.style.display='block';
-    let icon,type,title,desc;
-    const _svgA=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`;
-    const _svgB=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/><polyline points="9 7 12 4 15 7"/></svg>`;
-    const _svgC=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
-    if(_clientT==='A'||curRate>=80){icon=_svgA;type='优质型';title='你的资质属于优质客户';desc='征信健康，当前可直接申请银行产品，按正确顺序申请，符合多数银行准入区间';}
-    else if(_clientT==='B'||curRate>=60){icon=_svgB;type='可优化型';title='你的情况优化空间大';desc='征信有小瑕疵，但核心数据健康，做2-3个调整后，可申请产品会明显增加';}
-    else{icon=_svgC;type='需养征信';title='建议先优化再申请';desc='当前资质直接申请被拒风险高，优化周期1-3个月，之后可大幅提升通过率';}
-    const ci=document.getElementById('convClientIcon');if(ci)ci.innerHTML=icon;
-    const ct=document.getElementById('convClientType');if(ct)ct.textContent=type;
-    const ctit=document.getElementById('convClientTitle');if(ctit)ctit.textContent=title;
-    const cd=document.getElementById('convClientDesc');if(cd)cd.textContent=desc;
-  }
+  if(ctEl) ctEl.style.display='none';
 
   // 白名单职业
   const wlEl=document.getElementById('wlTip');
@@ -2498,7 +2491,7 @@ function renderMatchResult(r) {
 
   // 预估额度
   const mrEl=document.getElementById('mrEstimate');
-  if(mrEl&&income>0&&estHi>0){
+  if(mrEl&&income>0&&estHi>0&&v2Level!=='B'){
     mrEl.style.display='block';
     mrEl.textContent='根据现有资质，预计可申请：'+fw(estLo)+'–'+fw(estHi)+' 万';
   }

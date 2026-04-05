@@ -658,6 +658,7 @@ main {
 }
 .risk-row:nth-child(2n){border-right:none;}
 .risk-row:nth-last-child(-n+2){border-bottom:none;}
+.risk-row:last-child:nth-child(odd){grid-column:1/-1;border-right:none;}
 .risk-top {
   display:flex;align-items:center;
   justify-content:space-between;margin-bottom:6px;
@@ -1924,6 +1925,7 @@ footer {
 }
 .cs-dim:nth-child(2n){border-right:none;}
 .cs-dim:nth-last-child(-n+2){border-bottom:none;}
+.cs-dim:last-child:nth-child(odd){grid-column:1/-1;border-right:none;}
 .cs-dim-name {
   font-size:11px;color:var(--silver);margin-bottom:6px;
 }
