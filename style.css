@@ -546,7 +546,7 @@ main {
   margin-bottom:16px;
 }
 .mcell {
-  background:var(--surface);padding:10px 10px 8px;
+  background:var(--surface);padding:8px 8px 6px;
   position:relative;cursor:default;
   transition:background .2s;
 }
@@ -650,10 +650,14 @@ main {
 .risk-card {
   background:var(--surface);border:1px solid var(--border);
 }
-.risk-row {
-  padding:11px 15px;border-bottom:1px solid var(--border);
+.risk-rows {
+  display:grid;grid-template-columns:1fr 1fr;
 }
-.risk-row:last-child{border-bottom:none;}
+.risk-row {
+  padding:9px 12px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);
+}
+.risk-row:nth-child(2n){border-right:none;}
+.risk-row:nth-last-child(-n+2){border-bottom:none;}
 .risk-top {
   display:flex;align-items:center;
   justify-content:space-between;margin-bottom:6px;
@@ -1655,13 +1659,13 @@ footer {
 }
 .qi-card {
   background:var(--surface);
-  padding:16px 14px 12px;
+  padding:10px 10px 8px;
   display:flex;flex-direction:column;align-items:center;
-  text-align:center;gap:4px;
+  text-align:center;gap:3px;
 }
 .qi-head {
   display:flex;align-items:center;gap:6px;
-  margin-bottom:6px;
+  margin-bottom:4px;
   flex-wrap:wrap;justify-content:center;
 }
 .qi-type {
@@ -1677,7 +1681,7 @@ footer {
 }
 .qi-num {
   font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
-  font-size:28px;font-weight:700;line-height:1;
+  font-size:22px;font-weight:700;line-height:1;
 }
 .qi-unit {
   font-size:10px;color:var(--muted);letter-spacing:.04em;margin-bottom:8px;
@@ -1699,13 +1703,13 @@ footer {
 }
 .qi-card {
   background:var(--surface);
-  padding:16px 14px 12px;
+  padding:10px 10px 8px;
   display:flex;flex-direction:column;align-items:center;
-  text-align:center;gap:4px;
+  text-align:center;gap:3px;
 }
 .qi-head {
   display:flex;align-items:center;gap:6px;
-  margin-bottom:6px;
+  margin-bottom:4px;
   flex-wrap:wrap;justify-content:center;
 }
 .qi-type {
@@ -1721,7 +1725,7 @@ footer {
 }
 .qi-num {
   font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
-  font-size:28px;font-weight:700;line-height:1;
+  font-size:22px;font-weight:700;line-height:1;
 }
 .qi-unit {
   font-size:10px;color:var(--muted);letter-spacing:.04em;margin-bottom:8px;
@@ -1913,12 +1917,13 @@ footer {
 .cs-unlock { margin:12px;padding:12px;background:var(--glow);border:1px solid rgba(59,123,246,0.25);cursor:pointer; }
 .cs-unlock-txt { font-size:12px;color:var(--silver);margin-bottom:4px; }
 .cs-unlock-btn { font-size:12px;color:var(--accentB);font-weight:600; }
-.cs-dims { padding:0 0 4px; }
+.cs-dims { padding:0 0 4px;display:grid;grid-template-columns:1fr 1fr; }
 .cs-dim {
-  padding:9px 18px;
-  border-bottom:1px solid var(--border);
+  padding:8px 14px;
+  border-bottom:1px solid var(--border);border-right:1px solid var(--border);
 }
-.cs-dim:last-child { border-bottom:none; }
+.cs-dim:nth-child(2n){border-right:none;}
+.cs-dim:nth-last-child(-n+2){border-bottom:none;}
 .cs-dim-name {
   font-size:11px;color:var(--silver);margin-bottom:6px;
 }

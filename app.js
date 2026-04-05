@@ -1372,8 +1372,8 @@ function renderResult(data) {
   const totalMonthly = calcTotalMonthly(loans, cards);
   const hasOvHistForType = data.has_overdue_history || (data.summary_overdue_accounts||0) > 0;
 
-  document.getElementById('sumLoans').textContent = loans.length;
-  document.getElementById('sumCards').textContent = cards.length;
+  document.getElementById('sumLoans').textContent = loans.length + '笔';
+  document.getElementById('sumCards').textContent = cards.length + '张';
   document.getElementById('sumMonthly').textContent = totalMonthly > 0 ? '≈ ' + fmt(Math.round(totalMonthly)) + ' 元' : '--';
   document.getElementById('sumDebtRatio').textContent = '--';
   document.getElementById('sumDebtRatio').style.color = 'var(--accentB)';
@@ -1392,7 +1392,7 @@ function renderResult(data) {
   if (sumOnlineInstEl) {
     const _onlineL2 = loans.filter(l => l.type === 'online');
     const _onlineInstCnt2 = [...new Set(_onlineL2.map(l => l.name.split('-')[0]))].length;
-    sumOnlineInstEl.textContent = _onlineInstCnt2;
+    sumOnlineInstEl.textContent = _onlineInstCnt2 + '家';
     sumOnlineInstEl.style.color = _onlineInstCnt2 >= 5 ? 'var(--danger)' : _onlineInstCnt2 >= 3 ? 'var(--warn)' : 'var(--success)';
   }
 
@@ -1581,7 +1581,7 @@ function renderResult(data) {
       const parts = item.label.split(' ');
       const period = parts[parts.length - 1];
       const type   = parts.slice(0, -1).join(' ');
-      return `<div class="qi-card"><div class="qi-head"><span class="qi-type">${type}</span><span class="qi-period">${period}</span></div><div class="qi-num" style="color:${clr}">${v != null ? v : '--'}</div><div class="qi-unit">次</div><div class="qi-bar-track"><div class="qi-bar-fill" style="width:${barPct}%;background:${clr}"></div></div><div class="qi-status" style="color:${clr}">${statusTxt}</div></div>`;
+      return `<div class="qi-card"><div class="qi-head"><span class="qi-type">${type}</span><span class="qi-period">${period}</span></div><div class="qi-num" style="color:${clr}">${v != null ? v : '--'}<span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:3px">次</span></div><div class="qi-bar-track"><div class="qi-bar-fill" style="width:${barPct}%;background:${clr}"></div></div><div class="qi-status" style="color:${clr}">${statusTxt}</div></div>`;
     }).join('');
   }
 
@@ -2050,8 +2050,7 @@ function renderV2XAI(v2) {
     hdEl.innerHTML = `<div class="v2hd">
       <div class="v2hd-icon">${cpuIcon}</div>
       <div class="v2hd-txt">
-        <div class="v2hd-label">CREDIT SCORE ENGINE V2.0 · 102-DIM</div>
-        <div class="v2hd-name">贷准风控评分
+        <div class="v2hd-label">CREDIT SCORE ENGINE V2.0 · 102-DIM
           <span class="v2hd-badge" style="background:${col}1a;color:${col};border:1px solid ${col}55">${v2.level || ''}级 · ${lvDesc[v2.level] || ''}</span>
         </div>
       </div>
@@ -2116,7 +2115,7 @@ function renderV2XAI(v2) {
       const c = pct>=70?'#4ade80':pct>=45?'#fbbf24':'#f87171';
       return `<div style="background:var(--raised);border-radius:8px;padding:8px 10px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
-          <span style="font-size:11px;color:var(--muted)">${d.name} <span style="font-size:10px;opacity:.6">${d.w}</span></span>
+          <span style="font-size:11px;color:var(--muted)">${d.name}</span>
           <span style="font-size:15px;font-weight:700;color:${c}">${pct}</span>
         </div>
         <div style="height:3px;background:var(--border);border-radius:2px">
@@ -2198,8 +2197,8 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt) {
       <div class="hero-title">做${nOpt}个优化，可以${gainText}</div>
       <div class="hero-sub">${subLine}</div>
       ${showCompare ? `<div class="hero-metrics cols-2">
-        ${_metricBox('当前可贷额度', curAmt !== '填写收入后显示' ? curAmt + '万' : curAmt, '')}
-        ${_metricBox('优化后可达', optAmt !== '填写收入后显示' && gapW > 0 ? optAmt + '万 <span style="font-size:11px">↑多' + gapW + '万</span>' : optAmt !== '填写收入后显示' ? optAmt + '万' : optAmt, 'gain')}
+        ${_metricBox('当前可贷额度', _isAmtNum(curAmt) ? curAmt + '万' : curAmt, '')}
+        ${_metricBox('优化后可达', _isAmtNum(optAmt) && gapW > 0 ? optAmt + '万 <span style="font-size:11px">↑多' + gapW + '万</span>' : _isAmtNum(optAmt) ? optAmt + '万' : optAmt, 'gain')}
       </div>` : ''}
       <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span><span>申请顺序搞错会多等3个月 · 客服给你精准执行计划</span></div>
     </div>`;
@@ -2359,12 +2358,10 @@ function renderMatchResult(r) {
   if (_ssEl) {
     const _curCnt = document.getElementById('csCurrentCount');
     const _optCnt = document.getElementById('csOptCount');
+    const _optCount = Math.max(products.length, r.optimized_products || r.optimized_products_count || 0);
     if (_curCnt) _curCnt.textContent = products.length + ' 款产品';
-    if (_optCnt) {
-      const _optCount = Math.max(products.length, r.optimized_products || r.optimized_products_count || (products.length + 2));
-      _optCnt.textContent = _optCount + ' 款产品';
-    }
-    _ssEl.style.display = 'block';
+    if (_optCnt) _optCnt.textContent = _optCount + ' 款产品';
+    _ssEl.style.display = _optCount > products.length ? 'block' : 'none';
   }
 
   // ① 顶部英雄区（差异化）
@@ -2392,7 +2389,7 @@ function renderMatchResult(r) {
 
   // ③ 损失对比
   const lossEl=document.getElementById('convLoss');
-  if(lossEl && v2Level !== 'A' && v2Level !== 'D'){
+  if(lossEl && v2Level !== 'A' && v2Level !== 'D' && !(v2Level === 'B' && _tier === 'bank')){
     lossEl.style.display='block';
     // 银行tier客户已能申请银行产品，改为"顺序"对比；否则保持"消费金融vs银行"
     const nt=document.getElementById('convLossNowType');
