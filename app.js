@@ -2188,7 +2188,7 @@ function renderMatchResult(r) {
     const _optCnt = document.getElementById('csOptCount');
     if (_curCnt) _curCnt.textContent = products.length + ' 款产品';
     if (_optCnt) {
-      const _optCount = r.optimized_products || r.optimized_products_count || (products.length + 2);
+      const _optCount = Math.max(products.length, r.optimized_products || r.optimized_products_count || (products.length + 2));
       _optCnt.textContent = _optCount + ' 款产品';
     }
     _ssEl.style.display = 'block';
@@ -2275,13 +2275,14 @@ function renderMatchResult(r) {
     liftEl.style.display='block';
     document.getElementById('convLiftActions').innerHTML=da.map(a=>`<div class="lift-action"><div class="lift-check"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div><div class="lift-txt">${esc(a.action)}（${esc(a.impact)}）</div></div>`).join('');
     const cp=r.current_products||products.length;
-    const op=r.optimized_products||Math.min(cp+3,8);
+    const op=Math.max(cp, r.optimized_products || (cp + 2));
     const pb=document.getElementById('convLiftProdB');if(pb)pb.textContent=cp+' 款';
     const pa=document.getElementById('convLiftProdA');if(pa)pa.textContent=op+' 款';
     const ab=document.getElementById('convLiftAmtB');if(ab)ab.textContent=_isAmtNum(curAmt)?'额度 '+curAmt+' 万':curAmt;
     const aa=document.getElementById('convLiftAmtA');if(aa)aa.textContent=_isAmtNum(optAmt)?'额度 '+optAmt+' 万':optAmt;
     const lg=document.getElementById('convLiftGap');
-    if(lg)lg.textContent=gapW>0?'优化后可多拿约 '+gapW+' 万额度':'优化后可多申请 '+(op-cp)+' 款产品';
+    const _liftDiff=op-cp;
+    if(lg)lg.textContent=gapW>0?'优化后可多拿约 '+gapW+' 万额度':_liftDiff>0?'优化后可多申请 '+_liftDiff+' 款产品':'优化后通过率大幅提升';
   }
 
   // ⑤ 操作路径（仅付费后展示）
