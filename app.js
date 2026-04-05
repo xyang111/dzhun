@@ -551,7 +551,10 @@ function calcBlastRisk(qRecords,baseDate) {
   // 月份计算（与calcQueryCounts完全一致，避免30天vs1个月的误差）
   const monthsAgo = m => { const d=new Date(base); d.setMonth(d.getMonth()-m); return d; };
   const daysAgo   = d => { const t=new Date(base); t.setDate(t.getDate()-d); return t; };
-  const filt = (qRecords||[]).filter(q=>q.type==='贷款审批'||q.type==='信用卡审批');
+  const filt = (qRecords||[]).filter(q=>
+    q.type==='贷款审批'||q.type==='信用卡审批'||
+    q.type==='担保资格审查'||q.type==='资信审查'
+  );
   const q7   = filt.filter(q=>new Date(q.date)>=daysAgo(7)).length;
   const q30  = filt.filter(q=>new Date(q.date)>=monthsAgo(1)).length;  // 1个月（不是30天）
   const q90  = filt.filter(q=>new Date(q.date)>=monthsAgo(3)).length;  // 3个月（不是90天）
