@@ -830,7 +830,7 @@ class ScoreEngine {
     const wkScore  = { gov:1.0, institution:1.0, state:0.85, listed:0.72, private:0.55, self:0.42, freelance:0.38 }[wKey] || 0.5;
     const eduScore = (() => { const e = ui.edu||''; return e.includes('本科')?1.0:e.includes('大专')?0.75:e.includes('函授')?0.6:0.45; })();
     const hkScore  = (() => { const h = ui.hukou||''; return h.includes('厦门')?1.0:h.includes('福建')?0.72:h&&h!=='未填写'?0.42:0.5; })();
-    const ageScore = (() => { if(!age)return 0.5; return(age>=28&&age<=45)?1.0:(age>=25||age<=50)?0.8:0.65; })();
+    const ageScore = (() => { if(!age)return 0.5; return(age>=28&&age<=45)?1.0:(age>=25&&age<=50)?0.8:0.65; })();
     const astStr   = ui.assets || '';
     const astScore = astStr.includes('房产')?1.0:astStr.includes('车辆')?0.65:astStr.includes('营业')?0.55:0.2;
 
