@@ -747,9 +747,20 @@ class ScoreEngine {
     const pvdIndiv   = pvdTotal / 2;
     const pvdRate    = pvdRates[wKey];
     const inferIncome = pvdIndiv > 0 ? Math.round(pvdIndiv / pvdRate) : income;
-    const incDiff    = income > 0 && inferIncome > 0 ? Math.abs(inferIncome - income) / inferIncome : 0;
-    const trustScore = pvdTotal > 0
-      ? (incDiff < 0.2 ? 100 : incDiff < 0.4 ? 75 : incDiff < 0.8 ? 40 : 10) : 50;
+    // 非对称信任：HPF反推低于申报 ≠ 低报信号（民企最低基数缴纳极其普遍）
+    // pvdMinBase: 双边合计 < 600 元/月，基本可确定是最低基数
+    const pvdMinBase  = pvdTotal > 0 && pvdTotal < 600;
+    // HPF反推显著高于申报（> 15%）：才是强信号（可能低报收入）
+    const hpfHigher   = income > 0 && inferIncome > income * 1.15;
+    const incDiff     = income > 0 && inferIncome > 0
+      ? Math.abs(inferIncome - income) / Math.max(inferIncome, income) : 0;
+    const trustScore  = pvdTotal === 0
+      ? 50                                                                         // 无公积金：中性
+      : pvdMinBase && !hpfHigher
+        ? (incDiff < 0.3 ? 100 : 75)                                               // 最低基数：HPF信号弱，轻度折扣
+        : hpfHigher
+          ? (incDiff < 0.15 ? 100 : incDiff < 0.4 ? 60 : 20)                      // HPF反推高于申报：可疑
+          : (incDiff < 0.2 ? 100 : incDiff < 0.4 ? 80 : incDiff < 0.8 ? 55 : 35); // 正常区间（HPF低于申报）：非对称软化
     const effIncome  = income > 0
       ? (trustScore >= 75 ? income : trustScore >= 40 ? Math.round(income * 0.8) : Math.round(income * 0.6)) : 0;
 
