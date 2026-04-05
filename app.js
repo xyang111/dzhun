@@ -2040,17 +2040,27 @@ function renderV2XAI(v2) {
   const lvColor = { A:'#4ade80', B:'#60a5fa', C:'#fbbf24', D:'#f87171' };
   const col = lvColor[v2.level] || '#60a5fa';
 
-  // 标题：贷准102维模型评分 + 分数 + 等级徽章
-  const titleEl = wrap.querySelector('.conv-sec-title');
-  if (titleEl && v2.score > 0) {
-    const lvLabel = { A:'优质', B:'良好', C:'修复中', D:'修复期' };
+  // 标题区：替换为科技感 header（CPU图标 + 评分 + 等级徽章）
+  const hdEl = wrap.querySelector('.conv-sec-hd');
+  if (hdEl && v2.score > 0) {
+    const lvLabel = { A:'PREMIUM', B:'OPTIMIZABLE', C:'RECOVERY', D:'REHABILITATION' };
+    const lvDesc  = { A:'优质准入', B:'有优化空间', C:'恢复期', D:'修复期' };
     const scoreInt = parseInt(v2.score, 10);
-    titleEl.innerHTML =
-      `<span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);vertical-align:middle">贷准102维模型</span>` +
-      `<span style="margin-left:8px;font-size:15px;font-weight:700;color:#fff;vertical-align:middle">评分：</span>` +
-      `<span style="font-size:22px;font-weight:800;color:${col};font-family:'JetBrains Mono',monospace;vertical-align:middle">${scoreInt}</span>` +
-      `<span style="font-size:13px;color:var(--muted);vertical-align:middle">分</span>` +
-      `<span style="margin-left:10px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:3px;background:${col}22;color:${col};border:1px solid ${col}60;letter-spacing:.1em;vertical-align:middle">${v2.level || ''}级 · ${lvLabel[v2.level] || ''}</span>`;
+    const cpuIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(96,165,250,.8)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="6" height="6"/><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="9" y1="2" x2="9" y2="7"/><line x1="15" y1="2" x2="15" y2="7"/><line x1="9" y1="17" x2="9" y2="22"/><line x1="15" y1="17" x2="15" y2="22"/><line x1="2" y1="9" x2="7" y2="9"/><line x1="2" y1="15" x2="7" y2="15"/><line x1="17" y1="9" x2="22" y2="9"/><line x1="17" y1="15" x2="22" y2="15"/></svg>`;
+    hdEl.innerHTML = `<div class="v2hd">
+      <div class="v2hd-icon">${cpuIcon}</div>
+      <div class="v2hd-txt">
+        <div class="v2hd-label">CREDIT SCORE ENGINE V2.0 · 102-DIM</div>
+        <div class="v2hd-name">贷准风控评分
+          <span class="v2hd-badge" style="background:${col}1a;color:${col};border:1px solid ${col}55">${v2.level || ''}级 · ${lvDesc[v2.level] || ''}</span>
+        </div>
+      </div>
+      <div class="v2hd-score">
+        <div class="v2hd-num" style="color:${col}">${scoreInt}</div>
+        <div class="v2hd-denom">/ 1000 · ${lvLabel[v2.level] || ''}</div>
+      </div>
+    </div>`;
+    hdEl.style.marginBottom = '0';
   }
 
   // 五维雷达图
@@ -2167,7 +2177,7 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt) {
         ${_metricBox('综合评分', scoreDisp, '')}
         ${_metricBox('符合产品数', cp + '款', '')}
       </div>
-      <div class="hero-note">💎 <strong style="color:#fff">专属白名单通道：</strong>您的资质符合银行优先审批条件，最低利率需人工对接谈判</div>
+      <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></span><span><strong style="color:#fff">专属白名单通道：</strong>您的资质符合银行优先审批条件，最低利率需人工对接谈判</span></div>
     </div>`;
     return;
   }
@@ -2191,7 +2201,7 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt) {
         ${_metricBox('当前可贷额度', curAmt !== '填写收入后显示' ? curAmt + '万' : curAmt, '')}
         ${_metricBox('优化后可达', optAmt !== '填写收入后显示' && gapW > 0 ? optAmt + '万 <span style="font-size:11px">↑多' + gapW + '万</span>' : optAmt !== '填写收入后显示' ? optAmt + '万' : optAmt, 'gain')}
       </div>` : ''}
-      <div class="hero-note">⚡ 申请顺序搞错会多等3个月 · 客服给你精准执行计划</div>
+      <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span><span>申请顺序搞错会多等3个月 · 客服给你精准执行计划</span></div>
     </div>`;
     return;
   }
@@ -2204,10 +2214,10 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt) {
       <div class="hero-sub">3–6个月优化后，可进入主流股份制银行区间</div>
       <div class="hero-metrics cols-3">
         ${_metricBox('现在可申请', cp + '款', '', '城商行 + 消金')}
-        ${_metricBox('3个月后解锁', '+9款 🔒', 'locked', '股份制银行')}
-        ${_metricBox('6个月后解锁', '+6款 🔒', 'locked', '国有大行')}
+        ${_metricBox('3个月后解锁', '+9款 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px;vertical-align:middle;opacity:.7"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>', 'locked', '股份制银行')}
+        ${_metricBox('6个月后解锁', '+6款 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px;vertical-align:middle;opacity:.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>', 'locked', '国有大行')}
       </div>
-      <div class="hero-note">📋 过渡方案可用，但申请顺序很关键 · 顺序错了影响后续恢复</div>
+      <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span><span>过渡方案可用，但申请顺序很关键 · 顺序错了影响后续恢复</span></div>
     </div>`;
     return;
   }
@@ -2222,7 +2232,7 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt) {
       ${_metricBox('第一里程碑', '第3个月', 'milestone')}
       ${_metricBox('恢复银行准入', '第9个月', 'recovery')}
     </div>
-    <div class="hero-note">🤝 恢复期全程陪伴 · 每月进度同步 · 不是一次性报告</div>
+    <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span><span>恢复期全程陪伴 · 每月进度同步 · 不是一次性报告</span></div>
   </div>`;
 }
 
