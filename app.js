@@ -2390,6 +2390,11 @@ function renderMatchResult(r) {
   const liftEl=document.getElementById('convLift');
   if(liftEl&&da.length>0 && v2Level !== 'D'){
     liftEl.style.display='block';
+    // B级：改为收益框架标题
+    if (v2Level === 'B') {
+      const _liftTitle = liftEl.querySelector('.conv-sec-title');
+      if (_liftTitle) _liftTitle.textContent = '做这几步，可以多拿这些';
+    }
     document.getElementById('convLiftActions').innerHTML=da.map(a=>`<div class="lift-action"><div class="lift-check"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div><div class="lift-txt">${esc(a.action)}（${esc(a.impact)}）</div></div>`).join('');
     const cp=r.current_products||products.length;
     const op=Math.max(cp, r.optimized_products || (cp + 2));
@@ -2473,12 +2478,15 @@ function renderMatchResult(r) {
   // ⑧ 转化区
   const hEl=document.getElementById('convHidden');
   if(hEl)hEl.textContent=Math.max(1,dp.length>2?2:1);
-  const ctaSub=document.getElementById('convCtaSub');
-  if(ctaSub){
-    if(_tier==='bank')
-      ctaSub.innerHTML='顾问协助深度解析官方持牌金融机构准入政策<br>精准匹配申贷方案，通过算法优化降低综合财务成本';
-    else
-      ctaSub.innerHTML='这些因素可能影响你的最终额度和通过率<br>联系顾问获取针对你的定制方案';
+  const ctaSub = document.getElementById('convCtaSub');
+  if (ctaSub) {
+    const _ctaCopy = {
+      A: '专属白名单通道需人工对接，顾问协助谈判最低利率',
+      B: '申请顺序搞错会多等3个月，顾问给你精准执行计划',
+      C: '有过渡方案，但申请顺序很关键，顺序错了影响后续恢复',
+      D: '恢复期全程陪伴，每月进度同步，不是一次性报告',
+    };
+    ctaSub.textContent = _ctaCopy[v2Level] || _ctaCopy['B'];
   }
 
   // 产品卡片渲染（分三层：国有大行 / 股份制+城商行 / 消费金融）
