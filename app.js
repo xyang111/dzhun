@@ -2663,7 +2663,7 @@ function renderTableFooters(loans, cards) {
   if (loans.length > 0) {
     const totalLimit   = loans.reduce((s, l) => s + (l.credit_limit || 0), 0);
     const totalBalance = loans.reduce((s, l) => s + (l.balance || 0), 0);
-    const totalMonthly = loans.reduce((s, l) => s + (l.monthly || 0), 0);
+    const totalMonthly = loans.reduce((s, l) => s + calcLoanMonthly(l), 0);
     document.getElementById('loans-total-limit').innerHTML   = totalLimit   > 0 ? '<strong>' + fmt(totalLimit)   + ' 元</strong>' : '--';
     document.getElementById('loans-total-balance').innerHTML = totalBalance > 0 ? '<strong>' + fmt(totalBalance) + ' 元</strong>' : '--';
     document.getElementById('loans-total-monthly').innerHTML = totalMonthly > 0 ? '<strong>' + fmt(totalMonthly) + ' 元</strong>' : '--';
