@@ -1306,7 +1306,7 @@ function calcQueryCounts(queryRecords, baseDate) {
     if (!r.date || !r.type) return;
     const d = new Date(r.date);
     d.setHours(0, 0, 0, 0);
-    const isGuarantee  = r.type === '担保资格审查';
+    const isGuarantee  = r.type === '担保资格审查' || r.type === '资信审查';
     const isLoan       = r.type === '贷款审批' || isGuarantee;
     const isCard       = r.type === '信用卡审批';
 
