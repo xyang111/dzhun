@@ -4,6 +4,27 @@
 厦门本地AI贷款匹配平台，用户上传人行简版征信报告，AI自动识别负债情况，匹配可申请的银行/消费金融产品。
 域名：dzhun.com.cn | 公司：厦门贷准科技有限公司
 
+**Stack：** HTML/JS/CSS 前端部署在阿里云 ECS（Nginx），Cloudflare Workers 做 API 代理，OCR 用 Claude Vision，Match 用 DeepSeek API，数据存储 Cloudflare KV + D1。
+**重要：** CEO 有时会直接在 Cloudflare Dashboard 上编辑 Worker 代码，编辑前必须先确认线上版本与本地是否一致，不能直接覆盖。
+
+## Deployment Checklist
+每次部署到 Cloudflare Worker 或 ECS 后必须执行：
+1. 更新 `index.html` 中所有引用变更文件的 cache-busting 版本号（如 `?v=X.X`），不能沿用旧版本号
+2. 确认 `config.js` 在 `app.js` 之前加载（顺序已固定，改动 index.html 时注意保持）
+3. Worker 部署后验证 `api.dzhun.com.cn` 路由是否正常响应
+
+## Debugging Protocol
+排查生产问题时，按以下顺序检查，**不得在确认根因前进行多次投机性代码修复**：
+1. 部署的代码是最新版本吗？（缓存/CDN 问题，检查版本号）
+2. 前端和后端是否存在冲突的硬编码值？（如 frontend 的 `max_tokens` 覆盖 Worker 设置）
+3. 是环境问题而非代码问题吗？（HTTPS、DNS、设备特定、微信内置浏览器）
+4. Worker 改动后，同时检查前端请求参数和 Worker 处理逻辑，单侧修复不等于全链路修复
+
+## UI/Mobile Guidelines
+- 移动端是主要使用场景，UI 改动后必须在脑中过一遍手机视口
+- 检查项：白底白字（文字不可见）、overflow 隐藏元素、触控目标尺寸是否足够大
+- 动态 HTML 由 `app.js` 生成，CSS 类名改动必须同步检查 `app.js` 里的字符串引用
+
 ## 当前状态（2026-04）
 - 网站正常运行，ICP备案已通过（闽ICP备2026009746号）
 - 支付宝 WAP支付：✅ 正常
@@ -62,6 +83,7 @@ scp index.html style.css config.js app.js qr.jpg qr_agent_1.jpg root@8.136.1.233
 
 ## Worker环境变量（Cloudflare Dashboard配置）
 - ANTHROPIC_API_KEY / RESEND_API_KEY
+- TEXTIN_APP_ID / TEXTIN_SECRET（TextIn OCR 智能提取，用于 /api/v1/ocr）
 - WECHAT_APPID / WECHAT_MCH_ID / WECHAT_SERIAL / WECHAT_PRIV_KEY / WECHAT_API_V3_KEY
 - ALIPAY_APP_ID / ALIPAY_PRIV_KEY / ALIPAY_PUB_KEY
 
