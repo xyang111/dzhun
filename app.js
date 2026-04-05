@@ -428,6 +428,22 @@ function localFallbackMatch(data, v2Score = 0) {
 // State
 let _fileBlocks = [];       // array of API content blocks (image or document)
 let _recognizedData = null; // {loans, cards, queries, summary}
+window._pageSessionId = Math.random().toString(36).slice(2, 16) + Date.now().toString(36);
+
+function _trackEvent(event, props) {
+  try {
+    fetch(PROXY_URL + '/api/v1/analytics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event,
+        sessionId: window._pageSessionId,
+        agentId:   window._currentAgent?.id || null,
+        props:     props || null,
+      }),
+    }).catch(() => {});
+  } catch (e) { /* silent */ }
+}
 
 
 // ═══════════════════════════════════════════
@@ -784,6 +800,10 @@ class ScoreEngine {
     })();
 
     const age      = calcAgeFromId(window._personIdNo || ocr.id_number || '');
+    const creditStartAge = (age && earliest) ? Math.max(18, Math.round(age - accAge / 12)) : null;
+    const recent6mBal  = loans.filter(l => { const m = this._mths(l.issued_date); return m !== null && m <= 6; }).reduce((s, l) => s + (l.balance || 0), 0);
+    const totalLoanBal = loans.reduce((s, l) => s + (l.balance || 0), 0);
+    const netDebtTrend6m = totalLoanBal > 0 ? recent6mBal / totalLoanBal : 0;
     const cardLimits = cards.map(c => c.limit || 0).filter(v => v > 0);
     const cardTrend  = cardLimits.length > 1 ? Math.max(...cardLimits) / Math.min(...cardLimits) : 1;
     const dti      = effIncome > 0 ? monthly / effIncome : 1;
@@ -810,6 +830,7 @@ class ScoreEngine {
       pvdTotal, pvdRate, pvdIndiv, socialMths,
       wkScore, eduScore, hkScore, ageScore, astScore,
       cLimit, cUsed, age, loans, cards,
+      creditStartAge, netDebtTrend6m,
     };
   }
 
@@ -819,9 +840,9 @@ class ScoreEngine {
     if (typeof console !== 'undefined') {
       const _domainW = 0.40+0.30+0.25+0.05;
       if (Math.abs(_domainW - 1.0) > 1e-9) console.error(`[ScoreEngine] 域权重不归一: Σ=${_domainW}`);
-      const _stW = 0.25+0.25+0.15+0.12+0.08+0.08+0.07;
+      const _stW = 0.25+0.25+0.15+0.12+0.08+0.08+0.05+0.02;
       if (Math.abs(_stW - 1.0) > 1e-9) console.error(`[ScoreEngine] 稳定性权重不归一: Σ=${_stW}`);
-      const _asW = 0.35+0.25+0.20+0.12+0.08;
+      const _asW = 0.33+0.25+0.20+0.12+0.08+0.02;
       if (Math.abs(_asW - 1.0) > 1e-9) console.error(`[ScoreEngine] 资产权重不归一: Σ=${_asW}`);
       const _frW = 0.50+0.30+0.20;
       if (Math.abs(_frW - 1.0) > 1e-9) console.error(`[ScoreEngine] 反欺诈权重不归一: Σ=${_frW}`);
@@ -860,6 +881,11 @@ class ScoreEngine {
       mm(f.recent6mLoans,0,6,true)      *0.06*tf(3);
     const cbScore = cbW > 0 ? cbRaw / cbW : 0;
 
+    const _creditStartAgeS = (() => {
+      const a = f.creditStartAge;
+      if (a === null) return 0.5;
+      return a < 20 ? 0.4 : a <= 28 ? 0.9 : a <= 40 ? 1.0 : a <= 50 ? 0.7 : 0.5;
+    })();
     const stMod = f.trustScore>=75?1.0:f.trustScore>=40?0.8:0.6;
     const stScore = (
       f.wkScore              *0.25 +
@@ -868,15 +894,17 @@ class ScoreEngine {
       f.eduScore             *0.12 +
       f.hkScore              *0.08 +
       f.ageScore             *0.08 +
-      (f.pvdTotal>0?mm(f.pvdTotal,0,3000):0.3)*0.07
+      (f.pvdTotal>0?mm(f.pvdTotal,0,3000):0.3)*0.05 +
+      _creditStartAgeS       *0.02
     ) * stMod;
 
     const asScore =
-      mm(f.dti,0,1.2,true)   *0.35 +
+      mm(f.dti,0,1.2,true)                              *0.33 +
       (f.effIncome>0?mm(f.disposable,0,f.effIncome):0.5)*0.25 +
-      f.astScore              *0.20 +
-      mm(f.cardUtil,0,1,true) *0.12 +
-      mm(f.fixedExp/Math.max(f.income||1,1),0,0.8,true)*0.08;
+      f.astScore                                         *0.20 +
+      mm(f.cardUtil,0,1,true)                            *0.12 +
+      mm(f.fixedExp/Math.max(f.income||1,1),0,0.8,true)  *0.08 +
+      mm(f.netDebtTrend6m,0,1,true)                      *0.02;
 
     const frScore =
       (f.badRec?0:1) *0.50 +
@@ -1175,6 +1203,7 @@ async function startAnalysis() {
     if (!extracted) throw new Error('未能识别到征信数据，请确认是人行征信报告');
 
     _recognizedData = extracted;
+    _trackEvent('ocr_complete', { loans: (extracted.loans||[]).length, cards: (extracted.cards||[]).length });
 
     // Finish steps animation
     steps.forEach(id => {
@@ -2397,6 +2426,7 @@ function renderMatchResult(r) {
   document.getElementById('matchResult').style.display='block';
   document.getElementById('matchResult').scrollIntoView({behavior:'smooth',block:'start'});
   window._isMatching = false; // 释放匹配状态锁
+  _trackEvent('match_result_shown', { product_count: (r.products||[]).length, level: r.level || null });
   autoSendReport();
 }
 
@@ -2825,6 +2855,7 @@ const _isWeChat = /micromessenger/i.test(navigator.userAgent);
 
 // 页面加载时处理支付宝回跳 & 微信 OAuth
 document.addEventListener('DOMContentLoaded', () => {
+  _trackEvent('page_view');
   initContactPhone();
   loadProducts();
 
@@ -2877,6 +2908,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.removeItem('_alipayPendingOrderId');
         localStorage.removeItem('_alipayPendingTs');
         localStorage.removeItem('_alipayPendingData');
+        _trackEvent('payment_success', { method: 'alipay_recovery' });
         localStorage.setItem('_payToken', gotToken);
         localStorage.setItem('_payTokenExp', String(Date.now() + 3600000));
         document.getElementById('payOverlay').classList.add('show');
@@ -3125,6 +3157,7 @@ async function choosePay(channel) {
         if (_confirmed) return;
         _confirmed = true;
         clearInterval(_pollTimer);
+        _trackEvent('payment_success', { method: 'wechat' });
         localStorage.setItem('_payToken', token);
         localStorage.setItem('_payTokenExp', String(Date.now() + 3600000));
         document.getElementById('payStep2').style.display = 'none';
@@ -3239,6 +3272,7 @@ async function pollPayStatus() {
     const data = await resp.json();
     if (data.status === 'paid' && data.token) {
       clearInterval(_pollTimer);
+      _trackEvent('payment_success', { method: 'poll' });
       localStorage.setItem('_payToken', data.token);
       localStorage.setItem('_payTokenExp', String(Date.now() + 3600000));
       document.getElementById('payStep2').style.display = 'none';
@@ -3266,6 +3300,7 @@ window.addEventListener('pageshow', (evt) => {
         const d = await r.json();
         if (d.status === 'paid' && d.token) {
           clearInterval(_pollTimer);
+          _trackEvent('payment_success', { method: 'alipay_return' });
           localStorage.setItem('_payToken', d.token);
           localStorage.setItem('_payTokenExp', String(Date.now() + 3600000));
           localStorage.removeItem('_alipayPendingOrderId');
