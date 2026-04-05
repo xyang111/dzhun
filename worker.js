@@ -510,8 +510,7 @@ export default {
     if (normPath === '/score')             return handleScore(request, env);
     if (normPath === '/analytics')         return handleAnalytics(request, env);
 
-    // 兼容旧路由：无 path 或 / 走 Claude 代理
-    return handleClaude(request, env);
+    return jsonResp({ error: 'Not Found' }, 404, request);
   },
 };
 
@@ -636,56 +635,6 @@ async function handleMatch(request, env) {
     if (data.error) return jsonResp({ error: data.error }, resp.status, request);
     return jsonResp(data, resp.status, request);
 
-  } catch (e) {
-    return jsonResp({ error: { message: 'Upstream error: ' + e.message } }, 502, request);
-  }
-}
-
-// ═══════════════════════════════════════════
-// 旧版 /claude 路由（保留兼容，逻辑不变）
-// ═══════════════════════════════════════════
-async function handleClaude(request, env) {
-  const apiKey = env.ANTHROPIC_API_KEY;
-  if (!apiKey) return jsonResp({ error: { message: 'API key not configured.' } }, 500, request);
-
-  let body;
-  try { body = await request.json(); } catch (e) {
-    return jsonResp({ error: { message: 'Invalid JSON: ' + e.message } }, 400, request);
-  }
-
-  const hasFile = (body.messages || []).some(
-    m => Array.isArray(m.content) && m.content.some(c => c.type === 'image' || c.type === 'document')
-  );
-
-  const payToken = body._pay_token || '';
-  delete body._pay_token;
-  if (!payToken) {
-    return jsonResp({ error: { message: '需要付费后才能查看匹配结果', code: 'PAYMENT_REQUIRED' } }, 402, request);
-  }
-  const tokenRaw = await env.ORDERS.get(`token:${payToken}`);
-  if (!tokenRaw) {
-    return jsonResp({ error: { message: '支付凭证无效或已过期，请重新付费', code: 'PAYMENT_REQUIRED' } }, 402, request);
-  }
-  const td = JSON.parse(tokenRaw);
-  if (td.expiresAt < Date.now()) {
-    return jsonResp({ error: { message: '支付凭证已过期（24小时内有效），请重新付费', code: 'PAYMENT_REQUIRED' } }, 402, request);
-  }
-
-  body.model      = 'claude-sonnet-4-20250514';
-  body.max_tokens = hasFile ? 4000 : 3000;
-
-  try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
-        'x-api-key': apiKey,
-      },
-      body: JSON.stringify(body),
-    });
-    const data = await resp.json();
-    return jsonResp(data, resp.status, request);
   } catch (e) {
     return jsonResp({ error: { message: 'Upstream error: ' + e.message } }, 502, request);
   }
