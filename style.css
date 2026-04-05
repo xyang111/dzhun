@@ -80,7 +80,7 @@ header {
 }
 .logo-mark svg{position:relative;z-index:1;}
 .logo-text {
-  font-family:'Syne','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
   font-size:15px;font-weight:800;
   color:var(--white);letter-spacing:0.06em;
 }
@@ -94,20 +94,20 @@ header {
   margin:0 16px;
 }
 .logo-sub {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:10px;color:var(--silver);
   letter-spacing:0.1em;
 }
 .header-r {margin-left:auto;display:flex;align-items:center;gap:14px;}
 .h-badge {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
   color:var(--success);
   background:rgba(12,184,122,0.08);
   border:1px solid rgba(12,184,122,0.25);
   padding:3px 8px;letter-spacing:0.1em;
 }
 .h-icp {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
   color:var(--muted);letter-spacing:0.05em;
 }
 
@@ -122,7 +122,7 @@ main {
 
 /* ── Page heading ── */
 .pg-eyebrow {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:10px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:10px;
   color:var(--accentB);letter-spacing:0.2em;text-transform:uppercase;
   margin-bottom:8px;display:flex;align-items:center;gap:8px;
   animation:fadeUp .4s ease both;
@@ -132,7 +132,7 @@ main {
   width:22px;height:1px;background:var(--accentB);
 }
 .pg-h1 {
-  font-family:'Syne','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
   font-size:clamp(20px,4vw,28px);
   font-weight:700;color:var(--white);
   letter-spacing:-0.01em;line-height:1.2;
@@ -153,7 +153,7 @@ main {
   animation:fadeUp .4s .18s ease both;
 }
 .tab-btn {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;
   color:var(--silver);background:none;border:none;
   padding:10px 18px;cursor:pointer;
   letter-spacing:0.06em;position:relative;
@@ -206,7 +206,7 @@ main {
   background:var(--raised);
 }
 .step-tag {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
   color:var(--accentB);
   background:rgba(59,123,246,0.1);
   border:1px solid rgba(59,123,246,0.25);
@@ -218,7 +218,7 @@ main {
 }
 .card-status {
   margin-left:auto;
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
   color:var(--muted);
   display:flex;align-items:center;gap:5px;
 }
@@ -270,7 +270,7 @@ main {
   display:flex;justify-content:center;gap:20px;flex-wrap:wrap;
 }
 .spec {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:10px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:10px;
   color:var(--muted);display:flex;align-items:center;gap:5px;
 }
 .spec::before{
@@ -381,7 +381,7 @@ main {
 
 .sec-note {
   text-align:center;
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
   color:var(--muted);margin-top:12px;letter-spacing:0.06em;
   display:flex;align-items:center;justify-content:center;gap:6px;
 }
@@ -411,11 +411,11 @@ main {
 @keyframes pulsate{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.2;transform:scale(.6)}}
 
 .ld-eyebrow {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:10px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:10px;
   color:var(--accentB);letter-spacing:.18em;text-transform:uppercase;margin-bottom:6px;
 }
 .ld-title {
-  font-family:'Syne','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
   font-size:18px;font-weight:700;color:var(--white);margin-bottom:26px;
 }
 
@@ -427,7 +427,7 @@ main {
 }
 .sl-item:last-child{border-bottom:none;}
 .sl-n {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
   width:18px;flex-shrink:0;color:var(--muted);
 }
 .sl-item.done{color:var(--plat);}
@@ -558,13 +558,13 @@ main {
 .mcell:hover{background:var(--raised);}
 .mcell:hover::after{background:var(--accentB);}
 .mlabel {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
   color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px;
   display:flex;align-items:center;gap:4px;
 }
 .mlabel svg { color:var(--accentB);opacity:0.7;flex-shrink:0; }
 .mval {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:18px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:18px;
   font-weight:500;line-height:1;margin-bottom:3px;
 }
 .mval.ok{color:var(--success);}
@@ -605,17 +605,17 @@ main {
   align-items:center;justify-content:center;
 }
 .ring-num {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:28px;font-weight:500;
   color:var(--white);line-height:1;
 }
 .ring-lbl {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:9px;color:var(--muted);
   letter-spacing:.08em;margin-top:3px;
 }
 .score-tier {
-  font-family:'Syne','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
   font-size:14px;font-weight:700;
   color:var(--success);margin-bottom:4px;
   letter-spacing:.04em;
@@ -625,7 +625,7 @@ main {
   font-weight:300;line-height:1.55;margin-bottom:12px;
 }
 .score-card-eyebrow {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;
   margin-bottom:14px;
 }
@@ -637,11 +637,11 @@ main {
 }
 .score-stat-row:last-child{margin-bottom:0;}
 .score-stat-lbl {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:9px;color:var(--muted);
 }
 .score-stat-val {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:11px;color:var(--accentB);
 }
 .score-stat-val.green{color:var(--success);}
@@ -664,7 +664,7 @@ main {
   justify-content:space-between;margin-bottom:6px;
 }
 .risk-name{font-size:11px;color:var(--silver);}
-.risk-v {font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;font-weight:500;}
+.risk-v {font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;font-weight:500;}
 .bar-track{height:3px;background:var(--border);}
 .bar-fill{height:100%;}
 
@@ -675,11 +675,11 @@ main {
   padding-bottom:10px;border-bottom:1px solid var(--border);
 }
 .sec-hdr-title {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:10px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:10px;
   color:var(--plat);letter-spacing:.1em;text-transform:uppercase;
 }
 .sec-hdr-count {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:10px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:10px;
   color:var(--accentB);
   background:var(--glow);
   border:1px solid rgba(59,123,246,.25);
@@ -691,7 +691,7 @@ main {
   width:100%;border-collapse:collapse;
 }
 .ptable th {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
   color:var(--muted);letter-spacing:.12em;text-transform:uppercase;
   padding:9px 13px;text-align:left;
   border-bottom:1px solid var(--border);
@@ -706,11 +706,11 @@ main {
 
 .prod-name{font-weight:500;color:var(--white);font-size:12px;margin-bottom:2px;}
 .prod-bank{
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;color:var(--muted);
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;color:var(--muted);
 }
 
 .ttag {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;
   padding:2px 6px;letter-spacing:.04em;
 }
 .ttag-b{
@@ -728,12 +728,12 @@ main {
 .mb-track{flex:1;height:4px;background:var(--border);}
 .mb-fill{height:100%;}
 .mb-pct{
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;
   font-weight:500;min-width:30px;text-align:right;
 }
 
 .rate-mono{
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:11px;
 }
 
 /* Paywall (design-preview 原版) */
@@ -750,7 +750,7 @@ main {
   pointer-events:none;
 }
 .pw-count {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:36px;font-weight:600;color:var(--accentB);
   line-height:1;margin-bottom:4px;position:relative;
 }
@@ -772,7 +772,7 @@ main {
 }
 .btn-unlock:hover{background:var(--accentB);}
 .btn-unlock .price {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:17px;font-weight:600;
   color:#FFD15C;
 }
@@ -789,7 +789,7 @@ main {
   width:24px;height:24px;
   border:1px solid var(--accentB);
   display:flex;align-items:center;justify-content:center;
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:11px;font-weight:500;color:var(--accentB);
 }
 .path-vline {
@@ -859,7 +859,7 @@ main {
 }
 .iib-label { font-size:10px;color:var(--muted);letter-spacing:0.04em;margin-bottom:2px;white-space:nowrap; }
 .iib-val   { font-size:13px;font-weight:600;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-.iib-idno  { font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;letter-spacing:1.5px;font-size:12px;color:var(--plat); }
+.iib-idno  { font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;letter-spacing:1.5px;font-size:12px;color:var(--plat); }
 
 /* ── br-wrap / 爆查风险 ── */
 .br-wrap {
@@ -1140,7 +1140,7 @@ main {
 }
 .ct-badge-icon svg { width:22px;height:22px; }
 .ct-badge-type {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:9px;font-weight:700;color:var(--accentB);
   letter-spacing:.08em;text-transform:uppercase;
 }
@@ -1198,12 +1198,12 @@ main {
   margin-bottom:10px;
 }
 .term-badge {
-  font-family:'JetBrains Mono','Menlo',monospace;
+  font-family:'SF Mono','Menlo',monospace;
   font-size:10px;font-weight:600;letter-spacing:.12em;
   color:var(--accentB);text-transform:uppercase;
 }
 .term-badge-r {
-  font-family:'JetBrains Mono','Menlo',monospace;
+  font-family:'SF Mono','Menlo',monospace;
   font-size:10px;color:var(--muted);letter-spacing:.06em;
 }
 .term-log {
@@ -1220,7 +1220,7 @@ main {
 }
 .term-row {
   display:flex;align-items:baseline;gap:0;
-  font-family:'JetBrains Mono','Menlo',monospace;
+  font-family:'SF Mono','Menlo',monospace;
   font-size:11px;line-height:1.9;
   white-space:nowrap;overflow:hidden;
   opacity:0;
@@ -1248,7 +1248,7 @@ main {
   width:0%;transition:width .25s linear;
 }
 .term-status {
-  font-family:'JetBrains Mono','Menlo',monospace;
+  font-family:'SF Mono','Menlo',monospace;
   font-size:9px;letter-spacing:.1em;color:var(--muted);
   min-width:80px;text-align:right;
 }
@@ -1470,14 +1470,14 @@ main {
 }
 .mh-left { flex:1;min-width:0; }
 .mh-eyebrow {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:10px;color:var(--muted);letter-spacing:2.5px;
   text-transform:uppercase;margin-bottom:6px;
 }
 .mh-title { font-size:20px;font-weight:800;color:var(--white);margin-bottom:4px;letter-spacing:0.5px; }
 .mh-sub   { font-size:12px;color:var(--silver); }
 .mh-count {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:40px;font-weight:800;color:var(--accentB);
   text-align:center;line-height:1;
 }
@@ -1519,12 +1519,12 @@ main {
 .pc-bank { font-size:13px;font-weight:800;color:var(--white); }
 .pc-product { font-size:11px;color:var(--silver);margin-top:2px; }
 .pc-rate {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:20px;font-weight:800;color:var(--accentB);
   text-align:right;flex-shrink:0;white-space:nowrap;
 }
 .pc-amount {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:13px;font-weight:600;color:var(--plat);
 }
 .pc-prob { display:flex;align-items:center;gap:8px;margin-bottom:12px; }
@@ -1565,7 +1565,7 @@ footer {
   border-top:1px solid var(--border);text-align:center;
 }
 .footer-logo {
-  font-family:'Syne','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
   font-size:18px;font-weight:800;color:var(--white);
   letter-spacing:4px;margin-bottom:8px;
 }
@@ -1593,7 +1593,7 @@ footer {
   background:rgba(59,123,246,0.1);border:1px solid rgba(59,123,246,0.25);
   padding:3px 12px;font-size:10px;color:var(--accentB);
   letter-spacing:.06em;margin-bottom:14px;
-  font-family:'JetBrains Mono',monospace;
+  font-family:'SF Mono',monospace;
 }
 .conv-btns { display:flex;gap:10px;justify-content:center;margin-bottom:10px; }
 .conv-btn-p {
@@ -1632,7 +1632,7 @@ footer {
   background:rgba(59,123,246,0.1);border:1px solid rgba(59,123,246,0.25);
   padding:3px 12px;font-size:10px;color:var(--accentB);
   letter-spacing:.06em;margin-bottom:14px;
-  font-family:'JetBrains Mono',monospace;
+  font-family:'SF Mono',monospace;
 }
 .conv-btns { display:flex;gap:10px;justify-content:center;margin-bottom:10px; }
 .conv-btn-p {
@@ -1675,18 +1675,18 @@ footer {
   flex-wrap:wrap;justify-content:center;
 }
 .qi-type {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;
 }
 .qi-period {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:9px;color:var(--accentB);
   background:rgba(59,123,246,0.1);
   border:1px solid rgba(59,123,246,0.2);
   padding:1px 6px;letter-spacing:.06em;
 }
 .qi-num {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:22px;font-weight:700;line-height:1;
 }
 .qi-unit {
@@ -1697,7 +1697,7 @@ footer {
 }
 .qi-bar-fill { height:100%;transition:width .6s ease; }
 .qi-status {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:9px;letter-spacing:.1em;text-transform:uppercase;
 }
 
@@ -1719,18 +1719,18 @@ footer {
   flex-wrap:wrap;justify-content:center;
 }
 .qi-type {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;
 }
 .qi-period {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:9px;color:var(--accentB);
   background:rgba(59,123,246,0.1);
   border:1px solid rgba(59,123,246,0.2);
   padding:1px 6px;letter-spacing:.06em;
 }
 .qi-num {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:22px;font-weight:700;line-height:1;
 }
 .qi-unit {
@@ -1741,7 +1741,7 @@ footer {
 }
 .qi-bar-fill { height:100%;transition:width .6s ease; }
 .qi-status {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:9px;letter-spacing:.1em;text-transform:uppercase;
 }
 
@@ -1765,7 +1765,7 @@ footer {
   flex-shrink:0;width:20px;height:20px;
   border:1px solid var(--accentB);
   display:flex;align-items:center;justify-content:center;
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:10px;font-weight:600;color:var(--accentB);
 }
 .prob-name { font-size:12px;color:var(--white);line-height:1.5;margin-bottom:3px; }
@@ -1815,7 +1815,7 @@ footer {
   50%{box-shadow:0 0 0 8px rgba(59,123,246,0);}
 }
 .pw-lock-lbl {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:9px;color:var(--accentB);letter-spacing:.14em;opacity:.7;
 }
 
@@ -1942,7 +1942,7 @@ footer {
 }
 .cs-dim-fill { height:100%;transition:width .6s ease; }
 .cs-dim-val {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:11px;font-weight:500;flex-shrink:0;width:28px;text-align:right;
 }
 
@@ -2072,7 +2072,7 @@ footer {
 
 /* ── Header clock ── */
 .h-clock {
-  font-family:'JetBrains Mono','Menlo','Consolas','Courier New',monospace;
+  font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;
   font-size:10px;
   color:var(--muted);
   letter-spacing:.08em;
@@ -2123,7 +2123,7 @@ main, header { position:relative; z-index:1; }
 /* ── Card coordinate marks ── */
 .pcard > .card-bar::after {
   content:attr(data-coord);
-  font-family:'JetBrains Mono',monospace;
+  font-family:'SF Mono',monospace;
   font-size:8px;
   color:var(--border2);
   letter-spacing:.06em;
@@ -2172,7 +2172,7 @@ main, header { position:relative; z-index:1; }
 
 /* ── 差异化英雄区 ── */
 .hero-wrap { padding: 16px 0 8px; }
-.hero-eyebrow { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; }
+.hero-eyebrow { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 8px; font-family: 'SF Mono', monospace; }
 .hero-title { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 6px; line-height: 1.3; }
 .hero-sub { font-size: 12px; margin-bottom: 14px; }
 .hero-metrics { display: grid; gap: 8px; margin-bottom: 12px; }
@@ -2258,14 +2258,14 @@ main, header { position:relative; z-index:1; }
 }
 .v2hd-txt { flex: 1; min-width: 0; }
 .v2hd-label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'SF Mono', monospace;
   font-size: 9px; letter-spacing: .16em; text-transform: uppercase;
   color: rgba(96,165,250,.65); margin-bottom: 3px;
 }
 .v2hd-name { font-size: 13px; font-weight: 700; color: #fff; }
 .v2hd-score { text-align: right; flex-shrink: 0; }
 .v2hd-num {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'SF Mono', monospace;
   font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -.02em;
 }
 .v2hd-denom { font-size: 10px; color: var(--muted); letter-spacing: .06em; margin-top: 3px; }
