@@ -1118,9 +1118,13 @@ async function startAnalysis() {
   const _t3 = setTimeout(() => setStep(3), 22000); // rs4：汇总数据
 
   try {
-    const cacheKey = _fileBlocks.length > 0
-      ? btoa(_fileBlocks[0].source.data.substring(0, 100)).substring(0, 32)
-      : null;
+    const cacheKey = _fileBlocks.length > 0 ? (() => {
+      const d = _fileBlocks[0].source.data;
+      const len = d.length;
+      // 取头部+中部+尾部各100字符，避免同设备截图头部相同导致碰撞
+      const sample = d.substring(0, 100) + d.substring(Math.floor(len / 2), Math.floor(len / 2) + 100) + d.substring(Math.max(0, len - 100));
+      return btoa(sample).substring(0, 48);
+    })() : null;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120000);
     const resp = await fetch(PROXY_URL + '/api/v1/ocr', {
