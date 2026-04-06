@@ -1094,6 +1094,8 @@ async function startAnalysis() {
   if (!_cc3 || !_cc3.checked) { alert('请先勾选同意《个人信息保护政策》及《征信数据分析授权协议》'); return; }
   if (window._isAnalyzing) return; // 状态锁，防重复触发
   window._isAnalyzing = true;
+  // 安全兜底：60秒后强制释放锁（防止任何异常路径导致永久卡死）
+  const _analyzeGuard = setTimeout(() => { window._isAnalyzing = false; }, 60000);
 
   // Show reading card
   document.getElementById('uploadCard').style.display = 'none';
@@ -1168,14 +1170,17 @@ async function startAnalysis() {
     });
 
     setStep(4); // rs5：准备AI产品匹配（完成）
+    // 立即释放锁（OCR数据已拿到，不需要等动画），清除安全兜底计时器
+    window._isAnalyzing = false;
+    clearTimeout(_analyzeGuard);
     setTimeout(() => {
-      window._isAnalyzing = false;
       document.getElementById('readingCard').style.display = 'none';
       renderResult(extracted);
     }, 600);
 
   } catch(e) {
     window._isAnalyzing = false;
+    clearTimeout(_analyzeGuard);
     clearTimeout(_t1); clearTimeout(_t2); clearTimeout(_t3);
     document.getElementById('readingCard').style.display = 'none';
     document.getElementById('uploadCard').style.display = 'block';
@@ -1532,6 +1537,8 @@ function renderResult(data) {
 async function startMatching() {
   if (window._isMatching) return;
   window._isMatching = true;
+  // 安全兜底：90秒后强制释放（匹配最长不超过这个时间）
+  const _matchGuard = setTimeout(() => { window._isMatching = false; }, 90000);
   let mlTimer;
 
   document.getElementById('infoCard').style.display = 'none';
@@ -3416,10 +3423,14 @@ async function pollPayStatus() {
   } catch(e) { /* 忽略轮询错误 */ }
 }
 
-// iOS Safari bfcache 恢复时（从支付宝 app 返回），DOMContentLoaded 不会重新触发
-// 改用 pageshow 事件补充处理
+// iOS Safari / WeChat bfcache 恢复时，DOMContentLoaded 不会重新触发
+// pageshow 事件处理：① 重置状态锁（防止切屏后 _isAnalyzing/_isMatching 残留 true） ② 处理支付宝回跳
 window.addEventListener('pageshow', (evt) => {
   if (!evt.persisted) return; // 不是 bfcache 恢复，忽略
+  // 无论什么情况，bfcache 恢复时必须重置状态锁，否则填表单切屏后回来会永久卡住
+  window._isAnalyzing = false;
+  window._isMatching  = false;
+  console.log('[贷准] bfcache restored → state flags reset');
   const ps = new URLSearchParams(location.search);
   if (ps.get('paid') !== '1') return;
   // 有支付宝回跳参数：调 verify-return 直接确认
