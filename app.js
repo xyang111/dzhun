@@ -1857,7 +1857,7 @@ async function startMatching() {
     client_type:        _clientType,
     products:           _localProds,
     cs_score:           _v2Result ? _v2Result.score : _localResult.cs_score,
-    cs_tier:            _v2Result ? (_v2Result.level==='A'?'bank':_v2Result.level==='B'?'mixed':'finance') : _localResult.cs_tier,
+    cs_tier:            _v2Result ? (_v2Result.score >= 650 ? 'bank' : _v2Result.score >= 400 ? 'mixed' : 'finance') : _localResult.cs_tier,
     user_info_summary: [
       eduVal   ? `学历：${eduVal}` : null,
       income>0 ? `月收入：${income}元` : null,
@@ -2363,8 +2363,8 @@ function renderMatchResult(r) {
       if(nr) nr.textContent='查询暴增→全部被拒→被迫转消费金融';
     } else {
       if(lossTitle) lossTitle.textContent='现在直接申请，代价是什么';
-      if(nt) nt.textContent='消费金融为主';
-      if(nr) nr.textContent='年利率：15%–24%';
+      if(nt) nt.textContent=_tier==='mixed'?'银行+消金混合':'消费金融为主';
+      if(nr) nr.textContent=_tier==='mixed'?'年利率：6%–18%（银行低，消金高）':'年利率：15%–24%';
     }
     const la=income>0?Math.max(1,Math.round(Math.min(estHi>0?estHi:3e4,1e5)/1e4)):10;
     const n=document.getElementById('convIntNow');if(n)n.textContent=la+'万/年利息：约'+(la*0.15).toFixed(1)+'–'+(la*0.24).toFixed(1)+'万（年化利率APR 15%–24%）';
