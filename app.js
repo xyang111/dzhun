@@ -1033,6 +1033,8 @@ function _processImages(files) {
     }
     if (failed > 0) alert(`${failed}张图片读取失败，已跳过，将用剩余${validBlocks.length}张分析`);
     _fileBlocks = validBlocks;
+    window._isAnalyzing = false;
+    window._isMatching = false;
     const totalKB = validBlocks.reduce((s, b) => s + Math.round(b.source.data.length * 0.75 / 1024), 0);
     document.getElementById('fileInfo').classList.add('show');
     document.getElementById('fileIcon').innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
@@ -1074,6 +1076,8 @@ function _processImages(files) {
 
 function clearFile() {
   _fileBlocks = [];
+  window._isAnalyzing = false;
+  window._isMatching = false;
   window._fileReady = false;
   document.getElementById('fileInfo').classList.remove('show');
   document.getElementById('fileInput').value = '';
@@ -1121,12 +1125,13 @@ async function startAnalysis() {
   const _t3 = setTimeout(() => setStep(3), 22000); // rs4：汇总数据
 
   try {
-    const cacheKey = _fileBlocks.length > 0 ? (() => {
-      const d = _fileBlocks[0].source.data;
-      const len = d.length;
-      // 取头部+中部+尾部各100字符，避免同设备截图头部相同导致碰撞
-      const sample = d.substring(0, 100) + d.substring(Math.floor(len / 2), Math.floor(len / 2) + 100) + d.substring(Math.max(0, len - 100));
-      return btoa(sample).substring(0, 48);
+    // 用 SHA-256 对所有图片完整 base64 数据哈希，确保不同图片绝不碰撞
+    const cacheKey = _fileBlocks.length > 0 ? await (async () => {
+      const allData = _fileBlocks.map(b => b.source.data).join('|');
+      const encoded = new TextEncoder().encode(allData);
+      const hashBuf = await crypto.subtle.digest('SHA-256', encoded);
+      return Array.from(new Uint8Array(hashBuf))
+        .map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 48);
     })() : null;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120000);
@@ -1164,6 +1169,7 @@ async function startAnalysis() {
 
     setStep(4); // rs5：准备AI产品匹配（完成）
     setTimeout(() => {
+      window._isAnalyzing = false;
       document.getElementById('readingCard').style.display = 'none';
       renderResult(extracted);
     }, 600);
@@ -1530,6 +1536,16 @@ async function startMatching() {
 
   document.getElementById('infoCard').style.display = 'none';
   document.getElementById('matchingCard').style.display = 'block';
+  // 每次进入都重置终端动画区域（rematch 后复用）
+  document.getElementById('matchingLoading').style.display = 'block';
+  const _tl = document.getElementById('termLog');
+  if (_tl) _tl.innerHTML = '<div class="term-scan"></div>';
+  const _tc = document.getElementById('termDimCount');
+  if (_tc) _tc.textContent = '0 / 102';
+  const _ts = document.getElementById('termStatus');
+  if (_ts) _ts.textContent = 'BOOTING...';
+  const _tb = document.getElementById('termBar');
+  if (_tb) { _tb.style.width = '0%'; _tb.style.background = ''; }
   // 更新综合评分
   try { renderCreditScore(_recognizedData||{}, collectInfoData()); } catch(e){}
   document.getElementById('incomeWarnBanner').style.display = 'none'; // reset
@@ -1895,6 +1911,12 @@ async function startMatching() {
       candidateSummary: _candidateSummary,
       rejectedSummary:  _rejectedSummary,
       clientType:       _clientType,
+      v2Level:          _v2Result ? _v2Result.level : _clientType,
+      v2Score:          _v2Result ? _v2Result.score  : 0,
+      domainScores:     _v2Result ? _v2Result.domainScores : null,
+      xaiIssues:        _v2Result ? (_v2Result.xai?.issues || []).slice(0, 4).map(i => ({
+        tag: i.tag, desc: i.desc, fix: i.fix, months: i.months, gain: i.gain,
+      })) : [],
     };
     // 直接调 Worker /match，不经过 callMatch（避免 402 时误删 token 或弹付费框）
     (async () => {
@@ -2241,14 +2263,20 @@ function renderMatchResult(r) {
   if(loans2.length>=5)qf*=.8;
   if(cUtil>90)qf*=.7;else if(cUtil>70)qf*=.85;
   const _isAmtNum = s => /^[\d<–\-]/.test(s);
-  const estLo  = income>0?Math.max(0,(income*30-nmDebt)*qf):0;
-  const estHi  = income>0?Math.max(0,Math.min(1e6,(income*mult-nmDebt)*qf)):0;
+  // V2-level floor：防止高分客户因负债/查询惩罚显示出与评级严重矛盾的极低额度
+  const _amtFloor = {A:200000,B:100000,C:0,D:0}[v2Level]||0;
+  const _rawHi  = income>0?Math.max(0,Math.min(1e6,(income*mult-nmDebt)*qf)):0;
+  const _rawLo  = income>0?Math.max(0,(income*30-nmDebt)*qf):0;
+  const estHi   = income>0?Math.max(_amtFloor,_rawHi):0;
+  const estLo   = income>0?(_rawHi<_amtFloor&&_amtFloor>0?Math.round(estHi*0.5):_rawLo):0;
   // 优化后额度：假设查询已冷却，移除查询次数惩罚，仅保留债务/卡片惩罚
   let qfOpt=1;
   if(loans2.length>=5)qfOpt*=.8;
   if(cUtil>90)qfOpt*=.7;else if(cUtil>70)qfOpt*=.85;
-  const estLoO = income>0?Math.max(0,(income*30-nmDebt)*qfOpt):0;
-  const estHiO = income>0?Math.max(0,Math.min(1e6,(income*mult-nmDebt)*qfOpt)):0;
+  const _rawHiO = income>0?Math.max(0,Math.min(1e6,(income*mult-nmDebt)*qfOpt)):0;
+  const _rawLoO = income>0?Math.max(0,(income*30-nmDebt)*qfOpt):0;
+  const estHiO  = income>0?Math.max(_amtFloor,_rawHiO):0;
+  const estLoO  = income>0?(_rawHiO<_amtFloor&&_amtFloor>0?Math.round(estHiO*0.5):_rawLoO):0;
   const fw     = v=>v<=0?'0':(v<1e4?'<1':Math.round(v/1e4)+'');
   const curAmt = income>0?(estHi>0?fw(estLo)+'–'+fw(estHi):'当前负债较高'):'填写收入后显示';
   const optAmt = income>0?(estHiO>0?fw(estLoO)+'–'+fw(estHiO):'当前负债较高'):'填写收入后显示';
