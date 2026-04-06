@@ -1961,9 +1961,9 @@ async function startMatching() {
           const banner = document.getElementById('riskLevelBanner');
           if (banner) { const desc = banner.querySelector('.rb-desc'); if (desc) desc.textContent = aiResult.key_risk; }
         }
-        // AI 完成后隐藏"还有X个因素没分析完"
-        const ctaEl = document.getElementById('convCta');
-        if (ctaEl) ctaEl.style.display = 'none';
+        // AI 完成后隐藏"还有X个因素没分析完"提示（convHidden，不是整个CTA区）
+        const _ctaHiddenEl = document.getElementById('convHidden');
+        if (_ctaHiddenEl) _ctaHiddenEl.parentElement && (_ctaHiddenEl.style.display = 'none');
       } catch(e) { /* 超时或网络失败，静默忽略 */ }
     })();
   }
