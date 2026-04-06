@@ -4,6 +4,26 @@
 //  保留：支付（微信/支付宝）、鉴权 token、邮件报告、Claude 代理
 // ═══════════════════════════════════════════════════════════════
 
+// Quote-aware JSON boundary finder: handles { } inside strings and escaped quotes
+function _extractJsonStr(text) {
+  for (const [open, close] of [['{','}'],['[',']']]) {
+    const start = text.indexOf(open);
+    if (start < 0) continue;
+    let inStr = false, esc = false, depth = 0;
+    for (let i = start; i < text.length; i++) {
+      const c = text[i];
+      if (esc) { esc = false; continue; }
+      if (c === '\\' && inStr) { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (!inStr) {
+        if (c === open) depth++;
+        else if (c === close) { depth--; if (depth === 0) { try { const s = text.substring(start, i+1); JSON.parse(s); return s; } catch(e) { break; } } }
+      }
+    }
+  }
+  return null;
+}
+
 var REPORT_TO_EMAIL = "651047968@qq.com";
 var REPORT_FROM     = "report@dzhun.com.cn";
 var ALLOWED_ORIGINS = [
@@ -11,232 +31,6 @@ var ALLOWED_ORIGINS = [
   "https://www.dzhun.com.cn",
 ];
 var PRODUCT_PRICE = 990;
-
-// ═══════════════════════════════════════════
-// ① 产品库（从前端迁移，对外不可见）
-// ═══════════════════════════════════════════
-const BANK_PRODUCTS = [
-  {
-    id: 'gsyh', bank: '工商银行', product: '融e借', emoji: '🏦',
-    rate: '3.0%-4.35%', amount: '最高100万',
-    maxQ1: null, maxQ3: 6, maxQ6: null, maxDebt: 65, minIncome: 5000,
-    minAge: null, maxAge: null, overdue: 'zero', social: true,
-    minSocialMonths: 12, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '工行代发工资或公积金≥12月；无当前逾期；近3月查询≤6次；负债率≤65%',
-    bonus: '国企/事业/央企/白名单单位通过率极高；公积金基数高额度更大',
-    tags: ['国有大行', '利率低', '公积金加分'], type: 'bank',
-  },
-  {
-    id: 'nyyh', bank: '农业银行', product: '网捷贷', emoji: '🌾',
-    rate: '2.85%-4.5%', amount: '最高30万',
-    maxQ1: null, maxQ3: 6, maxQ6: null, maxDebt: 70, minIncome: 3000,
-    minAge: null, maxAge: null, overdue: 'zero', social: true,
-    minSocialMonths: 6, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '农行账户；社保或公积金在缴；无当前逾期；近3月查询≤6次',
-    bonus: '公务员/国企优先；农行代发工资利率更低；有农行按揭额度翻倍',
-    tags: ['国有大行', '公积金加分', '随借随还'], type: 'bank',
-  },
-  {
-    id: 'zgyh', bank: '中国银行', product: '随心智贷', emoji: '🏛',
-    rate: '3.1%-5.22%', amount: '最高50万',
-    maxQ1: null, maxQ3: 6, maxQ6: null, maxDebt: 60, minIncome: 6000,
-    minAge: null, maxAge: null, overdue: 'zero', social: false,
-    minSocialMonths: null, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '无当前逾期；近3月查询≤6次；负债率≤60%；月收入≥6000',
-    bonus: '名下有全款房通过率+20%；中行按揭客户优先；公积金在缴利率更低',
-    tags: ['国有大行', '有房加分', '利率低'], type: 'bank',
-  },
-  {
-    id: 'jsyh', bank: '建设银行', product: '快贷', emoji: '🏗',
-    rate: '2.85%-4.8%', amount: '最高100万',
-    maxQ1: null, maxQ3: 6, maxQ6: null, maxDebt: 70, minIncome: 4000,
-    minAge: null, maxAge: null, overdue: 'zero', social: true,
-    minSocialMonths: 6, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '建行账户；社保或公积金在缴；无当前逾期；近3月查询≤6次',
-    bonus: '建行代发工资额度大幅提升；有房贷客户额度最高；龙卡信用卡加分',
-    tags: ['国有大行', '额度高', '公积金加分'], type: 'bank',
-  },
-  {
-    id: 'jtyh', bank: '交通银行', product: '惠民贷', emoji: '🚗',
-    rate: '2.8%-5.88%', amount: '最高100万',
-    maxQ1: null, maxQ3: 6, maxQ6: null, maxDebt: 70, minIncome: 4000,
-    minAge: null, maxAge: null, overdue: 'zero', social: true,
-    minSocialMonths: 6, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '社保或公积金≥6月；无当前逾期；近3月查询≤6次',
-    bonus: '个体工商户专属通道；社保年限越长额度越高；厦门本地公积金优先',
-    tags: ['个体工商户可做', '社保加分', '额度高'], type: 'bank',
-  },
-  {
-    id: 'yzyh', bank: '邮储银行', product: '邮享贷', emoji: '📮',
-    rate: '3.0%-7.2%', amount: '最高100万',
-    maxQ1: null, maxQ3: 8, maxQ6: null, maxDebt: 75, minIncome: 2000,
-    minAge: null, maxAge: null, overdue: 'zero', social: true,
-    minSocialMonths: 3, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '社保≥3月；无当前逾期；近3月查询≤8次',
-    bonus: '门槛最低首选；国企/事业单位公积金客户专属优惠利率',
-    tags: ['门槛最低', '社保3月', '稳妥保底'], type: 'bank',
-  },
-  {
-    id: 'zsyh', bank: '招商银行', product: '闪电贷', emoji: '💳',
-    rate: '2.68%-18%', amount: '最高50万',
-    maxQ1: 2, maxQ3: 4, maxQ6: null, maxDebt: 65, minIncome: 5000,
-    minAge: null, maxAge: null, overdue: 'zero', social: false,
-    minSocialMonths: null, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '无当前逾期；近1月查询≤2次；近3月查询≤4次；负债率≤65%',
-    bonus: '招行代发/AUM≥2万利率更低；公积金高基数显著提额',
-    tags: ['秒级审批', '全线上', '利率低'], type: 'bank',
-  },
-  {
-    id: 'pfyh', bank: '浦发银行', product: '浦闪贷', emoji: '🌟',
-    rate: '2.9%-6%', amount: '最高100万',
-    maxQ1: null, maxQ3: 4, maxQ6: null, maxDebt: 65, minIncome: 8000,
-    minAge: null, maxAge: null, overdue: 'zero', social: false,
-    minSocialMonths: null, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '无当前逾期；近3月查询≤4次；负债率≤65%；月收入≥8000',
-    bonus: '国企/央企员工通过率最高；公积金高基数显著提额',
-    tags: ['高收入优先', '国企专属', '审批快'], type: 'bank',
-  },
-  {
-    id: 'xyyh', bank: '兴业银行', product: '兴闪贷', emoji: '💰',
-    rate: '3.0%-7.2%', amount: '最高100万',
-    maxQ1: null, maxQ3: 5, maxQ6: 8, maxDebt: 70, minIncome: 3000,
-    minAge: null, maxAge: null, overdue: 'mild', social: false,
-    minSocialMonths: null, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '无当前逾期（历史≤30天已结清可接受）；近3月查询≤5次；近6月查询≤8次',
-    bonus: '征信轻微瑕疵首选；线下版条件更宽松；兴业代发/按揭客户优先',
-    tags: ['征信瑕疵可接受', '查询宽松', '线下可谈'], type: 'bank',
-  },
-  {
-    id: 'payh', bank: '平安银行', product: '白领贷', emoji: '🛡',
-    rate: '3.0%-7.99%', amount: '最高100万',
-    maxQ1: null, maxQ3: 6, maxQ6: null, maxDebt: 70, minIncome: 5000,
-    minAge: null, maxAge: null, overdue: 'zero', social: true,
-    minSocialMonths: null, minProvident: 800, minEdu: 'none', workTypes: null,
-    conditions: '公积金≥1年；无当前逾期；近3月查询≤6次',
-    bonus: '个体工商户友好；平安保险/证券客户额度更高；白名单单位直接通过',
-    tags: ['个体工商户可做', '公积金加分', '随借随还'], type: 'bank',
-  },
-  {
-    id: 'zxyh', bank: '中信银行', product: '信秒贷', emoji: '🏢',
-    rate: '3.28%-16.68%', amount: '最高50万',
-    maxQ1: null, maxQ3: 6, maxQ6: 10, maxDebt: 70, minIncome: 4000,
-    minAge: null, maxAge: null, overdue: 'mild', social: false,
-    minSocialMonths: null, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '无当前逾期（历史单次≤30天可接受）；近3月查询≤6次；近6月查询≤10次；满足之一：中信代发/AUM/信用卡/按揭/公积金≥2年',
-    bonus: '条件多选一通过率高；有按揭房直接符合；优质单位门槛更低',
-    tags: ['条件多选一', '征信轻微瑕疵可做', '审批快'], type: 'bank',
-  },
-  {
-    id: 'gdyh', bank: '光大银行', product: '光速贷', emoji: '☀️',
-    rate: '2.9%-6%', amount: '最高30万',
-    maxQ1: null, maxQ3: 5, maxQ6: null, maxDebt: 70, minIncome: 4000,
-    minAge: null, maxAge: null, overdue: 'zero', social: true,
-    minSocialMonths: 6, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '社保或公积金；无当前逾期；近3月查询≤5次；负债率≤70%',
-    bonus: '光大信用卡持有者加分；负债稍高也可接受',
-    tags: ['负债宽松', '社保加分', '利率低'], type: 'bank',
-  },
-  {
-    id: 'hxyh', bank: '华夏银行', product: '易达金', emoji: '🌈',
-    rate: '3.28%-6%', amount: '最高50万',
-    maxQ1: null, maxQ3: 8, maxQ6: null, maxDebt: 75, minIncome: 4000,
-    minAge: null, maxAge: null, overdue: 'zero', social: false,
-    minSocialMonths: null, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '无当前逾期；近3月查询≤8次；负债率≤75%',
-    bonus: '私企员工友好；查询偏多时的次优选择；负债稍高也可尝试',
-    tags: ['私企友好', '查询宽松', '负债宽松'], type: 'bank',
-  },
-  {
-    id: 'xmyh', bank: '厦门银行', product: 'E秒贷', emoji: '🏝',
-    rate: '5.38%-7.2%', amount: '最高60万',
-    maxQ1: null, maxQ3: 6, maxQ6: null, maxDebt: 65, minIncome: 4000,
-    minAge: null, maxAge: null, overdue: 'zero', social: true,
-    minSocialMonths: 6, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '无当前逾期；近1周查询≤3次；近3月查询≤6次；未结清贷款≤5家；社保或公积金≥6月',
-    bonus: '厦门本地银行优先；公积金优质单位可拉白名单提额至60万',
-    tags: ['厦门本地', '公积金优先', '额度高'], type: 'bank',
-  },
-  {
-    id: 'xmns', bank: '厦门农商银行', product: '信用消费贷', emoji: '🌺',
-    rate: '4.0%-6.5%', amount: '最高50万',
-    maxQ1: null, maxQ3: 4, maxQ6: 6, maxDebt: 70, minIncome: 3000,
-    minAge: null, maxAge: null, overdue: 'zero', social: true,
-    minSocialMonths: 6, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '厦门本地居民；无当前逾期；近3月查询≤4次；近6月查询≤6次；社保或公积金在缴',
-    bonus: '公积金优质单位额度利率最优；线下沟通空间大；本地居民首选',
-    tags: ['厦门本地', '公积金首选', '线下可谈'], type: 'bank',
-  },
-  {
-    id: 'nbyh', bank: '南银法巴银行', product: '诚易贷', emoji: '🏦',
-    rate: '7.2%-18.8%', amount: '最高30万（夫妻各自申请）',
-    maxQ1: 5, maxQ3: 9, maxQ6: 15, maxDebt: null, minIncome: null,
-    minAge: 22, maxAge: 56, overdue: 'mild', social: true,
-    minSocialMonths: 6, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '年龄22-56周岁；本地户籍：个税/公积金/社保≥6个月；外地户籍：≥12个月；近1月查询≤5次，近3月≤9次，半年≤15次；当前不能逾期，历史总逾期次数≤12次，历史无M2',
-    bonus: '硕士/博士利率7.2%-9%最低；本科+公积金月缴≥2千利率9%-12%；查询要求最宽松',
-    tags: ['查询宽松', '外地户籍可做', '学历利率优惠'], type: 'bank',
-  },
-  {
-    id: 'zljr', bank: '招联消费金融', product: '好期贷', emoji: '📱',
-    rate: '7.2%-24%', amount: '最高20万',
-    maxQ1: null, maxQ3: 99, maxQ6: null, maxDebt: 85, minIncome: 2000,
-    minAge: null, maxAge: null, overdue: 'mild', social: false,
-    minSocialMonths: null, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '有稳定收入；历史逾期已还清可申请；查询次数基本不影响',
-    bonus: '银行全拒后保底首选；秒批到账；持牌消费金融机构',
-    tags: ['持牌机构', '查询不限', '保底首选'], type: 'finance',
-  },
-  {
-    id: 'hxxd', bank: '海翔小贷', product: '信用贷', emoji: '🦅',
-    rate: '利率面议', amount: '10-100万',
-    maxQ1: null, maxQ3: 99, maxQ6: null, maxDebt: 80, minIncome: null,
-    minAge: 22, maxAge: 55, overdue: 'zero', social: true,
-    minSocialMonths: null, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '上班族；省内户籍或厦门房产；年龄22-55；无当前逾期；2年内展期/公积金提取不准入',
-    bonus: '优质单位/高公积金/可双签均可提额；10-30万可最高40%先息',
-    tags: ['本地小贷', '厦门户籍优先', '大额可做'], type: 'finance',
-  },
-  {
-    id: 'zyxf', bank: '中邮消费金融', product: '消费贷', emoji: '📬',
-    rate: '18%-23.76%', amount: '最高20万',
-    maxQ1: 3, maxQ3: 9, maxQ6: null, maxDebt: null, minIncome: null,
-    minAge: 20, maxAge: 55, overdue: 'mild', social: true,
-    minSocialMonths: 6, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '年龄20-55；本单位满6个月；负债三选一：公积金/社保/个税基数×50倍≥信贷余额；近3月信贷查询≤9次',
-    bonus: '负债要求三选一非常灵活；公积金/社保/个税任一满足即可',
-    tags: ['负债要求灵活', '查询宽松', '持牌消费金融'], type: 'finance',
-  },
-  {
-    id: 'zbyh', bank: '中银消费金融', product: '消费贷', emoji: '🏛',
-    rate: '14.98%-22.98%', amount: '最高20万',
-    maxQ1: null, maxQ3: 7, maxQ6: null, maxDebt: null, minIncome: null,
-    minAge: 20, maxAge: 55, overdue: 'mild', social: true,
-    minSocialMonths: 6, minProvident: null, minEdu: 'college', workTypes: null,
-    conditions: '年龄20-55；上班族；大专及以上学历；3个月机构查询≤7次；无当前逾期；至少有一笔正常还款6个月以上',
-    bonus: '社保基数5000+大专学历利率最低14.98%；夫妻可各自申请合计40万',
-    tags: ['双系统', '社保基数关键', '大专可做'], type: 'finance',
-  },
-  {
-    id: 'xyjr', bank: '兴业消费金融', product: '消费贷', emoji: '💼',
-    rate: '8.88%-16.8%', amount: '5-20万（夫妻40万）',
-    maxQ1: null, maxQ3: 10, maxQ6: null, maxDebt: null, minIncome: 5000,
-    minAge: 22, maxAge: 60, overdue: 'mild', social: true,
-    minSocialMonths: 6, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '年龄22-60；社保6个月以上，月工资5000以上；近3月查询≤10次；无当前逾期；不接受白户',
-    bonus: 'A1类irr年化8.88%最低；研究生学历直接最优利率；全款房客户20%认定额度',
-    tags: ['学历利率优惠', '厦门社保6月', '全款房加分'], type: 'finance',
-  },
-  {
-    id: 'lyh', bank: '陆易花', product: '薪产品', emoji: '🌸',
-    rate: '利率面议', amount: '2-20万循环额度',
-    maxQ1: 4, maxQ3: 9, maxQ6: null, maxDebt: 100, minIncome: null,
-    minAge: 22, maxAge: 55, overdue: 'loose', social: true,
-    minSocialMonths: 6, minProvident: null, minEdu: 'none', workTypes: null,
-    conditions: '年龄22-55；上班族（不含企业法人/股东/个体）；企业缴社保≥6个月；无当前逾期200元以下可申请；近3月查询<9次',
-    bonus: '循环额度最灵活；支持12/24/36期；换单位只需保证连续缴纳即可',
-    tags: ['循环额度', '上班族专属', '线上操作'], type: 'finance',
-  },
-];
 
 // ═══════════════════════════════════════════
 // ② OCR 解析 Prompt（从前端迁移，对外不可见）
@@ -360,106 +154,98 @@ name 字段格式统一为「银行简称-账户类型」：
 function buildMatchPrompt(payload) {
   const {
     creditData, userInfo,
-    candidateSummary, rejectedSummary, clientType,
+    candidateSummary, rejectedSummary,
     loanDesc, cardDesc, debtRatio, cardUtil,
     q, onlineInstTotal, cfCount, mlCount, obCount,
     totalMonthly, scoreItems, socialStr, income, pvd,
     hukouVal, assetsVal, workVal, eduVal,
+    v2Level, v2Score, domainScores, xaiIssues,
   } = payload;
 
-  const clientTypeLabel = clientType === 'A' ? 'A类（优质客户）'
-    : clientType === 'B' ? 'B类（可优化客户）' : 'C类（需养征信客户）';
-
   const q3 = (q.loan_3m || 0) + (q.loan_3m_card || 0);
-  const q6 = q.loan_6m_total || 0;
+  const level = v2Level || 'B';
+  const score = v2Score || 0;
+  const ds = domainScores || {};
+  const whitelistWork = workVal && /公务员|国企|央企|事业单位|教师|医生|军人|警察|银行|教授/.test(workVal);
 
-  return `你是银行信贷经理，帮真实客户分析贷款资质。说话风格：口语化，数字精确（不说"偏高"，说"高了2次"）。禁止出现"建议直接去银行柜台申请"或"自行前往XX银行"等绕过客服的表述。
+  const xaiText = (xaiIssues || []).length > 0
+    ? (xaiIssues || []).map(i => `• ${i.tag}：${i.desc}（修复后可回收约${i.gain}分，需${i.months}个月）→ ${i.fix}`).join('\n')
+    : '• 引擎未检测到主要扣分项';
 
-【客户类型：${clientTypeLabel}】
-${clientType === 'A' ? `A类：说明最高额度/最低利率区间；指出白名单通道存在（若适用），但强调"通道对接和利率谈判需要人工介入，系统只能给方向"；申请顺序给1-2步框架，不给完整执行步骤。` : ''}${clientType === 'B' ? `B类：说明2-3个核心问题及各自大致修复时间；指出优化后可申请的产品方向和额度区间；强调"具体操作顺序和时机判断需要客服给执行计划，顺序错了多等3个月"。` : ''}${clientType === 'C' ? `C类：说明恢复方向和大致月数；指出恢复期内存在哪类过渡空间（不展开，留给客服）；强调"恢复期有方案可用，但避坑清单和过渡产品需要客服评估后给出"。` : ''}
+  const dsText = ds.credit != null
+    ? `信用行为(40%)：${Math.round(ds.credit)}分 | 稳定性(30%)：${Math.round(ds.stability)}分 | 资产偿债(25%)：${Math.round(ds.asset)}分 | 反欺诈(5%)：${Math.round(ds.fraud)}分`
+    : '（四域评分未传入）';
 
-═══════════════════════════════════
+  const levelInstruction = {
+    A: `客户是 A 级（${score}分，PREMIUM ACCESS）。你的核心任务：
+① key_risk：写"利率损失提示"而非风险——如果走错渠道或顺序，利率差约1%-2%，换算成真实金额损失（参考月收入/可能借款额估算，格式："走错渠道，同等资质多付约X元利息"）。
+② optimization：1-2步。第一步必须体现"先对接白名单通道"${whitelistWork ? `（该客户${workVal}，属白名单职业，明确指出）` : '（根据资质判断是否适用）'}；第二步给利率谈判或提额路径。unlock字段写具体利率目标区间如"锁定3.0%-3.5%档"。
+③ advice.strengths：列出让他进入A级的2个具体指标，精确到数字。advice.issues：写"如果不做白名单对接/渠道优化，可能少拿的利率差或额度上限"。advice.suggestions：按申请顺序给1-2步框架，强调顺序和渠道需要人工协助。`,
+    B: `客户是 B 级（${score}分，OPTIMIZATION GAP）。你的核心任务是"损失量化"，让客户感受到不行动的代价：
+① key_risk：用"现在最高X万，优化后可达Y万，差Z万额度"这个句式，Z必须是具体数字（从candidateSummary最高额度估算，优化后+30%-50%）。
+② optimization：1-3步，每步必须含时间节点。重点：把"等查询冷却"换算成"等N个月后申请，通过率从X%升到Y%"；把"结清小贷"换算成"结清后额度上限多X万"。time字段精确到月份，unlock字段必须含金额或额度数字。
+③ advice.issues：必须写双损失——"现在申请被拒，再冷却期又多等3个月"这类时间浪费 + 具体额度差。advice.suggestions：给出精确执行序列，强调"顺序不对多等数月"。`,
+    C: `客户是 C 级（${score}分，RECOVERY PATH）。你的核心任务是"利率时间轴"，让客户感受到高利率的真实成本：
+① key_risk：用"现在只能用18%年化产品，3个月后可降到X%，每借10万一年多付Y元利息"这个句式（Y = (0.18 - 目标利率) × 100000）。
+② optimization：2-3步时间轴。当前可用的过渡产品是第一步（写产品类型和利率）；第二步写3个月后解锁什么（从xai issues里找修复时间最短的）；第三步写6个月后的目标。unlock字段写利率变化如"利率从18%降至8%"。
+③ advice.strengths：从candidateSummary中找现在能申请的产品，给客户建立信心。advice.issues：用利息成本量化（"用高利率过渡比等3个月直接上银行多付X元"），但语气给希望不给绝望。advice.suggestions：给具体过渡路径，强调"申请顺序影响3个月后的资格"。`,
+    D: `客户是 D 级（${score}分，REHABILITATION PLAN）。银行通道暂时关闭。禁止做损失量化，客户已经知道情况不好，不需要再强化焦虑。你的核心任务是给控制感和路线图：
+① key_risk：直接说明导致D级的主因（从xai issues第一条，精确描述），一句话，语气是解释不是判决。
+② optimization：严格按时间轴三步——第一步"立即执行"（具体做什么），第二步"第3个月"（第一个里程碑，解锁什么），第三步"第6-9个月"（回到C级/B级的节点）。每步的unlock写"解锁城商行+X款产品"或"进入股份制银行区间"这类具体里程碑。
+③ advice.strengths：找任何可以建立信心的点（哪怕是"无历史逾期"或"公积金在缴"）。advice.issues：解释原因，不指责。advice.suggestions：第一步最重要的单一行动，给足执行细节，让客户知道"做这件事就是在向前走"。`,
+  }[level] || '';
+
+  return `你是贷准AI信贷顾问。以下是一位真实客户的完整征信分析数据，请根据客户等级生成个性化分析报告。
+
+【写作规则】
+- 口语化，数字精确（不说"偏高"，说"高了2次"）
+- 禁止出现"建议直接去银行柜台申请"或"自行前往XX银行"等绕过客服的表述
+- 本地规则引擎已完成产品筛选和通过率计算，你不需要重新做这件事
+- 只输出前端实际渲染的3个字段：key_risk、optimization、advice
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【V2.0评分】${score}分 · ${level}级（A=800+优质准入 | B=650-799优化空间 | C=500-649恢复路径 | D=500以下修复计划）
+【四域得分】${dsText}
+
+【引擎诊断问题（已含修复分析）】
+${xaiText}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 【客户补充信息】
-═══════════════════════════════════
-① 学历：${eduVal || '无'}
-② 月工资：${income > 0 ? income + ' 元' : '未填写'}
-③ 社保缴交：${socialStr}
-④ 公积金月缴：${pvd > 0 ? pvd + ' 元' : '0（未缴）'}
-⑤ 资产情况：${assetsVal || '无'}
-⑥ 户籍地：${hukouVal || '未填写'}
-⑦ 单位性质：${workVal || '未填写'}
+学历：${eduVal || '未填写'} | 月收入：${income > 0 ? income + '元' : '未填写'} | 单位性质：${workVal || '未填写'}
+社保：${socialStr} | 公积金：${pvd > 0 ? pvd + '元/月' : '未缴'} | 资产：${assetsVal || '无'} | 户籍：${hukouVal || '未填写'}
 
-【补充信息加减分】
-${(scoreItems || []).join('\n')}
-
-═══════════════════════════════════
 【征信核心数据】
-═══════════════════════════════════
-未结清贷款：${creditData.loanCount}笔（银行${creditData.bankCount}笔 | 网贷${creditData.onlineCount}笔）
-网贷机构数：${onlineInstTotal}家（消金${cfCount}家+小贷${mlCount}家+助贷银行${obCount}家）→ 红线≤4家
-未销户信用卡：${creditData.cardCount}张
-月还款估算：${totalMonthly}元
-负债率：${debtRatio}
-信用卡使用率：${cardUtil}%
-当前逾期：${creditData.overdueCurrent || 0}笔
-历史逾期：${creditData.overdueHistoryNotes || '无'}
-
-【查询记录】
-近1月贷款审批：${q.loan_1m || 0}次 | 近3月贷款：${q.loan_3m || 0}次 | 近3月信用卡：${q.loan_3m_card || 0}次
-近3月合计：${q3}次 | 近6月合计：${q6}次
+贷款：${creditData.loanCount}笔（银行${creditData.bankCount}笔 | 网贷${creditData.onlineCount}笔）| 网贷机构：${onlineInstTotal}家（红线≤4家）
+信用卡：${creditData.cardCount}张 | 月供估算：${totalMonthly}元 | 负债率：${debtRatio} | 卡片使用率：${cardUtil}%
+当前逾期：${creditData.overdueCurrent || 0}笔 | 历史逾期：${creditData.overdueHistoryNotes || '无'}
+查询：近1月${q.loan_1m || 0}次 | 近3月贷款${q.loan_3m || 0}次+信用卡${q.loan_3m_card || 0}次=合计${q3}次 | 近6月${q.loan_6m_total || 0}次
 
 【贷款明细】
 ${loanDesc}
-
 【信用卡明细】
 ${cardDesc}
 
-【本地规则引擎已完成产品匹配】
-以下是前端规则引擎的匹配结果（100%准确，基于硬性准入规则）：
-${candidateSummary}
+【引擎匹配结果（已完成，勿重复计算）】
+可申请产品：${candidateSummary}
+排除摘要：${rejectedSummary}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【当前客户等级专属写作指令】
+${levelInstruction}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-排除原因摘要：${rejectedSummary}
-
-你不需要再做产品筛选和通过率计算，只需要：
-① 解读分析：为什么是这个结果，客户最关键的问题是什么
-② 优化建议：具体怎么改善，多久能改善，改善后能申请什么
-③ 个性化语言：用口语化方式解释，带具体数字
-
-【引导规则——所有客户类型强制执行】
-report末尾必须包含 wechat_cta 字段，内容根据客户类型定制：
-- A类：强调白名单通道/利率谈判/提额是需要人工对接的，系统只能给方向
-- B类：强调优化执行顺序是关键，顺序错了多等数月，客服给具体计划
-- C类：强调恢复期过渡方案和避坑，现在加微信不是为了借款是为了不走错路
-
-严格返回JSON，不含任何其他文字和markdown：
+严格返回JSON，不含任何其他文字和markdown，只包含以下3个字段：
 {
-  "summary": "1-2句口语化总评，60字内",
-  "key_risk": "最大风险点25字内，无则空字符串",
-  "risk_level": "健康|轻微瑕疵|中度风险|高风险（高风险=逾期>0或查询>12或网贷≥5或负债>80%；中度=查询7-12或网贷3-4或负债60-80%；轻微瑕疵=查询4-6或网贷1-2；否则健康）",
-  "current_rate": 65,
-  "optimized_rate": 85,
-  "problems": [
-    {"name": "查询次数过多", "value": "近3月5次", "threshold": "银行安全区≤3次", "severity": "high"}
-  ],
-  "rejected_products": [
-    {"type": "国有大行信用贷", "reason": "近3月查询X次超大行≤6次红线"}
-  ],
+  "key_risk": "25字内，按等级指令写",
   "optimization": [
-    {"step": "结清X家小贷并注销", "goal": "网贷机构降至2家以内", "time": "1个月", "unlock": "达标后可申请股份制银行"}
+    {"step": "具体行动，不得为空", "goal": "量化目标（含金额/利率/额度数字）", "time": "精确时间", "unlock": "解锁内容（含具体数字）"}
   ],
-  "post_optimization": "优化完成后，可申请招行/浦发/中信等股份制银行信用贷，预计额度XX万",
   "advice": {
-    "strengths": [{"point": "无逾期+厦门户籍", "impact": "银行判定还款意愿强"}],
-    "issues": [{"point": "社保仅缴3个月", "impact": "银行判定工作稳定性不足"}],
-    "suggestions": [{"action": "持续缴纳社保至12个月", "goal": "满足股份制银行门槛", "time": "9个月", "effect": "可申请招行/浦发最高20万信用贷"}]
-  },
-  "wechat_cta": {
-    "hook": "25字内，带具体利益点，根据客户类型定制（A类强调利率/通道，B类强调执行顺序，C类强调过渡方案）",
-    "action": "加客服微信获取专属方案",
-    "urgency": "可选时效说明，无则空字符串"
+    "strengths": [{"point": "具体优势（含数字）", "impact": "对申贷的正面影响"}],
+    "issues": [{"point": "具体问题（含数字）", "impact": "量化影响（金额/额度/时间）"}],
+    "suggestions": [{"action": "具体行动", "goal": "目标", "time": "时间", "effect": "效果（含数字）"}]
   }
 }
-注意：不要输出products字段；problems列2-4个必须带具体数字；optimization列1-3个步骤，step字段必填不得为空；wechat_cta.hook必须输出，不得为空`;
+注意：optimization列1-3步；advice各子数组列1-3条；所有数字字段必须有真实数值，不得用"X""Y""N"占位。`;
 }
 
 // ═══════════════════════════════════════════
@@ -560,7 +346,7 @@ async function handleOCR(request, env) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
+        max_tokens: 8192,
         temperature: 0,
         messages: [{
           role: 'user',
@@ -572,11 +358,37 @@ async function handleOCR(request, env) {
     const data = await resp.json();
     if (data.error) return jsonResp({ error: data.error.message }, 502, request);
 
-    const raw = (data.content || []).map(b => b.text || '').join('');
+    // 检测截断：stop_reason=max_tokens 说明输出被截断，JSON 会不完整
+    if (data.stop_reason === 'max_tokens') {
+      console.error('[OCR] truncated by max_tokens, raw length:', (data.content||[]).map(b=>b.text||'').join('').length);
+    }
+    console.log('[OCR] stop_reason:', data.stop_reason, 'output_tokens:', data.usage?.output_tokens);
 
-    // 写入缓存（24小时）
+    const rawText = (data.content || []).map(b => b.text || '').join('');
+
+    // 从 Claude 响应中提取纯 JSON（Claude 有时在 JSON 前后加说明文字）
+    let raw = rawText.trim();
+    if (raw.startsWith('{') || raw.startsWith('[')) {
+      // 直接是 JSON，尝试直接用
+    } else {
+      // 含前置文字或 markdown，做 quote-aware 提取
+      const extracted = _extractJsonStr(rawText);
+      if (extracted) {
+        raw = extracted;
+        console.log('[OCR] extracted JSON from mixed response, original length:', rawText.length, 'extracted:', raw.length);
+      } else {
+        console.error('[OCR] could not extract JSON from response, length:', rawText.length);
+      }
+    }
+
+    // 只缓存合法 JSON（防止截断的坏响应被缓存后持续返回错误）
     if (cacheKey && env.CACHE) {
-      await env.CACHE.put(`ocr:${cacheKey}`, raw, { expirationTtl: 7200 }); // 2h，最小化PII留存
+      try {
+        JSON.parse(raw);
+        await env.CACHE.put(`ocr:${cacheKey}`, raw, { expirationTtl: 7200 });
+      } catch (_) {
+        console.error('[OCR] response is not valid JSON, skipping cache. length:', raw.length);
+      }
     }
 
     return jsonResp({ raw }, 200, request);
@@ -611,21 +423,20 @@ async function handleMatch(request, env) {
     return jsonResp({ error: { message: '支付凭证已过期（24小时内有效），请重新付费', code: 'PAYMENT_REQUIRED' } }, 402, request);
   }
 
-  const apiKey = env.ANTHROPIC_API_KEY;
+  const apiKey = env.DEEPSEEK_API_KEY;
   if (!apiKey) return jsonResp({ error: 'API key not configured' }, 500, request);
 
   const prompt = buildMatchPrompt(body.payload || {});
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
-        'x-api-key': apiKey,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'deepseek-chat',
         max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }],
       }),
@@ -633,7 +444,10 @@ async function handleMatch(request, env) {
 
     const data = await resp.json();
     if (data.error) return jsonResp({ error: data.error }, resp.status, request);
-    return jsonResp(data, resp.status, request);
+
+    // 将 DeepSeek（OpenAI 格式）标准化为前端期望的 Anthropic 格式
+    const text = data.choices?.[0]?.message?.content || '';
+    return jsonResp({ content: [{ type: 'text', text }] }, 200, request);
 
   } catch (e) {
     return jsonResp({ error: { message: 'Upstream error: ' + e.message } }, 502, request);
