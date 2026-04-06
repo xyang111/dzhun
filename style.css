@@ -1430,9 +1430,10 @@ main {
 /* ── QR overlay ── */
 .qr-overlay {
   display:none;position:fixed;inset:0;
-  background:rgba(0,0,0,0.72);z-index:1000;
+  background:rgba(0,0,0,0.72);z-index:9999;
   align-items:center;justify-content:center;
   overflow:hidden;padding:16px;box-sizing:border-box;
+  -webkit-overflow-scrolling:touch;
 }
 .qr-overlay.show { display:flex; }
 .qr-modal {

@@ -2909,11 +2909,38 @@ function extractJson(text) {
 }
 
 function showQrModal() {
+  // Body scroll lock：修复 WeChat/iOS 中 position:fixed 随页面滚动跑偏的问题
+  const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+  window._qrScrollY = scrollY;
+  document.body.style.overflow = 'hidden';
+  document.body.style.position = 'fixed';
+  document.body.style.top = '-' + scrollY + 'px';
+  document.body.style.width = '100%';
+
+  // 打开时才加载图片（WeChat 在 display:none 父容器里可能不加载 img src）
+  const qrImg = document.getElementById('qrCodeImg');
+  if (qrImg) {
+    const qrSrc = (_currentAgent && _currentAgent.qr) ? _currentAgent.qr : (typeof DEFAULT_QR !== 'undefined' ? DEFAULT_QR : '/qr.jpg');
+    qrImg.src = qrSrc;
+    qrImg.style.display = 'block';
+    qrImg.onerror = function() {
+      this.style.display = 'none';
+      const fb = document.getElementById('qrFallback');
+      if (fb) fb.style.display = 'block';
+    };
+  }
+
   document.getElementById('qrOverlay').classList.add('show');
 }
 function hideQrModal(e) {
   if (!e || e.target === document.getElementById('qrOverlay') || e.currentTarget.classList.contains('qr-modal-close')) {
     document.getElementById('qrOverlay').classList.remove('show');
+    // 还原 body scroll lock，滚回原位
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    window.scrollTo(0, window._qrScrollY || 0);
   }
 }
 
@@ -2933,9 +2960,8 @@ function initContactPhone() {
   const btn = document.getElementById('contactPhoneBtn');
   if (btn) { btn.href = 'tel:' + phone; }
 
-  // 设置二维码图片
-  const qrImg = document.getElementById('qrCodeImg');
-  if (qrImg) { qrImg.src = qrSrc; qrImg.style.display = 'block'; }
+  // 二维码图片路径存到 _currentAgent 或全局，打开弹窗时才加载（WeChat 兼容）
+  if (_currentAgent) _currentAgent.qr = qrSrc;
 
   // 设置二维码备用文字（图片加载失败时显示）
   const qrPhone = document.getElementById('qrPhoneNum');
