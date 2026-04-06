@@ -2889,11 +2889,20 @@ function extractJson(text) {
   try { return JSON.parse(text.trim()); } catch(e) {}
   const stripped = text.replace(/```json[\s\S]*?```|```[\s\S]*?```/g, s => s.replace(/```json|```/g,'').trim()).trim();
   try { return JSON.parse(stripped); } catch(e) {}
+  // Quote-aware boundary finder: handles { } inside strings so lastIndexOf doesn't grab wrong }
   for (const [open, close] of [['{','}'],['[',']']]) {
     const start = text.indexOf(open);
-    const end = text.lastIndexOf(close);
-    if (start >= 0 && end > start) {
-      try { return JSON.parse(text.substring(start, end + 1)); } catch(e) {}
+    if (start < 0) continue;
+    let inStr = false, esc = false, depth = 0;
+    for (let i = start; i < text.length; i++) {
+      const c = text[i];
+      if (esc) { esc = false; continue; }
+      if (c === '\\' && inStr) { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (!inStr) {
+        if (c === open) depth++;
+        else if (c === close) { depth--; if (depth === 0) { try { return JSON.parse(text.substring(start, i+1)); } catch(e) { break; } } }
+      }
     }
   }
   return null;
