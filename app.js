@@ -2100,6 +2100,8 @@ function _deriveLevel(score) {
   return 'D';
 }
 
+const _isAmtNum = s => /^[\d<–\-]/.test(s);
+
 function _renderHero(level, r, cp, op, gapW, curAmt, optAmt) {
   const el = document.getElementById('heroContent');
   if (!el) return;
@@ -2270,7 +2272,6 @@ function renderMatchResult(r) {
   if(q3>10)qf*=.5;else if(q3>6)qf*=.7;
   if(loans2.length>=5)qf*=.8;
   if(cUtil>90)qf*=.7;else if(cUtil>70)qf*=.85;
-  const _isAmtNum = s => /^[\d<–\-]/.test(s);
   // V2-level floor：防止高分客户出现与评级严重矛盾的极低额度
   const _amtFloor = {A:200000,B:100000,C:0,D:0}[v2Level]||0;
   // DTI惩罚：用月供/月收入比替代直接减负债余额（稳定职业银行容忍度更高）
