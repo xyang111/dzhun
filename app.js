@@ -2139,15 +2139,23 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt) {
     const subLine = op > cp
       ? `当前资质符合${cp}款产品 · 优化后可达${op}款 · 最快3个月见效`
       : `当前资质符合${cp}款产品 · 按推荐顺序申请可提升通过率`;
-    const showCompare = gapW > 0 || (_isAmtNum(curAmt) && _isAmtNum(optAmt));
+    // 三档显示：① 有额度提升 → 额度对比；② 无额度提升但可多解锁产品 → 产品数对比；③ 都没有 → 不显示格子
+    const _metricsHtml = gapW > 0
+      ? `<div class="hero-metrics cols-2">
+          ${_metricBox('当前可贷额度', _isAmtNum(curAmt) ? curAmt + '万' : curAmt, '')}
+          ${_metricBox('优化后可达', _isAmtNum(optAmt) ? optAmt + '万 <span style="font-size:11px">↑多' + gapW + '万</span>' : optAmt, 'gain')}
+        </div>`
+      : op > cp
+        ? `<div class="hero-metrics cols-2">
+            ${_metricBox('当前符合产品', cp + '款', '')}
+            ${_metricBox('优化后可达', op + '款', 'gain')}
+          </div>`
+        : '';
     el.innerHTML = `<div class="hero-wrap hero-b">
       <div class="hero-eyebrow">B级 · OPTIMIZATION GAP</div>
       <div class="hero-title">做${nOpt}个优化，可以${gainText}</div>
       <div class="hero-sub">${subLine}</div>
-      ${showCompare ? `<div class="hero-metrics cols-2">
-        ${_metricBox('当前可贷额度', _isAmtNum(curAmt) ? curAmt + '万' : curAmt, '')}
-        ${_metricBox('优化后可达', _isAmtNum(optAmt) && gapW > 0 ? optAmt + '万 <span style="font-size:11px">↑多' + gapW + '万</span>' : _isAmtNum(optAmt) ? optAmt + '万' : optAmt, 'gain')}
-      </div>` : ''}
+      ${_metricsHtml}
       <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span><span>申请顺序搞错会多等3个月 · 客服给你精准执行计划</span></div>
     </div>`;
     return;
