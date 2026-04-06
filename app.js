@@ -2443,7 +2443,7 @@ function renderMatchResult(r) {
 
   // ⑦ 紧迫提醒
   const urgEl=document.getElementById('convUrgent');
-  if(urgEl&&q3>=3){
+  if(urgEl && q3>=3 && v2Level !== 'A'){
     urgEl.style.display='block';
     const ub=document.getElementById('convUrgentBody');
     if(ub)ub.innerHTML='你现在处于<strong>关键窗口期（7–15天）</strong><br>如果这段时间继续查询或盲目申请：';
