@@ -1,6 +1,11 @@
 // ═══════════════════════════════════════════════════════════════
-//  贷准 · Cloudflare Worker v2
-//  新增：① OCR/分析 Prompt 内置  ② 产品库内置  ③ 缓存策略
+//  贷准 · Cloudflare Worker v2.1
+//  OCR优化：① 查询类型扩展至6类（含保前审查/融资租赁审批）
+//           ② 信用卡余额字段修复（额度0时取余额）
+//           ③ 循环授信余额0但未结清账户不再被跳过
+//           ④ 互联网银行改为反向规则，无需维护白名单
+//           ⑤ Markdown清洗新增贷后管理行过滤等5条规则
+//           ⑥ 查询统计维度统一为近1月/3月/6月/1年
 //  保留：支付（微信/支付宝）、鉴权 token、邮件报告、Claude 代理
 // ═══════════════════════════════════════════════════════════════
 
@@ -33,7 +38,9 @@ var ALLOWED_ORIGINS = [
 var PRODUCT_PRICE = 990;
 
 // ═══════════════════════════════════════════
-// ② OCR 解析 Prompt（从前端迁移，对外不可见）
+// ② OCR 解析 Prompt — 双版本
+//   PROMPT_OCR        原版（Claude Vision降级路径使用，图片输入需详细说明）
+//   PROMPT_OCR_TEXT   精简版（Textin文本路径使用，无需图片识别说明）
 // ═══════════════════════════════════════════
 const PROMPT_OCR = `你是银行信贷审核员，精通人行简版征信报告。请仔细识别并提取报告中的信息。
 
@@ -63,18 +70,15 @@ const PROMPT_OCR = `你是银行信贷审核员，精通人行简版征信报告
 - 已知到期日时必须填写，不得省略
 
 【账户过滤规则（严格执行）】
-1. 贷款账户：只提取当前未结清账户。已结清账户跳过，但若有历史逾期需记入 overdue_history_notes。
-2. 信用卡账户：只提取人民币账户且未销户的贷记卡。外币账户跳过不提取。已销户账户跳过不提取。
-3. 查询记录：严格逐条核对查询原因列，规则如下——
-   ✅ 以下4类才能写入 query_records，type 字段必须原文照抄：
-     - 查询原因为「贷款审批」→ type 写 "贷款审批"
-     - 查询原因为「担保资格审查」→ type 写 "担保资格审查"
-     - 查询原因为「资信审查」→ type 写 "资信审查"
-     - 查询原因为「信用卡审批」→ type 写 "信用卡审批"
-   ❌ 其余所有查询原因一律跳过，禁止写入（包括但不限于）：
-     贷后管理、本人查询、贷前管理、保险资格审查、特约商户资格审查、司法调查、异议申请、其他
+1. 贷款账户：只提取当前未结清账户（含余额为0但在有效期内的循环授信账户——余额为0≠已结清，报告中明确写「已结清」才能跳过）。已结清账户跳过，但若有历史逾期需记入 overdue_history_notes。
+2. 信用卡账户：只提取人民币账户且未销户的贷记卡（含尚未激活的卡）。外币账户跳过不提取。已销户账户跳过不提取。
+   ⚠️ 信用卡 used 字段规则：取「已使用额度」或「余额」中数值较大的那个。若信用额度为0但存在余额或未出账大额专项分期余额，used 必须填写实际余额数值，绝不能填0。
+3. 查询记录：严格逐条核对查询原因列，以下6类才能写入 query_records，type 字段必须原文照抄：
+   ✅ 「贷款审批」「信用卡审批」「担保资格审查」「资信审查」「保前审查」「融资租赁审批」
+   ❌ 其余所有查询原因一律跳过，禁止写入，包括：
+      贷后管理、本人查询、贷前管理、保险资格审查、特约商户资格审查、司法调查、异议申请、其他
    ⚠️ 极易混淆警告：「贷后管理」在报告中出现频率极高，与「贷款审批」字形相近，必须逐条核对原文，绝不能把「贷后管理」误写为「贷款审批」。
-   ⚠️ 自查：识别完所有记录后，逐条检查 query_records，凡 type 不是「贷款审批」「担保资格审查」「资信审查」「信用卡审批」之一的，立即删除。
+   ⚠️ 自查：识别完所有记录后，逐条检查 query_records，凡 type 不属于上述6类之一的，立即删除。
 
 【多张图片处理】
 如果上传了多张图片，必须逐张检查所有页面，将所有页面的查询记录合并后一起输出，不得遗漏任何一张图片中的查询记录。
@@ -86,20 +90,24 @@ name 字段格式统一为「银行简称-账户类型」：
 
 【账户类型判断（严格执行）】
 
-▌ type = "bank"（银行类贷款）
-机构名称含「银行」「韩亚」「农商」「农信」「村镇银行」，均归为银行类。
-⚠️ 以下机构名称虽含「银行」，但属于互联网助贷银行，必须归入 type="online"：
-众邦、通商银行、蓝海银行、三湘银行、苏宁银行、富民银行、亿联银行、振兴银行、苏商银行、新网银行、锡商银行、中关村银行、长安银行、微众银行、网商银行、百信银行、裕民银行、华通银行、江南农商银行
+▌ type = "bank"（传统银行贷款）
+以下机构归为银行类（type="bank"）：
+- 国有六大行：工商银行、农业银行、中国银行、建设银行、交通银行、邮储银行
+- 股份制银行：招商、兴业、平安、中信、浦发、光大、华夏、民生、浙商、广发、渤海、恒丰、浙江网商（不含）
+- 政策性银行：国家开发银行、农业发展银行、进出口银行
+- 城市商业银行：以城市命名的银行或含「城商」「城市商业」字样（如北京银行、南京银行、杭州银行、兰州银行、海峡银行、青岛银行、梅州客商银行等）
+- 农村金融机构：含「农商」「农信」「农村商业」「农村合作」「村镇银行」「农村信用」字样的机构
 
-▌ type = "online"（网贷）—— 三类：
-① online_subtype = "consumer_finance"：机构名含「消费金融、招联、马上、中邮、捷信、哈银、盛银、北银、小米消费金融」
-② online_subtype = "microloan"：机构名含「小额贷款、小贷、蚂蚁小贷、京东小贷、度小满小贷、美团小贷」
-③ online_subtype = "online_bank"：众邦、通商银行、蓝海银行、三湘银行、苏宁银行、富民银行、亿联银行、振兴银行、苏商银行、新网银行、锡商银行、中关村银行、长安银行、微众银行、网商银行、百信银行、裕民银行、华通银行、江南农商银行
+▌ type = "online"（互联网助贷/网贷）—— 判断规则（反向规则，不需要穷举名单）：
+① 凡不属于上述传统银行类的含「银行」字样机构，一律归入 online_subtype="online_bank"
+   （典型例子：众邦银行、通商银行、蓝海银行、三湘银行、苏宁银行、富民银行、亿联银行、振兴银行、苏商银行、新网银行、锡商银行、中关村银行、长安银行、微众银行、网商银行、百信银行、裕民银行、华通银行等）
+② online_subtype = "consumer_finance"：机构名含「消费金融」字样，或以下机构：招联、马上、中邮、捷信、哈银消金、盛银消金、北银消金、小米消费金融、中原消费、锦程消费、兴业消费、幸福消费、中信消费
+③ online_subtype = "microloan"：机构名含「小额贷款」「小贷」字样
 
 ▌ type = "credit"（信用卡账户）
 
 【贷款细分类型（loan_category）】
-- "mortgage"：名称含「住房/房贷/按揭/公积金贷款/购房」
+- "mortgage"：名称含「住房/房贷/按揭/公积金贷款/购房/住房公积金」
 - "car"：名称含「汽车/购车/车贷/车辆/机动车」
 - "credit"：type=bank 且非房贷非车贷
 - "finance"：type=online 固定填 "finance"
@@ -137,7 +145,8 @@ name 字段格式统一为「银行简称-账户类型」：
   "query_records": [
     {"date": "2025-11-20", "type": "贷款审批"},
     {"date": "2025-10-15", "type": "信用卡审批"},
-    {"date": "2025-10-02", "type": "担保资格审查"}
+    {"date": "2025-10-02", "type": "担保资格审查"},
+    {"date": "2025-09-22", "type": "保前审查"}
   ],
   "overdue_current": 0,
   "overdue_history_notes": "无",
@@ -147,6 +156,85 @@ name 字段格式统一为「银行简称-账户类型」：
   "ocr_warnings": [],
   "notes": "识别到X笔未结清贷款，Y张未销户人民币信用卡"
 }`;
+
+// ── 精简版Prompt：专为Textin文本路径设计，去掉图片识别说明，减少token消耗 ──
+const PROMPT_OCR_TEXT = `从以下人行征信报告文字中提取结构化数据，直接输出JSON，不含其他文字。
+
+提取规则：
+1. 基本信息：person_name姓名、id_number身份证号18位、report_date报告日期YYYY-MM-DD
+2. 信息概要：summary_overdue_accounts逾期账户数（--记0）、summary_overdue_90days 90天逾期账户数（--记0）
+3. 不良记录：has_bad_record（含呆账/担保代还/代偿/资产处置/止付/冻结→true）、bad_record_notes具体描述
+4. 贷款：只取未结清账户（含余额为0但有效期内的循环授信，余额0≠已结清，报告明确写「已结清」才跳过）。name格式"银行简称-消费贷/住房贷/车贷/其他贷"；due_date到期日YYYY-MM-DD（循环授信填null）；is_revolving循环授信填true
+   type判断：国有行/股份制/城商/农商/农信/村镇银行→bank；消费金融公司或含「消费金融」字样→online(consumer_finance)；含「小贷」「小额贷款」字样→online(microloan)；其余含「银行」字样但不属于上述传统银行的→online(online_bank)
+   loan_category：住房/按揭/公积金→mortgage，汽车/车贷→car，bank非房非车→credit，online→finance
+5. 信用卡：只取未销户人民币贷记卡（含未激活）。name格式"银行简称-贷记卡"
+   ⚠️ used字段：取「已使用额度」与「余额」中较大的值。信用额度为0但存在余额或大额专项分期余额时，used必须填实际余额，绝不能填0。
+6. 查询记录：只取以下6类（原文照抄type）：贷款审批、信用卡审批、担保资格审查、资信审查、保前审查、融资租赁审批。其余全部跳过。⚠️"贷后管理"≠"贷款审批"，绝对不能混淆。
+7. 历史逾期：has_overdue_history（信息概要逾期账户数>0→true），overdue_history_notes记录详情
+8. overdue_current：当前逾期笔数
+
+输出格式（严格JSON，无其他文字）：
+{"person_name":"","id_number":"","report_date":"","summary_overdue_accounts":0,"summary_overdue_90days":0,"loans":[{"name":"","type":"","online_subtype":null,"loan_category":"","issued_date":"","due_date":null,"is_revolving":false,"credit_limit":0,"balance":0,"monthly":null,"status":""}],"cards":[{"name":"","limit":0,"used":0,"status":""}],"query_records":[{"date":"","type":""}],"overdue_current":0,"overdue_history_notes":"无","has_overdue_history":false,"has_bad_record":false,"bad_record_notes":"无","ocr_warnings":[],"notes":""}`;
+
+// ── Markdown预处理：深度清洗Textin返回的噪音，最大化减少Claude输入token ──
+// 征信报告的有效信息密度极高但版面噪音也多，这里激进清洗
+function cleanMarkdown(md) {
+  if (!md) return '';
+  let s = md;
+
+  // 1. 去掉所有图片（图章、签名、二维码等，对文字提取零价值）
+  s = s.replace(/!\[.*?\]\(.*?\)/g, '');
+  // 2. 去掉HTML标签（<br> <span> <table>等Textin偶发输出）
+  s = s.replace(/<[^>]+>/g, ' ');
+  // 3. 去掉Markdown链接，保留文字
+  s = s.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1');
+  // 4. 去掉所有#标题标记（征信报告无章节层级，#只是噪音）
+  s = s.replace(/^#{1,6}\s*/gm, '');
+  // 5. 去掉分隔线（Textin用---分割页面，对数据提取无意义）
+  s = s.replace(/^[-*_]{3,}\s*$/gm, '');
+  // 6. 去掉粗体/斜体标记，保留文字（**加粗** → 加粗）
+  s = s.replace(/\*{1,3}([^*]+)\*{1,3}/g, '$1');
+  s = s.replace(/_{1,2}([^_]+)_{1,2}/g, '$1');
+  // 7. 去掉反引号代码标记
+  s = s.replace(/`{1,3}[^`]*`{1,3}/g, '');
+  // 8. 去掉页眉页脚常见噪音：纯数字行（页码）、纯符号行
+  s = s.replace(/^\s*\d+\s*$/gm, '');
+  s = s.replace(/^[|─━┼┬┴┤├╔╗╚╝═║\s]+$/gm, '');
+  // 9. 去掉空的表格行（| | | 这类）
+  s = s.replace(/^\|[\s|]*\|$/gm, '');
+  // 10. 合并连续空行（3行以上→1行）
+  s = s.replace(/\n{3,}/g, '\n\n');
+  // 11. 去掉行末空格
+  s = s.replace(/ +$/gm, '');
+  // 12. 去掉行首多余空格（缩进对征信数据无意义）
+  s = s.replace(/^ {2,}/gm, '');
+  // 0A. 查询记录跨行合并（必须在所有其他规则之前执行）
+  //     征信PDF中机构名过长时Textin会在中间截断换行，例如：
+  //     「3  2026年02月21日  交通银行...太平洋信用」+ 换行 +「卡中心」
+  //     「4  2026年02月19日  中融信担保（大连）股份有限」+ 换行 +「公司 担保资格审查」
+  //     策略：上行含日期（是查询行），下行不含日期且长度≤15字 → 合并到上行
+  s = s.replace(/(.*\d{4}年\d{2}月\d{2}日.*)\n([^\d\n][^\n]{0,14})(\n|$)/gm, (match, line1, line2, ending) => {
+    if (line2.trim() === '') return match;
+    if (!/\d{4}年/.test(line2)) return line1 + line2.trim() + ending;
+    return match;
+  });
+  // 13. 过滤掉整行「贷后管理」查询记录（最高频噪音，直接在Markdown层拦截）
+  s = s.replace(/^.*贷后管理.*$/gm, '');
+  // 14. 删除「系统中没有您」类空记录行
+  s = s.replace(/^.*系统中没有您.*$/gm, '');
+  // 15. 删除免责声明类行（逐行匹配，避免跨行误伤）
+  s = s.replace(/^.*(本报告仅供|征信中心不确保|请妥善保管|全国客户服务热线|更多咨询|请到当地信用报告|本报告中的信息是依据|仅包含可能影响您|您有权对本报告|因保管不当造成).*$/gm, '');
+  // 16. 已结清相关行整行删除（三种情况，逐行匹配不跨行，不影响查询记录区域）
+  s = s.replace(/^[^\n]*已结清账户明细[^\n]*$/gm, '');         // 小标题行
+    s = s.replace(/^[^\n]*发放的[\d,]+元[^\n]*已结清[^\n]*$/gm, '');  // 普通贷款
+  // 17. 已结清循环授信行整行删除（格式：含「授信」+「可循环使用」+「已结清」）
+  //     查询记录行不含「授信」+「可循环使用」组合，不会误删
+  s = s.replace(/^[^\n]*授信[^\n]*可循环使用[^\n]*已结清[^\n]*$/gm, '');
+  // 18. 再次合并连续空行
+  s = s.replace(/\n{3,}/g, '\n\n');
+
+  return s.trim();
+}
 
 // ═══════════════════════════════════════════
 // ③ 匹配分析 Prompt 构建函数（动态，接收前端传来的用户数据）
@@ -162,7 +250,12 @@ function buildMatchPrompt(payload) {
     v2Level, v2Score, domainScores, xaiIssues,
   } = payload;
 
-  const q3 = (q.loan_3m || 0) + (q.loan_3m_card || 0);
+  // 新查询统计口径：6类申请类查询统一合并，展示4个时间维度
+  const q1m  = q.q_1m  || q.loan_1m  || 0;
+  const q3m  = q.q_3m  || (q.loan_3m || 0) + (q.loan_3m_card || 0);
+  const q6m  = q.q_6m  || q.loan_6m_total || 0;
+  const q12m = q.q_12m || 0;
+
   const level = v2Level || 'B';
   const score = v2Score || 0;
   const ds = domainScores || {};
@@ -218,7 +311,7 @@ ${xaiText}
 贷款：${creditData.loanCount}笔（银行${creditData.bankCount}笔 | 网贷${creditData.onlineCount}笔）| 网贷机构：${onlineInstTotal}家（红线≤4家）
 信用卡：${creditData.cardCount}张 | 月供估算：${totalMonthly}元 | 负债率：${debtRatio} | 卡片使用率：${cardUtil}%
 当前逾期：${creditData.overdueCurrent || 0}笔 | 历史逾期：${creditData.overdueHistoryNotes || '无'}
-查询：近1月${q.loan_1m || 0}次 | 近3月贷款${q.loan_3m || 0}次+信用卡${q.loan_3m_card || 0}次=合计${q3}次 | 近6月${q.loan_6m_total || 0}次
+查询（申请类合计）：近1月${q1m}次 | 近3月${q3m}次 | 近6月${q6m}次 | 近1年${q12m}次
 
 【贷款明细】
 ${loanDesc}
@@ -333,66 +426,169 @@ async function handleOCR(request, env) {
   }
   await env.CACHE.put(rateLimitKey, String(count + 1), { expirationTtl: 86400 });
 
-  const apiKey = env.ANTHROPIC_API_KEY;
-  if (!apiKey) return jsonResp({ error: 'API key not configured' }, 500, request);
+  const claudeKey    = env.ANTHROPIC_API_KEY;
+  const textinAppId  = env.TEXTIN_APP_ID;
+  const textinSecret = env.TEXTIN_SECRET;
+  if (!claudeKey) return jsonResp({ error: 'Claude API key not configured' }, 500, request);
 
+  // ── 辅助：base64 → Uint8Array（Cloudflare Worker 不能用 Buffer）──
+  function base64ToBytes(b64) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+
+  // ── 辅助：从返回文本里提取合法JSON ──
+  function extractRaw(text) {
+    const t = text.trim();
+    if (t.startsWith('{') || t.startsWith('[')) return t;
+    const ex = _extractJsonStr(text);
+    if (ex) { console.log('[OCR] extracted JSON, orig:', text.length, 'got:', ex.length); return ex; }
+    console.error('[OCR] no JSON found, len:', text.length);
+    return t;
+  }
+
+  // ── 辅助：把极简字段名还原为前端期望的完整字段名 ──
+  function expandOCRKeys(raw) {
+    try {
+      const d = JSON.parse(raw);
+      const expand = (obj, map) => {
+        const r = {};
+        for (const [k, v] of Object.entries(obj)) r[map[k] || k] = v;
+        return r;
+      };
+      const lMap = { n:'name', t:'type', os:'online_subtype', lc:'loan_category', id:'issued_date', dd:'due_date', rv:'is_revolving', cl:'credit_limit', b:'balance', m:'monthly', s:'status' };
+      const cMap = { n:'name', l:'limit', u:'used', s:'status' };
+      const qMap = { d:'date', t:'type' };
+      const full = {
+        person_name:            d.pn   ?? d.person_name ?? '',
+        id_number:              d.idn  ?? d.id_number   ?? '',
+        report_date:            d.rd   ?? d.report_date ?? '',
+        summary_overdue_accounts: d.soa ?? d.summary_overdue_accounts ?? 0,
+        summary_overdue_90days:   d.so9 ?? d.summary_overdue_90days   ?? 0,
+        loans:         (d.loans  || []).map(l => expand(l, lMap)),
+        cards:         (d.cards  || []).map(c => expand(c, cMap)),
+        query_records: (d.query_records || []).map(q => expand(q, qMap)),
+        overdue_current:      d.oc  ?? d.overdue_current      ?? 0,
+        overdue_history_notes: d.ohn ?? d.overdue_history_notes ?? '无',
+        has_overdue_history:  d.hoh ?? d.has_overdue_history  ?? false,
+        has_bad_record:       d.hbr ?? d.has_bad_record        ?? false,
+        bad_record_notes:     d.brn ?? d.bad_record_notes      ?? '无',
+        ocr_warnings:         d.w   ?? d.ocr_warnings          ?? [],
+        notes:                d.notes ?? '',
+      };
+      return JSON.stringify(full);
+    } catch (e) {
+      // 解析失败则原样返回，避免双重故障
+      return raw;
+    }
+  }
+
+  // ── 辅助：只缓存合法JSON ──
+  async function writeCache(raw) {
+    if (!cacheKey || !env.CACHE) return;
+    try { JSON.parse(raw); await env.CACHE.put(`ocr:${cacheKey}`, raw, { expirationTtl: 7200 }); }
+    catch (_) { console.error('[OCR] invalid JSON, skip cache, len:', raw.length); }
+  }
+
+  // ════════════════════════════════════════════════════════
+  // 主路径：Textin（图片→文字）+ Claude Haiku（文字→JSON）
+  // 优势：Textin专业OCR快且准，Haiku处理纯文字比Sonnet Vision便宜15倍
+  // ════════════════════════════════════════════════════════
+  if (textinAppId && textinSecret) {
+    try {
+      let combinedMarkdown = '';
+      let textinFailed = false;
+
+      for (let i = 0; i < fileBlocks.length; i++) {
+        const b64 = fileBlocks[i].source?.data;
+        if (!b64) continue;
+        const bytes = base64ToBytes(b64);
+        console.log(`[Textin] block ${i+1}/${fileBlocks.length} size:`, bytes.length);
+
+        const tr = await fetch(
+          'https://api.textin.com/ai/service/v1/pdf_to_markdown?markdown_details=0&page_details=0&apply_document_tree=0',
+          {
+            method: 'POST',
+            headers: {
+              'x-ti-app-id':      textinAppId,
+              'x-ti-secret-code': textinSecret,
+              'Content-Type':     'application/octet-stream',
+            },
+            body: bytes,
+          }
+        );
+        const td = await tr.json();
+        console.log(`[Textin] block ${i+1} code:`, td.code, 'msg:', td.message);
+        if (td.code !== 200) { textinFailed = true; break; }
+
+        const pageText = td.result?.markdown || '';
+        if (pageText.trim()) combinedMarkdown += (i > 0 ? '\n\n' : '') + pageText;
+      }
+
+      if (!textinFailed && combinedMarkdown.trim()) {
+        // ── 关键优化：先清洗Markdown，去掉无效内容，大幅减少输入token ──
+        const cleaned = cleanMarkdown(combinedMarkdown);
+        console.log('[OCR] markdown cleaned:', combinedMarkdown.length, '→', cleaned.length, '→ Haiku');
+
+        const prompt = `以下是征信报告的文字内容：\n\n${cleaned}\n\n${PROMPT_OCR_TEXT}`;
+
+        const cr = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', 'anthropic-version':'2023-06-01', 'x-api-key': claudeKey },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 16384,
+            temperature: 0,
+            messages: [{ role: 'user', content: prompt }],
+          }),
+        });
+        const cd = await cr.json();
+        if (cd.error) throw new Error(cd.error.message);
+        if (cd.stop_reason === 'max_tokens') {
+          // 输出被截断 → 抛出异常触发降级到 Sonnet Vision，避免返回残缺JSON
+          console.error('[Haiku] truncated even at 16384 tokens, cleaned len:', cleaned.length, '→ fallback to Sonnet');
+          throw new Error('haiku_truncated');
+        }
+        console.log('[Haiku] stop_reason:', cd.stop_reason, 'tokens:', cd.usage?.output_tokens);
+
+        const raw = extractRaw((cd.content||[]).map(b=>b.text||'').join(''));
+        await writeCache(raw);
+        return jsonResp({ raw, _engine: 'textin+haiku' }, 200, request);
+      }
+
+      if (!textinFailed) console.warn('[Textin] empty markdown → fallback');
+    } catch (e) {
+      console.error('[Textin] exception:', e.message, '→ fallback');
+    }
+  } else {
+    console.log('[OCR] Textin not configured → Claude Vision');
+  }
+
+  // ════════════════════════════════════════════════════════
+  // 降级路径：Claude Sonnet Vision（Textin失败时自动切换）
+  // 用户无感知，流程正常，但速度和成本回到原始水平
+  // ════════════════════════════════════════════════════════
+  console.log('[OCR] using Claude Sonnet Vision fallback');
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
-        'x-api-key': apiKey,
-      },
+      headers: { 'Content-Type':'application/json', 'anthropic-version':'2023-06-01', 'x-api-key': claudeKey },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 8192,
         temperature: 0,
-        messages: [{
-          role: 'user',
-          content: [...fileBlocks, { type: 'text', text: PROMPT_OCR }],
-        }],
+        messages: [{ role: 'user', content: [...fileBlocks, { type: 'text', text: PROMPT_OCR }] }],
       }),
     });
-
     const data = await resp.json();
     if (data.error) return jsonResp({ error: data.error.message }, 502, request);
-
-    // 检测截断：stop_reason=max_tokens 说明输出被截断，JSON 会不完整
-    if (data.stop_reason === 'max_tokens') {
-      console.error('[OCR] truncated by max_tokens, raw length:', (data.content||[]).map(b=>b.text||'').join('').length);
-    }
-    console.log('[OCR] stop_reason:', data.stop_reason, 'output_tokens:', data.usage?.output_tokens);
-
-    const rawText = (data.content || []).map(b => b.text || '').join('');
-
-    // 从 Claude 响应中提取纯 JSON（Claude 有时在 JSON 前后加说明文字）
-    let raw = rawText.trim();
-    if (raw.startsWith('{') || raw.startsWith('[')) {
-      // 直接是 JSON，尝试直接用
-    } else {
-      // 含前置文字或 markdown，做 quote-aware 提取
-      const extracted = _extractJsonStr(rawText);
-      if (extracted) {
-        raw = extracted;
-        console.log('[OCR] extracted JSON from mixed response, original length:', rawText.length, 'extracted:', raw.length);
-      } else {
-        console.error('[OCR] could not extract JSON from response, length:', rawText.length);
-      }
-    }
-
-    // 只缓存合法 JSON（防止截断的坏响应被缓存后持续返回错误）
-    if (cacheKey && env.CACHE) {
-      try {
-        JSON.parse(raw);
-        await env.CACHE.put(`ocr:${cacheKey}`, raw, { expirationTtl: 7200 });
-      } catch (_) {
-        console.error('[OCR] response is not valid JSON, skipping cache. length:', raw.length);
-      }
-    }
-
-    return jsonResp({ raw }, 200, request);
-
+    if (data.stop_reason === 'max_tokens') console.error('[Sonnet] truncated, len:', (data.content||[]).map(b=>b.text||'').join('').length);
+    console.log('[Sonnet] stop_reason:', data.stop_reason, 'tokens:', data.usage?.output_tokens);
+    const raw = extractRaw((data.content||[]).map(b=>b.text||'').join(''));
+    await writeCache(raw);
+    return jsonResp({ raw, _engine: 'claude-sonnet-vision' }, 200, request);
   } catch (e) {
     return jsonResp({ error: 'OCR 调用失败: ' + e.message }, 502, request);
   }
