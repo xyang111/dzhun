@@ -16,9 +16,9 @@ function localFallbackMatch(data, v2Score = 0) {
     ||badNotes.includes('资产处置')||badNotes.includes('止付')||badNotes.includes('冻结')
     ||ovNotes.includes('呆账')||ovNotes.includes('代偿')||ovNotes.includes('担保代还');
   const q           = calcQueryCounts(data.query_records || []);
-  const q1          = q.loan_1m || 0;
-  const q3          = (q.loan_3m || 0) + (q.loan_3m_card || 0);
-  const q6          = q.loan_6m_total || 0;
+  const q1          = q.q_1m || 0;
+  const q3          = q.q_3m || 0;
+  const q6          = q.q_6m || 0;
   const onlineCount = (data.loans||[]).filter(l=>l.type==='online').length; // 笔数（评分用）
   const _onlineL = (data.loans||[]).filter(l=>l.type==='online');
   const onlineInstCnt = [...new Set(_onlineL.map(l=>l.name.split('-')[0]))].length; // 机构数（准入用）
@@ -359,7 +359,7 @@ function calcCreditScore(data, ui) {
   const loans = getActiveLoans(data);
   const cards = getActiveCards(data);
   const q     = calcQueryCounts(data.query_records||[]);
-  const q3    = (q.loan_3m||0)+(q.loan_3m_card||0);
+  const q3    = q.q_3m||0;
   const onlineInst = [...new Set(loans.filter(l=>l.type==='online').map(l=>l.name.split('-')[0]))].length;
   const cLimit = cards.reduce((s,c)=>s+(c.limit||0),0);
   const cUsed  = cards.reduce((s,c)=>s+(c.used||0),0);
@@ -455,10 +455,8 @@ function calcBlastRisk(qRecords,baseDate) {
   // 月份计算（与calcQueryCounts完全一致，避免30天vs1个月的误差）
   const monthsAgo = m => { const d=new Date(base); d.setMonth(d.getMonth()-m); return d; };
   const daysAgo   = d => { const t=new Date(base); t.setDate(t.getDate()-d); return t; };
-  const filt = (qRecords||[]).filter(q=>
-    q.type==='贷款审批'||q.type==='信用卡审批'||
-    q.type==='担保资格审查'||q.type==='资信审查'
-  );
+  const APPLY_TYPES = new Set(['贷款审批','信用卡审批','担保资格审查','资信审查','保前审查','融资租赁审批']);
+  const filt = (qRecords||[]).filter(q=> APPLY_TYPES.has(q.type));
   const q7   = filt.filter(q=>new Date(q.date)>=daysAgo(7)).length;
   const q30  = filt.filter(q=>new Date(q.date)>=monthsAgo(1)).length;  // 1个月（不是30天）
   const q90  = filt.filter(q=>new Date(q.date)>=monthsAgo(3)).length;  // 3个月（不是90天）
@@ -634,9 +632,9 @@ class ScoreEngine {
     const loans = (ocr.loans || []).filter(l => l.status !== '结清' && l.status !== '已结清');
     const cards = (ocr.cards || []).filter(c => c.status !== '销户' && c.status !== '已销户');
     const q   = calcQueryCounts(ocr.query_records || [], ocr.report_date);
-    const q1m = q.loan_1m || 0;
-    const q3m = (q.loan_3m || 0) + (q.loan_3m_card || 0);
-    const q6m = q.loan_6m_total || 0;
+    const q1m = q.q_1m || 0;
+    const q3m = q.q_3m || 0;
+    const q6m = q.q_6m || 0;
 
     const income  = ui.income || 0;
     const pvdRates = { gov:0.12, institution:0.12, state:0.11, listed:0.09, private:0.06, self:0.05, freelance:0.05 };
@@ -1224,24 +1222,24 @@ function calcQueryCounts(queryRecords, baseDate) {
   const cutoff1m  = monthsAgo(1);
   const cutoff3m  = monthsAgo(3);
   const cutoff6m  = monthsAgo(6);
+  const cutoff12m = monthsAgo(12);
 
-  let loan_1m = 0, loan_3m = 0, loan_3m_card = 0, loan_6m_total = 0;
+  const APPLY_TYPES = new Set(['贷款审批','信用卡审批','担保资格审查','资信审查','保前审查','融资租赁审批']);
+  let q_1m = 0, q_3m = 0, q_6m = 0, q_12m = 0;
 
   (queryRecords || []).forEach(r => {
     if (!r.date || !r.type) return;
+    if (!APPLY_TYPES.has(r.type)) return;
     const d = new Date(r.date);
     d.setHours(0, 0, 0, 0);
-    const isGuarantee  = r.type === '担保资格审查' || r.type === '资信审查';
-    const isLoan       = r.type === '贷款审批' || isGuarantee;
-    const isCard       = r.type === '信用卡审批';
 
-    if (isLoan && d >= cutoff1m) loan_1m++;
-    if (isLoan && d >= cutoff3m) loan_3m++;
-    if (isCard && d >= cutoff3m) loan_3m_card++;
-    if ((isLoan || isCard) && d >= cutoff6m) loan_6m_total++;
+    if (d >= cutoff1m)  q_1m++;
+    if (d >= cutoff3m)  q_3m++;
+    if (d >= cutoff6m)  q_6m++;
+    if (d >= cutoff12m) q_12m++;
   });
 
-  return { loan_1m, loan_3m, loan_3m_card, loan_6m_total };
+  return { q_1m, q_3m, q_6m, q_12m };
 }
 
 // ═══════════════════════════════════════════
@@ -1350,14 +1348,12 @@ function renderResult(data) {
     });
   }
 
-  // Query warnings — use new field names: loan_3m + loan_3m_card for 3-month total
-  const q3loans = q.loan_3m || 0;
-  const q3cards = q.loan_3m_card || 0;
-  const q3total = q3loans + q3cards;
-  const q6total = q.loan_6m_total || 0;
+  // Query warnings
+  const q3total = q.q_3m || 0;
+  const q6total = q.q_6m || 0;
 
-  if (q3total >= 5) warns.push('近3月审批查询 <strong>' + q3total + ' 次</strong>（贷款' + q3loans + '次+信用卡' + q3cards + '次），征信已花，建议暂停申请养3-6个月');
-  else if (q3total >= 3) warns.push('近3月审批查询 <strong>' + q3total + ' 次</strong>（贷款' + q3loans + '次+信用卡' + q3cards + '次），偏多，部分银行可能拒贷');
+  if (q3total >= 5) warns.push('近3月申请类查询 <strong>' + q3total + ' 次</strong>，征信已花，建议暂停申请养3-6个月');
+  else if (q3total >= 3) warns.push('近3月申请类查询 <strong>' + q3total + ' 次</strong>，偏多，部分银行可能拒贷');
 
   // 信用卡综合使用率警告
   const _cardLimitTotal = cards.reduce((s, c) => s + (c.limit || 0), 0);
@@ -1488,18 +1484,18 @@ function renderResult(data) {
   if ((data.query_records || []).length > 0) {
     document.getElementById('querySection').style.display = 'block';
     const items = [
-      { label: '贷款审批 近1月', val: q.loan_1m,       ok: v => v <= 1, warn: v => v <= 2 },
-      { label: '贷款审批 近3月', val: q.loan_3m,       ok: v => v <= 2, warn: v => v <= 4 },
-      { label: '信用卡审批 近3月', val: q.loan_3m_card, ok: v => v <= 2, warn: v => v <= 4 },
-      { label: '贷款+信用卡 近6月', val: q.loan_6m_total, ok: v => v <= 6, warn: v => v <= 12 },
+      { label: '申请类查询 近1月', val: q.q_1m,  ok: v => v <= 1, warn: v => v <= 2 },
+      { label: '申请类查询 近3月', val: q.q_3m,  ok: v => v <= 3, warn: v => v <= 6 },
+      { label: '申请类查询 近6月', val: q.q_6m,  ok: v => v <= 6, warn: v => v <= 12 },
+      { label: '申请类查询 近1年', val: q.q_12m, ok: v => v <= 12, warn: v => v <= 18 },
     ];
     document.getElementById('queryGrid').innerHTML = items.map(item => {
       const v = item.val;
       const state = v == null ? 'neutral' : item.ok(v) ? 'ok' : item.warn(v) ? 'warn' : 'bad';
       const clr = {ok:'var(--success)',warn:'var(--warn)',bad:'var(--danger)',neutral:'var(--muted)'}[state];
       const statusTxt = {ok:'正常',warn:'偏多',bad:'超标',neutral:'--'}[state];
-      // bar: max reference is warn boundary (use 12 for 6m, 4 for others as cap)
-      const cap = item.label.includes('6月') ? 12 : 4;
+      // bar: max reference is warn boundary
+      const cap = item.label.includes('1年') ? 18 : item.label.includes('6月') ? 12 : item.label.includes('3月') ? 6 : 2;
       const barPct = v != null ? Math.min(100, Math.round(v / cap * 100)) : 0;
       const parts = item.label.split(' ');
       const period = parts[parts.length - 1];
@@ -1676,11 +1672,8 @@ async function startMatching() {
   const totalCardLimit = cards.reduce((s, c) => s + (c.limit || 0), 0);
   const totalCardUsed = cards.reduce((s, c) => s + (c.used || 0), 0);
   const cardUtil = totalCardLimit > 0 ? Math.round(totalCardUsed / totalCardLimit * 100) : 0;
-  // Use updated field names from recognition prompt
-  const q3loans = q.loan_3m || 0;
-  const q3cards = q.loan_3m_card || 0;
-  const q3 = q3loans + q3cards;
-  const q6 = q.loan_6m_total || 0;
+  const q3 = q.q_3m || 0;
+  const q6 = q.q_6m || 0;
 
   const loanDesc = loans.map((l, i) => {
     const limitStr   = l.credit_limit != null ? fmt(l.credit_limit)+'元' : '--';
@@ -2265,7 +2258,7 @@ function renderMatchResult(r) {
   const monthly = calcTotalMonthly(loans2,cards2);
   const dr      = income>0?Math.round(monthly/income*100):0;
   const q       = calcQueryCounts(data2.query_records||[]);
-  const q3      = (q.loan_3m||0)+(q.loan_3m_card||0);
+  const q3      = q.q_3m||0;
   const onlineL = loans2.filter(l=>l.type==='online');
   const onlineI = [...new Set(onlineL.map(l=>l.name.split('-')[0]))].length;
   const cLimit  = cards2.reduce((s,c)=>s+(c.limit||0),0);
@@ -2846,10 +2839,8 @@ function buildReportText() {
 月还款估算：${fmt(Math.round(totalMonthly))} 元${userInfo.income > 0 ? `  |  负债率：${Math.round(totalMonthly / userInfo.income * 100)}%（月收入 ${fmt(userInfo.income)} 元）` : ''}
 历史逾期：${data.overdue_history_notes || '无'}
 
-【查询记录】
-贷款审批近1月：${q.loan_1m} 次  |  近3月：${q.loan_3m} 次
-信用卡审批近3月：${q.loan_3m_card} 次
-贷款+信用卡 近6月合计：${q.loan_6m_total} 次
+【查询记录（申请类6类统一口径）】
+近1月：${q.q_1m} 次  |  近3月：${q.q_3m} 次  |  近6月：${q.q_6m} 次  |  近1年：${q.q_12m} 次
 
 ━━━━━━━━━━━━━━━━
 【贷款账户明细（未结清 ${loans.length} 笔）】
