@@ -42,7 +42,11 @@ const WORK_TYPE_MAP = {
 
 // ── 全局工具：过滤未结清贷款/信用卡 ──
 function getActiveLoans(data) {
-  return (data?.loans||[]).filter(l=>l.status!=='结清'&&l.status!=='已结清');
+  // type==='credit' 或名称含「贷记卡」说明 OCR 把信用卡误放入 loans 数组，过滤掉
+  return (data?.loans||[]).filter(l=>
+    l.status!=='结清' && l.status!=='已结清' &&
+    l.type!=='credit' && !(l.name||'').includes('贷记卡')
+  );
 }
 function getActiveCards(data) {
   return (data?.cards||[]).filter(c=>c.status!=='销户'&&c.status!=='已销户');
