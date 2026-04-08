@@ -1155,11 +1155,14 @@ async function handleWechatSign(request, env) {
   if (!appid || !secret) return jsonResp({ error: 'wechat not configured' }, 500, request);
 
   try {
+    // 通过 ECS 代理调用微信 API（ECS 固定IP已加入微信白名单）
+    const WX_PROXY = 'https://dzhun.com.cn/wx-api';
+
     // access_token（缓存 1.5h）
     let token = await env.CACHE.get('wx_access_token');
     if (!token) {
       const r = await fetch(
-        `https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${appid}&secret=${secret}`
+        `${WX_PROXY}/cgi-bin/token?grant_type=client_credential&appid=${appid}&secret=${secret}`
       );
       const d = await r.json();
       if (!d.access_token) return jsonResp({ error: 'token error: ' + d.errmsg }, 502, request);
@@ -1171,7 +1174,7 @@ async function handleWechatSign(request, env) {
     let ticket = await env.CACHE.get('wx_jsapi_ticket');
     if (!ticket) {
       const r = await fetch(
-        `https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=${token}&type=jsapi`
+        `${WX_PROXY}/cgi-bin/ticket/getticket?access_token=${token}&type=jsapi`
       );
       const d = await r.json();
       if (!d.ticket) return jsonResp({ error: 'ticket error: ' + d.errmsg }, 502, request);
