@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>贷准 · AI信用数据分析与方案建议</title>
-<link rel="stylesheet" href="style.css?v=1775619477">
+<link rel="stylesheet" href="style.css?v=1775624051">
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 </head>
 <body>
@@ -764,17 +764,6 @@
             <div class="path-cta">你的具体申请顺序已根据征信定制，如需人工解读请联系下方顾问。</div>
           </div>
 
-          <!-- QR Modal -->
-          <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">
-            <div class="qr-modal">
-              <div class="qr-modal-title">添加客服微信</div>
-              <div class="qr-modal-sub">扫码添加，人工协助申请</div>
-              <img id="qrCodeImg" src="" alt="客服微信二维码" style="display:none">
-              <div id="qrFallback" style="display:none;padding:20px;text-align:center;color:var(--silver);font-size:13px">二维码加载失败，请拨打电话<br><strong id="qrPhoneNum" style="font-size:16px;color:var(--white)"></strong></div>
-              <button class="qr-modal-close" onclick="hideQrModal()">关闭</button>
-            </div>
-          </div>
-
           <!-- 转化按钮区 -->
           <div class="conv-cta" id="convCta">
             <div class="conv-cta-sub" id="convCtaSub" style="font-size:15px;font-weight:700;color:var(--white);line-height:1.6">这些因素可能影响你的最终额度和通过率<br>联系顾问获取针对你的定制方案</div>
@@ -808,8 +797,19 @@
   </div>
 </footer>
 
-<script src="config.js?v=1775619477"></script>
-<script src="app.js?v=1775619477"></script>
+<script src="config.js?v=1775624051"></script>
+<script src="app.js?v=1775624051"></script>
+
+<!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
+<div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">
+  <div class="qr-modal">
+    <div class="qr-modal-title">添加客服微信</div>
+    <div class="qr-modal-sub">扫码添加，人工协助申请</div>
+    <img id="qrCodeImg" src="" alt="客服微信二维码" style="display:none">
+    <div id="qrFallback" style="display:none;padding:20px;text-align:center;color:var(--silver);font-size:13px">二维码加载失败，请拨打电话<br><strong id="qrPhoneNum" style="font-size:16px;color:var(--white)"></strong></div>
+    <button class="qr-modal-close" onclick="hideQrModal()">关闭</button>
+  </div>
+</div>
 
 <!-- PAYMENT MODAL -->
 <div class="pay-overlay" id="payOverlay">
