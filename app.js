@@ -3463,3 +3463,34 @@ window.addEventListener('pageshow', (evt) => {
   }
 });
 
+
+
+// ── 微信 JS-SDK 分享配置 ──
+(async function initWechatShare() {
+  if (typeof wx === 'undefined') return;
+  try {
+    const pageUrl = location.href.split('#')[0];
+    const resp = await fetch(
+      `${PROXY_URL}/api/v1/wechat/sign?url=${encodeURIComponent(pageUrl)}`
+    );
+    if (!resp.ok) return;
+    const { appId, timestamp, nonceStr, signature } = await resp.json();
+
+    wx.config({
+      debug: false,
+      appId, timestamp, nonceStr, signature,
+      jsApiList: ['updateAppMessageShareData', 'updateTimelineShareData']
+    });
+
+    wx.ready(function () {
+      const shareData = {
+        title:  '给征信做一次体检 — 贷准 AI',
+        desc:   '102项检测维度，3分钟出报告，首次免费。',
+        link:   'https://dzhun.com.cn/',
+        imgUrl: 'https://dzhun.com.cn/share-cover.png'
+      };
+      wx.updateAppMessageShareData(shareData);
+      wx.updateTimelineShareData(shareData);
+    });
+  } catch (e) { /* 静默失败，OG标签兜底 */ }
+})();

@@ -701,6 +701,9 @@ export default {
     if (request.method === 'GET' && gNormPath === '/pay/alipay/verify-return') {
       return handleAlipayVerifyReturn(request, env);
     }
+    if (request.method === 'GET' && gNormPath === '/wechat/sign') {
+      return handleWechatSign(request, env);
+    }
 
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405, headers: corsHeaders(request) });
@@ -1138,6 +1141,54 @@ async function handleWechatConfirm(request, env) {
   } catch(e) {
     console.error(`[confirm] error: ${e.message}`);
     return jsonResp({ error: '查询失败: ' + e.message }, 502, request);
+  }
+}
+
+// /api/v1/wechat/sign — 生成 JS-SDK 签名，供前端 wx.config() 使用
+async function handleWechatSign(request, env) {
+  const url     = new URL(request.url);
+  const pageUrl = url.searchParams.get('url');
+  if (!pageUrl) return jsonResp({ error: 'url required' }, 400, request);
+
+  const appid  = env.WECHAT_APPID  || '';
+  const secret = env.WECHAT_SECRET || '';
+  if (!appid || !secret) return jsonResp({ error: 'wechat not configured' }, 500, request);
+
+  try {
+    // access_token（缓存 1.5h）
+    let token = await env.CACHE.get('wx_access_token');
+    if (!token) {
+      const r = await fetch(
+        `https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${appid}&secret=${secret}`
+      );
+      const d = await r.json();
+      if (!d.access_token) return jsonResp({ error: 'token error: ' + d.errmsg }, 502, request);
+      token = d.access_token;
+      await env.CACHE.put('wx_access_token', token, { expirationTtl: 5400 });
+    }
+
+    // jsapi_ticket（缓存 1.5h）
+    let ticket = await env.CACHE.get('wx_jsapi_ticket');
+    if (!ticket) {
+      const r = await fetch(
+        `https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=${token}&type=jsapi`
+      );
+      const d = await r.json();
+      if (!d.ticket) return jsonResp({ error: 'ticket error: ' + d.errmsg }, 502, request);
+      ticket = d.ticket;
+      await env.CACHE.put('wx_jsapi_ticket', ticket, { expirationTtl: 5400 });
+    }
+
+    // 生成签名
+    const nonceStr  = Math.random().toString(36).slice(2, 18);
+    const timestamp = Math.floor(Date.now() / 1000);
+    const str       = `jsapi_ticket=${ticket}&noncestr=${nonceStr}&timestamp=${timestamp}&url=${pageUrl}`;
+    const buf       = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(str));
+    const signature = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+    return jsonResp({ appId: appid, timestamp, nonceStr, signature }, 200, request);
+  } catch (e) {
+    return jsonResp({ error: 'sign error: ' + e.message }, 502, request);
   }
 }
 
