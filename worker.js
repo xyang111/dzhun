@@ -238,6 +238,331 @@ function cleanMarkdown(md) {
   return s.trim();
 }
 
+// ═══════════════════════════════════════════════════════════════
+// 规则引擎：直接解析 Textin 原始 Markdown，零模型调用
+// 征信简版报告是人行规定的固定格式，结构稳定，可当协议解析
+// 置信度 ≥ 0.80 → 直接返回，跳过 Haiku（速度 <0.1s vs 20-35s）
+// 置信度 < 0.80 → 自动降级到 Haiku
+// ═══════════════════════════════════════════════════════════════
+function parseReportByRules(md) {
+
+  // ── 预处理 ──────────────────────────────────────────────────
+  let s = md;
+  s = s.replace(/<br\s*\/?>/gi, ' ');                              // <br> → 空格（查询表机构名跨行）
+  s = s.replace(/<!--[\s\S]*?-->/g, '');                           // 删页码注释
+  s = s.replace(/(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/g, '$1年$2月$3日'); // 日期去空格
+  s = s.replace(/(\d{4}年\d{1,2}月\d{1,2})口/g, '$1日');           // OCR '口'→'日' 兼容
+
+  // ── 工具函数 ─────────────────────────────────────────────────
+  const parseNum = str => {
+    if (!str) return null;
+    const n = parseFloat(String(str).replace(/[,，\s]/g, ''));
+    return isNaN(n) ? null : n;
+  };
+  const toDate = (y, m, d) =>
+    `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  const stripMd = str => (str || '').replace(/\*{1,3}/g, '').trim();
+
+  // 机构名简化：去掉法律后缀/分支后缀
+  // ⚠️ 分行/支行 regex 必须用 [^\s银] 开头，防止贪婪吃掉"银行"中的"行"
+  const shortName = raw => raw
+    .replace(/（原[：:][^）]+）/g, '')
+    .replace(/股份有限公司|有限责任公司|有限公司|股份公司/g, '')
+    .replace(/[^\s银行][\u4e00-\u9fff]{0,3}分行$/, '')   // 排除'银'和'行'，防止吃掉"银行"的"行"
+    .replace(/[^\s银行][\u4e00-\u9fff]{0,3}支行$/, '')
+    .replace(/信用卡中心$|消费金融中心$|中心$|营业部$/, '')
+    .trim();
+
+  // 机构分类
+  const ONLINE_BANK_LIST = [
+    '长安银行','三湘银行','蓝海银行','振兴银行','苏商银行','锡商银行',
+    '中关村银行','众邦银行','通商银行','富民银行','亿联银行','百信银行',
+    '裕民银行','华通银行','微众银行','网商银行','新网银行','苏宁银行',
+  ];
+  const BIG6        = /工商银行|农业银行|中国银行|建设银行|交通银行|邮储银行/;
+  const JOINT_STOCK = /招商银行|兴业银行|平安银行|中信银行|浦发银行|光大银行|华夏银行|民生银行|浙商银行|广发银行|渤海银行|恒丰银行/;
+  const RURAL       = /农商银行|农信|农村商业|农村合作|村镇银行|农村信用/;
+
+  const classifyInst = (rawInst, loanTypeStr = '') => {
+    const n = rawInst;
+    // 消费金融公司
+    if (/消费金融/.test(n)) return { type:'online', online_subtype:'consumer_finance', loan_category:'finance' };
+    // 小额贷款 / 信托
+    if (/小额贷款|小贷|信托/.test(n)) return { type:'online', online_subtype:'microloan', loan_category:'finance' };
+    // 含"银行"的机构
+    if (/银行/.test(n)) {
+      if (ONLINE_BANK_LIST.some(k => n.includes(k)))
+        return { type:'online', online_subtype:'online_bank', loan_category:'finance' };
+      const bankCat = /住房|房贷|按揭|公积金|购房/.test(loanTypeStr) ? 'mortgage'
+                    : /汽车|购车|车贷|车辆|机动车/.test(loanTypeStr) ? 'car' : 'credit';
+      if (BIG6.test(n) || JOINT_STOCK.test(n) || RURAL.test(n))
+        return { type:'bank', online_subtype:null, loan_category:bankCat };
+      return { type:'bank', online_subtype:null, loan_category:bankCat }; // 城商行
+    }
+    return { type:'online', online_subtype:'consumer_finance', loan_category:'finance' };
+  };
+
+  const catLabel = c => ({ mortgage:'住房贷', car:'车贷', credit:'消费贷', finance:'消费贷' }[c] || '消费贷');
+
+  // ── 1. 基本信息 ───────────────────────────────────────────────
+  // 兼容 PDF（含**加粗**）和图片OCR（纯文字）两种 Textin 输出格式
+  // 姓名只取中文字符（中国姓名2-6个汉字），避免行内其他字段干扰
+  const nameM  = s.match(/姓名[：:]\s*\*{0,2}([\u4e00-\u9fff]{2,6})/);
+  // 兼容三种格式：
+  //   证件号码：350781...          （纯文字）
+  //   **证件号码**：**350781...**  （整体加粗，Textin PDF版）
+  //   证件号码：\n350781...        （号码换行）
+  const idM    = s.match(/证件号码\*{0,2}[：:][^0-9\n]*(\d{17}[\dXx])/)
+              || s.match(/证件号码[：:]\s*\n[^0-9\n]*(\d{17}[\dXx])/);  // 号码在下一行
+  // 日期兼容：报告时间自身可能加粗（**报告时间**：2025-12-03）
+  const dateM  = s.match(/报告时间\*{0,2}[：:][^\n]*?(\d{4}-\d{2}-\d{2})/)
+              || (()=>{ const m = s.match(/报告时间\*{0,2}[：:][^\n]*?(\d{4})[年/](\d{1,2})[月/](\d{1,2})/);
+                        return m ? [null,`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`] : null; })();
+  const person_name = stripMd(nameM?.[1] ?? '');
+  const id_number   = (idM?.[1] ?? '').toUpperCase();
+  const report_date = Array.isArray(dateM) ? dateM[1] : '';
+
+  // ── 2. 信息概要 HTML 表格 ─────────────────────────────────────
+  let summary_overdue_accounts = 0, summary_overdue_90days = 0;
+  let summaryActiveCards = -1, summaryActiveLoans = -1;
+
+  const summaryTblM = s.match(/<table[^>]*>([\s\S]*?发生过逾期[\s\S]*?)<\/table>/);
+  if (summaryTblM) {
+    const toN = v => { const n = parseInt(v); return isNaN(n) ? 0 : n; };
+    for (const tr of [...summaryTblM[0].matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)]) {
+      const tds = [...tr[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)]
+        .map(m => m[1].replace(/<[^>]+>/g, '').replace(/\s+/g,'').trim());
+      const label = tds[0] || '';
+      if (/未结清|未销户/.test(label)) {
+        summaryActiveCards = toN(tds[1]);
+        summaryActiveLoans = toN(tds[2]) + toN(tds[3]) + toN(tds[4] ?? '--'); // 含其他业务
+      } else if (/发生过逾期的账户数/.test(label) && !/90/.test(label)) {
+        summary_overdue_accounts = toN(tds[1]) + toN(tds[2]) + toN(tds[3]);
+      } else if (/90/.test(label)) {
+        summary_overdue_90days = toN(tds[1]) + toN(tds[2]) + toN(tds[3]);
+      }
+    }
+  }
+
+  // ── 3. 切分 section ───────────────────────────────────────────
+  const getSection = (text, startRe, ...endStrs) => {
+    const sm = text.match(startRe);
+    if (!sm) return '';
+    const rest = text.slice(sm.index + sm[0].length);
+    const indices = endStrs.map(e => rest.indexOf(e)).filter(i => i >= 0);
+    const idx = indices.length ? Math.min(...indices) : -1;
+    return idx >= 0 ? rest.slice(0, idx) : rest;
+  };
+  // 兼容 PDF（## 标题）、加粗（**信用卡**）和图片OCR（纯文字标题）三种 section 格式
+  const cardSection  = getSection(s, /(?:^##\s*信用卡|\*{1,2}信用卡\*{1,2}|^\s*信用卡\s*$)/m, '贷款');
+  // 贷款 section 止于「其他业务」（防止其他业务条目被误解析为贷款），其他业务单独解析后并入
+  const loanSection  = getSection(s, /(?:^##\s*贷款|\*{1,2}贷款\*{1,2}|^\s*贷款\s*$)/m, '其他业务', '非信贷交易记录');
+  const otherSection = getSection(s, /(?:^##\s*其他业务|\*{1,2}其他业务\*{1,2}|^\s*其他业务\s*$)/m, '非信贷交易记录');
+  console.log(`[OCR] sections: card=${cardSection.length} loan=${loanSection.length} other=${otherSection.length}`);
+
+  // ── 4. 解析信用卡 ─────────────────────────────────────────────
+  const cards = [];
+  for (const blk of cardSection.split(/\n(?=\d+[\.．])/)) {
+    const line = blk.trim();
+    if (!line || !/^\d+/.test(line)) continue;
+    const text = line.replace(/^\d+[\.．]\s*/, '');
+
+    if (/\d{4}年\d{1,2}月销户/.test(text)) continue;             // 跳过已销户
+
+    // 提取机构名：日期后、"发放的贷记卡"前
+    const afterDateM = text.match(/\d{4}年\d{1,2}月\d{1,2}日([\s\S]+?)发放的贷记卡/);
+    const rawInst  = afterDateM?.[1]?.trim() ?? '';
+    const instShort = shortName(rawInst);
+
+    if (/尚未激活/.test(text)) {
+      cards.push({ name:`${instShort}-贷记卡`, limit:0, used:0, status:'未激活' });
+      continue;
+    }
+    // 美元账户：只计数（与摘要表对齐），额度/已用归0，避免以USD数值虚增人民币总额
+    if (/美元账户/.test(text)) {
+      cards.push({ name:`${instShort}-贷记卡(美元)`, limit:0, used:0, status:'正常', currency:'USD' });
+      continue;
+    }
+    const limitM   = text.match(/信用额度([\d,]+)/);
+    const usedM    = text.match(/已使用额度([\d,]+)/);
+    const balanceM = text.match(/余额([\d,]+)/);
+    const limit  = parseNum(limitM?.[1])   ?? 0;
+    const usedAmt = parseNum(usedM?.[1])   ?? 0;
+    const bal    = parseNum(balanceM?.[1]) ?? 0;
+    cards.push({ name:`${instShort}-贷记卡`, limit, used:Math.max(usedAmt, bal), status:'正常' });
+  }
+
+  // ── 5. 解析贷款 ───────────────────────────────────────────────
+  const loans = [];
+  const overdueHistory = [];
+  let settledCount = 0;
+
+  let inOverdueSection = false;
+  for (const rawLine of loanSection.split('\n')) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    // ⚠️ 必须先判断「从未」再判断「发生过」，否则「从未」行会匹配两个pattern
+    if (line.includes('从未发生过逾期的账户明细如下')) { inOverdueSection = false; continue; }
+    if (line.includes('发生过逾期的账户明细如下'))     { inOverdueSection = true;  continue; }
+    if (!/^\d+[\.．]/.test(line) || !/\d{4}年/.test(line)) continue;
+
+    const text = line.replace(/^\d+[\.．]\s*/, '');
+    const isSettled   = /已结清/.test(text);
+    const isRevolving = /为.{1,50}授信/.test(text);
+    const overdueM    = text.match(/最近5年内有(\d+)个月处于逾期状态/);
+
+    if (isSettled) {
+      settledCount++;
+      if (overdueM) {
+        const instTag = text.match(/\d{4}年\d{1,2}月\d{1,2}日([\s\S]+?)(?:发放的|为)/);
+        overdueHistory.push(`${shortName(instTag?.[1]?.trim() ?? '')}逾期${overdueM[1]}个月`);
+      }
+      continue;
+    }
+
+    // 发放日（第一个日期）
+    const issM = text.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+    if (!issM) continue;
+    const issued_date = toDate(issM[1], issM[2], issM[3]);
+    const status = (inOverdueSection || overdueM) ? '逾期' : '正常';
+
+    if (isRevolving) {
+      // 循环授信：日期 → 机构名 → "为" → 类型 → "授信"
+      const instM    = text.match(/\d{4}年\d{1,2}月\d{1,2}日([\s\S]+?)为/);
+      const typeM    = text.match(/为([\s\S]+?)授信/);
+      const limitM   = text.match(/信用额度([\d,]+)元/);
+      const balanceM = text.match(/余额为([\d,]+)/);
+      const rawInst  = instM?.[1]?.trim() ?? '';
+      const { type, online_subtype, loan_category } = classifyInst(rawInst, typeM?.[1] ?? '');
+      loans.push({
+        name: `${shortName(rawInst)}-${catLabel(loan_category)}`,
+        type, online_subtype, loan_category,
+        issued_date, due_date: null, is_revolving: true,
+        credit_limit: parseNum(limitM?.[1]) ?? 0,
+        balance:      parseNum(balanceM?.[1]) ?? 0,
+        monthly: null, status,
+      });
+    } else {
+      // 定期贷款：日期 → 机构名 → "发放的" → 金额 → 类型 → 到期日 → 余额
+      const instM    = text.match(/\d{4}年\d{1,2}月\d{1,2}日([\s\S]+?)发放的/);
+      const clM      = text.match(/发放的([\d,]+)元/);
+      const typeM    = text.match(/元（(?:人民币|美元)）([\s\S]+?)，/);
+      const dueM     = text.match(/，(\d{4})年(\d{1,2})月(\d{1,2})日到期/);
+      const balanceM = text.match(/余额([\d,]+)/);
+      const rawInst  = instM?.[1]?.trim() ?? '';
+      const { type, online_subtype, loan_category } = classifyInst(rawInst, typeM?.[1] ?? '');
+      loans.push({
+        name: `${shortName(rawInst)}-${catLabel(loan_category)}`,
+        type, online_subtype, loan_category,
+        issued_date,
+        due_date: dueM ? toDate(dueM[1], dueM[2], dueM[3]) : null,
+        is_revolving: false,
+        credit_limit: parseNum(clM?.[1]) ?? 0,
+        balance: parseNum(balanceM?.[1]) ?? 0,
+        monthly: null, status,
+      });
+    }
+  }
+
+  // ── 5b. 解析其他业务（融资租赁等）──────────────────────────────
+  // 其他业务格式："YYYY年MM月DD日[机构]办理的[金额]元...业务，YYYY年MM月DD日到期。...余额XXXX"
+  for (const rawLine of otherSection.split('\n')) {
+    const line = rawLine.trim();
+    if (!line || !/^\d+[\.．]/.test(line) || !/\d{4}年/.test(line)) continue;
+    const text = line.replace(/^\d+[\.．]\s*/, '');
+    if (/已结清/.test(text)) { settledCount++; continue; }
+    const issM    = text.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+    if (!issM) continue;
+    const issued_date = toDate(issM[1], issM[2], issM[3]);
+    const instM   = text.match(/\d{4}年\d{1,2}月\d{1,2}日([\s\S]+?)(?:办理的|发放的)/);
+    const clM2    = text.match(/(?:办理的|发放的)([\d,]+)元/);
+    const dueM    = text.match(/，(\d{4})年(\d{1,2})月(\d{1,2})日到期/);
+    const balanceM= text.match(/余额([\d,]+)/);
+    const rawInst = instM?.[1]?.trim() ?? '';
+    loans.push({
+      name: `${shortName(rawInst)}-融资租赁`,
+      type: 'online', online_subtype: 'microloan', loan_category: 'finance',
+      issued_date,
+      due_date: dueM ? toDate(dueM[1], dueM[2], dueM[3]) : null,
+      is_revolving: false,
+      credit_limit: parseNum(clM2?.[1]) ?? 0,
+      balance: parseNum(balanceM?.[1]) ?? 0,
+      monthly: null,
+      status: '正常',
+    });
+  }
+
+  // ── 6. 解析查询记录 HTML 表格 ─────────────────────────────────
+  // ⚠️ 查询表跨页时 Textin 会输出多个 <table>，必须用 matchAll 捕获全部
+  const ALLOWED_Q = new Set(['贷款审批','信用卡审批','担保资格审查','资信审查','保前审查','融资租赁审批']);
+  const query_records = [];
+  const qSectionStart = s.indexOf('机构查询记录明细');
+  if (qSectionStart >= 0) {
+    const qSection = s.slice(qSectionStart);
+    for (const tblMatch of qSection.matchAll(/<table[^>]*>([\s\S]*?)<\/table>/g)) {
+      for (const tr of [...tblMatch[1].matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)]) {
+        const tds = [...tr[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)]
+          .map(m => m[1].replace(/<br\s*\/?>/gi,' ').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim());
+        if (tds.length < 4 || tds[1] === '查询日期') continue;
+        if (!ALLOWED_Q.has(tds[3])) continue;
+        const dm = tds[1].match(/(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*[日口]/);
+        if (dm) query_records.push({ date: toDate(dm[1], dm[2], dm[3]), type: tds[3] });
+      }
+    }
+  }
+  console.log(`[OCR] query_records: ${query_records.length}条 (${query_records.filter(q=>ALLOWED_Q.has(q.type)).map(q=>q.date).slice(0,5).join(',')}...)`);
+
+  // ── 6b. 查询次数统计（以报告日期为基准）──────────────────────────
+  const refDate = report_date || new Date().toISOString().slice(0,10);
+  const msPerDay = 86400000;
+  const refMs = new Date(refDate).getTime();
+  const daysAgo = d => (refMs - new Date(d).getTime()) / msPerDay;
+  const q_1m  = query_records.filter(q => daysAgo(q.date) <= 31).length;
+  const q_3m  = query_records.filter(q => daysAgo(q.date) <= 92).length;
+  const q_6m  = query_records.filter(q => daysAgo(q.date) <= 183).length;
+  const q_12m = query_records.filter(q => daysAgo(q.date) <= 366).length;
+  console.log(`[OCR] query counts: 1m=${q_1m} 3m=${q_3m} 6m=${q_6m} 12m=${q_12m}`);
+
+  // ── 7. 逾期汇总 ───────────────────────────────────────────────
+  const has_overdue_history     = summary_overdue_accounts > 0;
+  const overdue_history_notes   = overdueHistory.length ? overdueHistory.join('；') : '无';
+  const overdue_current         = loans.filter(l => l.status === '逾期').length;
+
+  // ── 8. 置信度计算 ─────────────────────────────────────────────
+  // 基础字段 0.70
+  let conf = 0;
+  if (person_name) conf += 0.25;
+  if (/^\d{17}[\dX]$/i.test(id_number))          conf += 0.25;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(report_date))   conf += 0.20;
+  // 贷款数校验 0.18
+  if (summaryActiveLoans >= 0) {
+    const d = Math.abs(loans.length - summaryActiveLoans);
+    conf += d === 0 ? 0.18 : d === 1 ? 0.14 : d === 2 ? 0.08 : 0;
+  } else { conf += 0.10; }
+  // 信用卡数校验 0.12
+  if (summaryActiveCards >= 0) {
+    const d = Math.abs(cards.length - summaryActiveCards);
+    conf += d === 0 ? 0.12 : d <= 2 ? 0.10 : d <= 4 ? 0.07 : 0;
+  } else { conf += 0.07; }
+
+  const result = {
+    person_name, id_number, report_date,
+    summary_overdue_accounts, summary_overdue_90days,
+    loans, cards, query_records,
+    q_1m, q_3m, q_6m, q_12m,
+    overdue_current,
+    overdue_history_notes,
+    has_overdue_history,
+    has_bad_record: false,
+    bad_record_notes: '无',
+    ocr_warnings: [],
+    notes: `规则引擎：${loans.length}笔未结清贷款，${cards.length}张信用卡，${settledCount}笔已结清，${query_records.length}条申请类查询`,
+  };
+
+  return { result, confidence: Math.min(conf, 1) };
+}
+
 // ═══════════════════════════════════════════
 // ③ 匹配分析 Prompt 构建函数（动态，接收前端传来的用户数据）
 // ═══════════════════════════════════════════
@@ -414,6 +739,7 @@ async function handleOCR(request, env) {
   if (cacheKey && env.CACHE) {
     const cached = await env.CACHE.get(`ocr:${cacheKey}`);
     if (cached) {
+      console.log('[OCR] cache hit, key:', cacheKey);
       return jsonResp({ raw: cached, _cached: true }, 200, request);
     }
   }
@@ -530,7 +856,22 @@ async function handleOCR(request, env) {
       }
 
       if (!textinFailed && combinedMarkdown.trim()) {
-        // ── 关键优化：先清洗Markdown，去掉无效内容，大幅减少输入token ──
+        // ── 规则引擎优先：零模型调用，<0.1s，置信度≥0.8直接返回 ──
+        console.log('[OCR] raw md preview:', JSON.stringify(combinedMarkdown.slice(0, 1000)));
+        try {
+          const { result: ruleResult, confidence } = parseReportByRules(combinedMarkdown);
+          console.log(`[OCR] rule engine conf:${confidence.toFixed(2)} loans:${ruleResult.loans.length} cards:${ruleResult.cards.length} name:"${ruleResult.person_name}" id:${ruleResult.id_number?'ok':'FAIL'} date:${ruleResult.report_date||'FAIL'}`);
+          if (confidence >= 0.8) {
+            const raw = JSON.stringify(ruleResult);
+            await writeCache(raw);
+            return jsonResp({ raw, _engine: 'textin+rules' }, 200, request);
+          }
+          console.log('[OCR] rule engine conf too low → Haiku fallback');
+        } catch (e) {
+          console.error('[OCR] rule engine error:', e.message, '→ Haiku fallback');
+        }
+
+        // ── 规则引擎置信度不足，降级到 Haiku ──
         const cleaned = cleanMarkdown(combinedMarkdown);
         console.log('[OCR] markdown cleaned:', combinedMarkdown.length, '→', cleaned.length, '→ Haiku');
 
