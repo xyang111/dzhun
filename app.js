@@ -1989,13 +1989,12 @@ function renderV2XAI(v2) {
     hdEl.innerHTML = `<div class="v2hd">
       <div class="v2hd-icon">${cpuIcon}</div>
       <div class="v2hd-txt">
-        <div class="v2hd-label">CREDIT SCORE ENGINE V2.0 · 102-DIM
+        <div class="v2hd-label">AI 信用评分引擎 · 102维检测
           <span class="v2hd-badge" style="background:${col}1a;color:${col};border:1px solid ${col}55">${v2.level || ''}级 · ${lvDesc[v2.level] || ''}</span>
         </div>
       </div>
       <div class="v2hd-score">
         <div class="v2hd-num" style="color:${col}">${scoreInt}</div>
-        <div class="v2hd-denom">/ 1000 · ${lvLabel[v2.level] || ''}</div>
       </div>
     </div>`;
     hdEl.style.marginBottom = '0';
