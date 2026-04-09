@@ -2586,7 +2586,7 @@ function renderMatchResult(r) {
 
   // ── B级：边缘产品半锁定卡（有数据但降低信心，引导顾问） ──
   const _mkCardEdge = p => {
-    return `<div class="product-card" style="opacity:0.68;cursor:pointer;border-color:rgba(59,123,246,.25)" onclick="showQrModal()"><div class="pc-top"><div class="pc-info"><div class="pc-bank">${esc(p.bank)}</div><div class="pc-product">${esc(p.product)}</div></div><div class="pc-rate">${esc(p.rate)}</div></div><div class="pc-tags"><span class="pc-tag">${esc(p.amount)}</span>${(p.tags||[]).slice(0,2).map(t=>`<span class="pc-tag">${esc(t)}</span>`).join('')}</div><div class="pc-reason" style="color:var(--accentB);font-size:11px;display:flex;align-items:center;gap:4px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>顾问协助申请，额度和利率更有保障 →</div></div>`;
+    return `<div class="product-card" style="opacity:0.6;border-color:rgba(255,255,255,.08)"><div class="pc-top"><div class="pc-info"><div class="pc-bank">${esc(p.bank)}</div><div class="pc-product">${esc(p.product)}</div></div><div class="pc-rate">${esc(p.rate)}</div></div><div class="pc-tags"><span class="pc-tag">${esc(p.amount)}</span>${(p.tags||[]).slice(0,2).map(t=>`<span class="pc-tag">${esc(t)}</span>`).join('')}</div></div>`;
   };
   if(products.length===0){
     // 根据实际数据生成具体的问题诊断和修复步骤
@@ -2652,10 +2652,11 @@ function renderMatchResult(r) {
       if(_bigPri.length) _gridHtml += _tierHd('国有大行','优先申请，利率最低') + _bigPri.map(_mkCard).join('');
       if(_othPri.length) _gridHtml += _tierHd('股份制 / 城商行','') + _othPri.map(_mkCard).join('');
       if(_finPri.length) _gridHtml += _tierHd('消费金融','备选，最后申请') + _finPri.map(_mkCard).join('');
-      // 第二层：顾问协助申请效果更佳
+      // 第二层：展示信息，底部统一一个 CTA
       if(_restProds.length) {
-        _gridHtml += _tierHd('更多可申渠道', `另有 ${_restProds.length} 款 · 顾问协助申请额度和利率更有保障`);
+        _gridHtml += _tierHd('更多可申渠道', `另有 ${_restProds.length} 款`);
         _gridHtml += _restProds.map(_mkCardEdge).join('');
+        _gridHtml += `<div style="grid-column:1/-1;margin-top:4px;padding:12px 14px;background:var(--glow);border:1px solid rgba(59,123,246,.25);display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-size:12px;color:var(--silver);line-height:1.5">顾问协助申请<br><span style="color:var(--plat)">额度和利率更有保障</span></span><button onclick="showQrModal()" style="flex-shrink:0;background:var(--accentB);color:#fff;border:none;padding:9px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:.04em">联系顾问 →</button></div>`;
       }
     } else {
       // C级：保持原有三层分组
