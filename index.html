@@ -11,7 +11,7 @@
 <meta property="og:url" content="https://dzhun.com.cn/" />
 <meta property="og:type" content="website" />
 <meta name="description" content="102项检测维度，3分钟出报告，AI精准诊断你的信贷资质，首次免费。" />
-<link rel="stylesheet" href="style.css?v=1775704061">
+<link rel="stylesheet" href="style.css?v=1775900002">
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 </head>
 <body>
@@ -751,6 +751,25 @@
               <span id="matchCountWrap" style="display:none;margin-left:auto;font-size:11px;color:var(--silver)"><span id="matchCount">0</span> 款可申请</span>
             </div>
             <div class="products-grid" id="productsGrid"></div>
+
+            <!-- 信用卡分期补充渠道 -->
+            <div id="ccInstallTips" class="cc-tips-wrap" style="display:none">
+              <div class="cc-tips-hd">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                持有以下银行信用卡？可直接申请分期转贷
+              </div>
+              <div class="cc-tips-list">
+                <span class="cc-tip-item">建行 · 分期通</span>
+                <span class="cc-tip-item">农行 · 乐分易</span>
+                <span class="cc-tip-item">招行 · e招贷</span>
+                <span class="cc-tip-item">浦发 · 随心贷</span>
+                <span class="cc-tip-item">平安 · 橙e贷</span>
+              </div>
+              <div class="cc-tips-sub">在对应银行 App 内操作即可，无需重新申请，不产生新的征信查询</div>
+            </div>
+
+            <!-- 差距可视化 -->
+            <div id="gapSection" class="gap-section" style="display:none"></div>
           </div>
 
           <!-- 征信全面分析报告 -->
@@ -839,8 +858,8 @@
   </div>
 </footer>
 
-<script src="config.js?v=1775704061"></script>
-<script src="app.js?v=1775704061"></script>
+<script src="config.js?v=1775830000"></script>
+<script src="app.js?v=1775900002"></script>
 
 <!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
 <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">

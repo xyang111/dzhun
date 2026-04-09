@@ -2300,6 +2300,14 @@ function renderMatchResult(r) {
   const _tier    = r.cs_tier || (v2Level === 'A' || v2Level === 'B' ? 'bank' : curRate>=80?'bank':curRate>=60?'mixed':'finance');
   const _clientT = r.client_type || (_tier==='bank'?'A':_tier==='mixed'?'B':'C');
 
+  // ── 个性化渲染所需额外变量 ──
+  const q1m      = q.q_1m || 0;
+  const provident = parseFloat(document.getElementById('if-provident')?.value) || 0;
+  const hasSocial = document.getElementById('social-yes')?.classList.contains('active-yes') || false;
+  const hasOv     = (data2.overdue_current || 0) > 0;
+  const hasOvHist = (data2.loans||[]).some(l => (l.overdue_count||0) > 0);
+  const v2Score   = (window._v2Result && window._v2Result.score) || 0;
+
   // 更新产品数量，切换header锁定提示
   document.getElementById('matchCount').textContent = products.length;
   const _lockHint = document.getElementById('matchLockHint');
@@ -2497,6 +2505,56 @@ function renderMatchResult(r) {
     return;
   }
 
+  // ── 个性化匹配理由 ──
+  const _personalReason = p => {
+    const pts = [];
+    if (p.maxQ3 && q3 <= Math.floor(p.maxQ3 * 0.65))
+      pts.push(`近3月查询${q3}次，远低于该行${p.maxQ3}次上限，征信干净`);
+    else if (p.maxQ1 && q1m <= p.maxQ1)
+      pts.push(`近1月仅${q1m}次查询，符合${p.bank}最严查询要求`);
+    if (['gov','institution','state'].includes(wt) && (p.bonus||'').includes('国企'))
+      pts.push(`${{gov:'公务员',institution:'事业单位员工',state:'国企员工'}[wt]||'优质单位'}，${p.bank}白名单直通道`);
+    if (provident >= 2000 && (p.tags||[]).includes('公积金加分'))
+      pts.push(`公积金${provident}元/月，可申请最优利率通道`);
+    else if ((provident >= 500 || hasSocial) && p.social && p.minSocialMonths)
+      pts.push(`${provident>=500?'公积金':'社保'}在缴，满足${p.bank}稳定就业要求`);
+    if (income > 0 && p.maxDebt && dr <= p.maxDebt - 20)
+      pts.push(`负债率${dr}%，低于该行${p.maxDebt}%红线，额度空间充裕`);
+    if (hasOvHist && !hasOv && p.overdue === 'mild')
+      pts.push(`该行接受已结清历史逾期，是征信有瑕疵客户首选`);
+    if (['xmyh','xmns'].includes(p.id))
+      pts.push(`厦门本地银行，有线下面谈通道，可申请提额`);
+    return pts.slice(0, 2).join('；');
+  };
+
+  // ── A级：产品对比标签 ──
+  const _aCompBadge = (() => {
+    const allRates = products.map(x => parseFloat((x.rate||'').split('%')[0])||99);
+    const minRate  = Math.min(...allRates);
+    const maxAmt   = products.reduce((m,x) => Math.max(m, parseInt((x.amount||'').replace(/[^0-9万]/g,'').replace('万','0000'))||0), 0);
+    return p => {
+      const myRate = parseFloat((p.rate||'').split('%')[0])||99;
+      const myAmt  = parseInt((p.amount||'').replace(/[^0-9万]/g,'').replace('万','0000'))||0;
+      if (myRate === minRate) return {txt:'利率最低', col:'var(--success)'};
+      if (myAmt >= maxAmt && myAmt >= 500000) return {txt:'额度最高', col:'var(--accentB)'};
+      if (['xmyh','xmns'].includes(p.id)) return {txt:'本地优先', col:'var(--cyan)'};
+      if (['gov','institution','state'].includes(wt) && (p.bonus||'').includes('国企')) return {txt:'最适合你', col:'var(--warn)'};
+      if (provident >= 2000 && (p.tags||[]).includes('公积金加分')) return {txt:'公积金专属', col:'var(--accentB)'};
+      if (['zsyh','jsyh','jtyh'].includes(p.id)) return {txt:'审批最快', col:'var(--plat)'};
+      return null;
+    };
+  })();
+
+  // ── A级产品卡（无通过率条，有对比标签） ──
+  const _mkCardA = p => {
+    const badge  = _aCompBadge(p);
+    const reason = _personalReason(p) || p.reason || '';
+    const badgeHtml = badge
+      ? `<span style="font-size:10px;font-weight:700;color:${badge.col};background:${badge.col}22;border:1px solid ${badge.col}55;padding:2px 8px;letter-spacing:.04em;margin-right:4px">${esc(badge.txt)}</span>`
+      : '';
+    return `<div class="product-card"><div class="pc-top"><div class="pc-info"><div class="pc-bank">${esc(p.bank)}</div><div class="pc-product">${esc(p.product)}</div></div><div class="pc-rate">${esc(p.rate)}</div></div><div class="pc-tags">${badgeHtml}${(p.tags||[]).map(t=>`<span class="pc-tag">${esc(t)}</span>`).join('')}<span class="pc-tag">${esc(p.amount)}</span></div>${reason?`<div class="pc-reason"><span class="pc-reason-text">${esc(reason)}</span></div>`:''}</div>`;
+  };
+
   const _mkCard = p => {
     const pct=p.probPct||0;
     const bc=pct>=75?'var(--success)':pct>=55?'var(--accentB)':'var(--danger)';
@@ -2504,7 +2562,7 @@ function renderMatchResult(r) {
     const cardStyle=isNotRec?'opacity:0.55;filter:grayscale(30%)':'';
     const badgeCls=p.prob==='高'?'badge-ok':p.prob==='中'?'badge-warn':'badge-bad';
     const notRecTag=isNotRec?`<span class="pc-tag" style="color:#f87171;background:rgba(192,57,43,.12)">当前评分偏低</span>`:'';
-    return `<div class="product-card" style="${cardStyle}"><div class="pc-top"><div class="pc-info"><div class="pc-bank">${esc(p.bank)}</div><div class="pc-product">${esc(p.product)}</div></div><div class="pc-rate">${esc(p.rate)}</div></div><div class="pc-prob"><div class="pc-prob-bar"><div class="pc-prob-fill" style="width:${pct}%;background:${bc}"></div></div><div class="pc-prob-val">${pct}%</div></div><div class="pc-tags"><span class="badge ${badgeCls}">${esc(p.prob)}概率</span>${notRecTag}${(p.tags||[]).map(t=>`<span class="pc-tag">${esc(t)}</span>`).join('')}<span class="pc-tag">${esc(p.amount)}</span></div><div class="pc-reason" onclick="var d=this.nextElementSibling;if(d&&d.classList.contains('pc-reason-detail')){d.classList.toggle('show');this.querySelector('.pc-reason-toggle')?.classList.toggle('open')}"><span class="pc-reason-text">${esc(p.reason)||''}</span>${p.reason_detail?'<span class="pc-reason-toggle">▾</span>':''}</div>${p.reason_detail?'<div class="pc-reason-detail">'+esc(p.reason_detail)+'</div>':''}</div>`;
+    return `<div class="product-card" style="${cardStyle}"><div class="pc-top"><div class="pc-info"><div class="pc-bank">${esc(p.bank)}</div><div class="pc-product">${esc(p.product)}</div></div><div class="pc-rate">${esc(p.rate)}</div></div><div class="pc-prob"><div class="pc-prob-bar"><div class="pc-prob-fill" style="width:${pct}%;background:${bc}"></div></div><div class="pc-prob-val">${pct}%</div></div><div class="pc-tags"><span class="badge ${badgeCls}">${esc(p.prob)}概率</span>${notRecTag}${(p.tags||[]).map(t=>`<span class="pc-tag">${esc(t)}</span>`).join('')}<span class="pc-tag">${esc(p.amount)}</span></div><div class="pc-reason" onclick="var d=this.nextElementSibling;if(d&&d.classList.contains('pc-reason-detail')){d.classList.toggle('show');this.querySelector('.pc-reason-toggle')?.classList.toggle('open')}"><span class="pc-reason-text">${esc(p.reason || _personalReason(p))||''}</span>${p.reason_detail?'<span class="pc-reason-toggle">▾</span>':''}</div>${p.reason_detail?'<div class="pc-reason-detail">'+esc(p.reason_detail)+'</div>':''}</div>`;
   };
   const _tierHd = (txt,sub)=>`<div style="grid-column:1/-1;margin:12px 0 4px;padding:7px 10px;border-left:3px solid var(--accentB);background:var(--glow)"><span style="font-size:12px;font-weight:700;color:var(--accentB)">${txt}</span>${sub?`<span style="font-size:11px;color:var(--silver);margin-left:6px">${sub}</span>`:''}` + `</div>`;
   if(products.length===0){
@@ -2532,9 +2590,9 @@ function renderMatchResult(r) {
     const _parseRate = p => parseFloat((p.rate || '').replace('%','').replace('起','')) || 99;
     let _gridHtml = '';
     if (v2Level === 'A') {
-      // A级：全部产品按利率升序，单一列表不分层（便于比价）
+      // A级：全部产品按利率升序，用对比标签替代通过率条
       const _sorted = [...products].sort((a, b) => _parseRate(a) - _parseRate(b));
-      _gridHtml = _tierHd('全部产品', '已按利率从低到高排序') + _sorted.map(_mkCard).join('');
+      _gridHtml = _tierHd('全部产品', '已按利率从低到高排序，点击查看为什么适合你') + _sorted.map(_mkCardA).join('');
     } else if (v2Level === 'D') {
       // D级：只展示消费金融保底产品，不显示大量被拒产品
       const _fallback = products.filter(p => p.type !== 'bank');
@@ -2552,7 +2610,46 @@ function renderMatchResult(r) {
       if(_othBank.length)  _gridHtml += _tierHd('股份制 / 城商行','') + _othBank.map(_mkCard).join('');
       if(_finProds.length) _gridHtml += _tierHd('消费金融','备选，最后申请') + _finProds.map(_mkCard).join('');
     }
-    document.getElementById('productsGrid').innerHTML=_gridHtml;
+    document.getElementById('productsGrid').innerHTML = _gridHtml;
+
+    // ── 差距可视化：近似产品 ──
+    const _matchedIds = new Set(products.map(p => p.id));
+    const _gapItems = (typeof BANK_PRODUCTS !== 'undefined' ? BANK_PRODUCTS : [])
+      .filter(p => !_matchedIds.has(p.id) && p.type === 'bank')
+      .map(p => {
+        const gaps = [];
+        if (v2Score > 0 && v2Score < p.hurdle)
+          gaps.push({ label:`评分差${p.hurdle - v2Score}分`, months: Math.ceil((p.hurdle-v2Score)/15) });
+        if (p.maxQ3 && q3 > p.maxQ3)
+          gaps.push({ label:`查询多${q3-p.maxQ3}次`, months: Math.min(3, q3-p.maxQ3+1) });
+        if (p.maxQ1 && q1m > p.maxQ1)
+          gaps.push({ label:`近1月查询${q1m}次超限`, months: 1 });
+        if (p.maxDebt && income > 0 && dr > p.maxDebt)
+          gaps.push({ label:`负债率${dr}%超${p.maxDebt}%`, months: 6 });
+        if (!gaps.length) return null;
+        const minMonths = Math.min(...gaps.map(g => g.months));
+        const fd = new Date(); fd.setMonth(fd.getMonth() + minMonths);
+        return { p, gaps: gaps.slice(0,2), minMonths, fixDateStr: `${fd.getFullYear()}年${fd.getMonth()+1}月` };
+      })
+      .filter(Boolean)
+      .filter(g => g.gaps.length <= 2 && g.minMonths <= 6)
+      .sort((a,b) => a.gaps.length - b.gaps.length || a.minMonths - b.minMonths)
+      .slice(0, 3);
+    const _gapEl = document.getElementById('gapSection');
+    if (_gapEl) {
+      if (_gapItems.length > 0 && v2Level !== 'D') {
+        _gapEl.style.display = 'block';
+        _gapEl.innerHTML = `<div class="gap-hd">再努力一点可解锁</div>${_gapItems.map(g=>`<div class="gap-item"><div class="gap-top"><span class="gap-bank">${esc(g.p.bank)} · ${esc(g.p.product)}</span><span class="gap-rate">${esc(g.p.rate)}</span></div><div class="gap-issues">${g.gaps.map(x=>`<span class="gap-tag">▲ ${esc(x.label)}</span>`).join('')}</div><div class="gap-fix"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accentB)" stroke-width="2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>预计 <strong style="color:var(--white)">${esc(g.fixDateStr)}</strong> 可达标</div></div>`).join('')}`;
+      } else {
+        _gapEl.style.display = 'none';
+      }
+    }
+
+    // 信用卡分期补充提示
+    const _ccTips = document.getElementById('ccInstallTips');
+    if (_ccTips) {
+      _ccTips.style.display = 'block';
+    }
   }
 
   // 旧版分析报告兼容渲染
