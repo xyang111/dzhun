@@ -817,13 +817,8 @@
 
           </div>
 
-          <!-- 建议申请路径 -->
-          <div class="conv-sec" id="convPath" style="display:none;margin-top:20px">
-            <div class="conv-sec-hd"><span class="conv-sec-title">建议申请路径（顺序影响通过率）</span></div>
-            <div class="path-warn"><strong>申请顺序直接影响审批通过率</strong><br>同时申请多家 → 查询暴增 → 互相拉低通过率</div>
-            <div id="convPathSteps"></div>
-            <div class="path-cta">你的具体申请顺序已根据征信定制，如需人工解读请联系下方顾问。</div>
-          </div>
+          <!-- 定制申请顺序提示（内容由 JS 按 A/B/C/D 级注入） -->
+          <div id="convPath" style="display:none;margin-top:16px"></div>
 
           <!-- 转化按钮区 -->
           <div class="conv-cta" id="convCta">
@@ -859,7 +854,7 @@
 </footer>
 
 <script src="config.js?v=1775830000"></script>
-<script src="app.js?v=1775900006"></script>
+<script src="app.js?v=1775900007"></script>
 
 <!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
 <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">

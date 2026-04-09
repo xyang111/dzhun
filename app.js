@@ -2421,34 +2421,21 @@ function renderMatchResult(r) {
     if(lg)lg.textContent=gapW>0?'优化后可多拿约 '+gapW+' 万额度':_liftDiff>0?'优化后可多申请 '+_liftDiff+' 款产品':'优化后通过率大幅提升';
   }
 
-  // ⑤ 操作路径（仅付费后展示）
+  // ⑤ 定制申请顺序提示（替代旧版3步路径，4类话术）
   const pathEl=document.getElementById('convPath');
   if(pathEl && getPayToken()){
     pathEl.style.display='block';
-    const _bankProds = products.filter(p=>p.type==='bank');
-    const _finProds  = products.filter(p=>p.type!=='bank');
-    const _topBanks  = _bankProds.slice(0,2).map(p=>p.bank+'·'+p.product).join('、');
-    const _topFin    = _finProds.slice(0,2).map(p=>p.bank).join('、');
-    const _pathSteps = [
-      {
-        title: _topBanks ? `优先申请 ${_topBanks}` : '优先申请通过率最高的银行产品',
-        desc:  '利率最低、查询消耗最友好。同类产品只选一家，避免同时查询导致爆查。'
-      },
-      {
-        title: '拿到第一笔批款后，再逐步补充',
-        desc:  '已有银行通过记录，后续申请的审批通过率显著提升。每次申请间隔建议1周以上。'
-      },
-      {
-        title: _topFin ? `${_topFin} 等消费金融作为最后备选` : '消费金融作为最后备选',
-        desc:  '年化利率 15%–24%，仅在银行产品不足时补充申请，不要第一个申请。'
-      },
-    ];
-    document.getElementById('convPathSteps').innerHTML = _pathSteps.map((s,i) =>
-      `<div class="path-step">
-        <div class="path-left"><div class="path-num">0${i+1}</div>${i<_pathSteps.length-1?'<div class="path-vline"></div>':''}</div>
-        <div class="path-body"><div class="path-title">${esc(s.title)}</div><div class="path-desc">${esc(s.desc)}</div></div>
-      </div>`
-    ).join('');
+    const _pathCopy = {
+      A: { line1: '你的资质已进入优质准入区间', line2: '顾问可协助对接白名单通道、锁定最低利率档位，避免走普通通道多付利息。' },
+      B: { line1: '你的具体申请顺序已根据征信定制', line2: '申请顺序错误会多消耗查询次数、影响后续通过率，建议联系顾问协助执行。' },
+      C: { line1: '你的征信修复与申请路径已定制', line2: '过渡方案的选择直接影响3个月后的恢复速度，建议顾问全程跟进，避免走弯路。' },
+      D: { line1: '你的征信修复计划已制定', line2: '每个时间节点的动作需要精准执行，顾问全程陪伴，每月同步进度。' },
+    }[v2Level] || { line1: '你的申请方案已根据征信定制', line2: '如需人工解读，请联系下方顾问。' };
+    pathEl.innerHTML = `<div style="padding:14px 16px;background:var(--raised);border:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:700;color:var(--white);margin-bottom:4px">${esc(_pathCopy.line1)}</div>
+      <div style="font-size:12px;color:var(--silver);line-height:1.6;margin-bottom:12px">${esc(_pathCopy.line2)}</div>
+      <button onclick="showQrModal()" style="width:100%;background:var(--accentB);color:#fff;border:none;padding:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:.04em">如需人工解读，联系顾问 →</button>
+    </div>`;
   }
 
   // ⑥ 客户标签（已被 hero 区替代，不再展示）
