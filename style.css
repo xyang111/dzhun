@@ -105,6 +105,26 @@ header {
   background:rgba(12,184,122,0.08);
   border:1px solid rgba(12,184,122,0.25);
   padding:3px 8px;letter-spacing:0.1em;
+  cursor:pointer;
+  display:inline-flex;align-items:center;gap:5px;
+  transition:opacity .2s;
+}
+.h-badge:hover { opacity:0.72; }
+.h-badge--offline {
+  color:var(--silver);
+  background:rgba(110,125,156,0.08);
+  border-color:rgba(110,125,156,0.25);
+}
+.h-badge-dot {
+  width:5px;height:5px;border-radius:50%;
+  background:var(--success);flex-shrink:0;
+}
+.h-badge-dot.pulsing {
+  animation:badge-pulse 2s ease-in-out infinite;
+}
+.h-badge--offline .h-badge-dot { background:var(--silver);animation:none; }
+@keyframes badge-pulse {
+  0%,100%{opacity:1} 50%{opacity:0.35}
 }
 .h-icp {
   font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:9px;

@@ -2984,6 +2984,7 @@ const _isWeChat = /micromessenger/i.test(navigator.userAgent);
 document.addEventListener('DOMContentLoaded', () => {
   _trackEvent('page_view');
   initContactPhone();
+  initAdvisorBadge();
 
   // 实时时钟
   (function tickClock(){
@@ -3464,6 +3465,25 @@ window.addEventListener('pageshow', (evt) => {
 });
 
 
+
+// ── 顾问在线状态 Badge ──
+function initAdvisorBadge() {
+  const badge = document.getElementById('advisorBadge');
+  const dot   = document.getElementById('advisorDot');
+  const text  = document.getElementById('advisorBadgeText');
+  if (!badge) return;
+  const hour = new Date().getHours();
+  const isOnline = hour >= 9 && hour < 21;
+  if (isOnline) {
+    badge.classList.remove('h-badge--offline');
+    dot.classList.add('pulsing');
+    text.textContent = '顾问在线';
+  } else {
+    badge.classList.add('h-badge--offline');
+    dot.classList.remove('pulsing');
+    text.textContent = '留言预约';
+  }
+}
 
 // ── 下载指引折叠展开 ──
 function toggleCreditGuide() {

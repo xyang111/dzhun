@@ -11,7 +11,7 @@
 <meta property="og:url" content="https://dzhun.com.cn/" />
 <meta property="og:type" content="website" />
 <meta name="description" content="102项检测维度，3分钟出报告，AI精准诊断你的信贷资质，首次免费。" />
-<link rel="stylesheet" href="style.css?v=1775701857">
+<link rel="stylesheet" href="style.css?v=1775702736">
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 </head>
 <body>
@@ -34,7 +34,10 @@
     <div class="logo-sub">CREDIT INTELLIGENCE</div>
   </div>
   <div class="header-r">
-    <div class="h-badge">SYSTEM ONLINE</div>
+    <div class="h-badge" id="advisorBadge" onclick="showQrModal()">
+      <span class="h-badge-dot" id="advisorDot"></span>
+      <span id="advisorBadgeText">顾问在线</span>
+    </div>
     <div class="h-clock" id="hClock">--:--:--</div>
     <div class="h-icp">闽ICP备2026009746号</div>
   </div>
@@ -836,8 +839,8 @@
   </div>
 </footer>
 
-<script src="config.js?v=1775701857"></script>
-<script src="app.js?v=1775701857"></script>
+<script src="config.js?v=1775702736"></script>
+<script src="app.js?v=1775702736"></script>
 
 <!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
 <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">
