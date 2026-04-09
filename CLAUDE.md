@@ -5,7 +5,6 @@
 域名：dzhun.com.cn | 公司：厦门贷准科技有限公司
 
 **Stack：** HTML/JS/CSS 前端部署在阿里云 ECS（Nginx），Cloudflare Workers 做 API 代理，OCR 用 Claude Vision，Match 用 DeepSeek API，数据存储 Cloudflare KV + D1。
-**重要：** CEO 有时会直接在 Cloudflare Dashboard 上编辑 Worker 代码，编辑前必须先确认线上版本与本地是否一致，不能直接覆盖。
 
 ## Deployment Checklist
 每次部署到 Cloudflare Worker 或 ECS 后必须执行：
@@ -33,7 +32,7 @@
 | `style.css` | 全部 CSS 样式 | 阿里云 ECS | 类名改动必须同步检查 `app.js` 字符串引用 |
 | `config.js` | PROXY_URL / AGENTS / BANK_PRODUCTS | 阿里云 ECS | **必须在 `app.js` 之前加载**，最高频改动文件 |
 | `app.js` | 全部业务逻辑，ScoreEngine V2.0，47个函数 | 阿里云 ECS | 含动态 HTML 生成，CSS 改动需联动检查 |
-| `worker.js` | API 代理、OCR、Match、支付、D1写入 | Cloudflare Worker（`api.dzhun.com.cn`） | ⚠️ CEO 可能直接在 Dashboard 编辑，编辑前先下载线上版本确认一致 |
+| `worker.js` | API 代理、OCR、Match、支付、D1写入 | Cloudflare Worker（`api.dzhun.com.cn`） 
 | `wrangler.toml` | Worker 部署配置，KV×2 + D1 绑定 | 本地配置文件 | 绑定变量名不能随意改，与 Worker 代码耦合 |
 | `qr.jpg` | 默认客服微信二维码 | 阿里云 ECS | 禁止内嵌 base64 |
 | `qr_agent_1.jpg` | 代理商 XY001 二维码 | 阿里云 ECS | 禁止内嵌 base64 |
@@ -112,7 +111,6 @@ scp index.html style.css config.js app.js qr.jpg qr_agent_1.jpg root@8.136.1.233
 
 ## Worker环境变量（Cloudflare Dashboard配置）
 - ANTHROPIC_API_KEY / RESEND_API_KEY
-- TEXTIN_APP_ID / TEXTIN_SECRET（TextIn OCR 智能提取，用于 /api/v1/ocr）
 - WECHAT_APPID / WECHAT_MCH_ID / WECHAT_SERIAL / WECHAT_PRIV_KEY / WECHAT_API_V3_KEY
 - ALIPAY_APP_ID / ALIPAY_PRIV_KEY / ALIPAY_PUB_KEY
 
