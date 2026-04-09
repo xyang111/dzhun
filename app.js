@@ -2094,7 +2094,7 @@ function _deriveLevel(score) {
 
 const _isAmtNum = s => /^[\d<–\-]/.test(s);
 
-function _renderHero(level, r, cp, op, gapW, curAmt, optAmt) {
+function _renderHero(level, r, cp, op, gapW, curAmt, optAmt, products) {
   const el = document.getElementById('heroContent');
   if (!el) return;
   const score = (window._v2Result && window._v2Result.score) || r.cs_score || 0;
@@ -2107,12 +2107,20 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt) {
     `</div>`;
 
   if (level === 'A') {
+    const _parseMinRate = arr => {
+      if (!arr || !arr.length) return null;
+      const rates = arr.map(p => parseFloat((p.rate || '').split('%')[0]) || 99).filter(v => v < 99);
+      return rates.length ? Math.min(...rates) : null;
+    };
+    const minRateVal = _parseMinRate(products);
+    const minRateDisp = minRateVal != null ? minRateVal.toFixed(2).replace(/\.?0+$/, '') + '%起' : '--';
+
     el.innerHTML = `<div class="hero-wrap hero-a">
       <div class="hero-eyebrow">A级 · PREMIUM ACCESS</div>
       <div class="hero-title">您已进入银行优质准入区间</div>
       <div class="hero-sub">征信状态优质 · ${cp}款产品可直接申请 · 利率可谈至最低档</div>
       <div class="hero-metrics cols-3">
-        ${_metricBox('可申请最低利率', '3.0%', '')}
+        ${_metricBox('可申请最低利率', minRateDisp, '')}
         ${_metricBox('综合评分', scoreDisp, '')}
         ${_metricBox('符合产品数', cp + '款', '')}
       </div>
@@ -2332,7 +2340,7 @@ function renderMatchResult(r) {
     topEl.style.display = 'block';
     const cp = products.length;
     const op = Math.max(cp, r.optimized_products || (cp + 2));
-    _renderHero(v2Level, r, cp, op, gapW, curAmt, optAmt);
+    _renderHero(v2Level, r, cp, op, gapW, curAmt, optAmt, products);
   }
 
   // ② 问题拆解
