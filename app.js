@@ -2586,13 +2586,7 @@ function renderMatchResult(r) {
 
   // ── B级：边缘产品半锁定卡（有数据但降低信心，引导顾问） ──
   const _mkCardEdge = p => {
-    const gaps = [];
-    if (p.hurdle && v2Score < p.hurdle + 100) gaps.push(`评分提升${Math.max(0, p.hurdle + 100 - v2Score)}分`);
-    if (p.maxQ3 && q3 > p.maxQ3 - 1) gaps.push(`查询降至${p.maxQ3}次以内`);
-    if (p.maxQ1 && q1m > p.maxQ1 - 1) gaps.push(`近1月查询降至${p.maxQ1}次`);
-    if (!gaps.length) gaps.push('优化核心征信指标');
-    const bc = p.probPct >= 70 ? 'var(--warn)' : 'var(--danger)';
-    return `<div class="product-card" style="opacity:0.72;cursor:pointer;border-color:rgba(217,128,0,.3)" onclick="showQrModal()"><div class="pc-top"><div class="pc-info"><div class="pc-bank">${esc(p.bank)}</div><div class="pc-product">${esc(p.product)}</div></div><div class="pc-rate">${esc(p.rate)}</div></div><div class="pc-prob"><div class="pc-prob-bar"><div class="pc-prob-fill" style="width:${p.probPct}%;background:${bc}"></div></div><div class="pc-prob-val">${p.probPct}%</div></div><div class="pc-tags">${gaps.map(g=>`<span class="pc-tag" style="color:var(--warn);border-color:rgba(217,128,0,.4)">▲ ${esc(g)}</span>`).join('')}<span class="pc-tag">${esc(p.amount)}</span></div><div class="pc-reason" style="color:var(--accentB);font-size:11px">顾问协助优化后通过率可提升 →</div></div>`;
+    return `<div class="product-card" style="opacity:0.68;cursor:pointer;border-color:rgba(59,123,246,.25)" onclick="showQrModal()"><div class="pc-top"><div class="pc-info"><div class="pc-bank">${esc(p.bank)}</div><div class="pc-product">${esc(p.product)}</div></div><div class="pc-rate">${esc(p.rate)}</div></div><div class="pc-tags"><span class="pc-tag">${esc(p.amount)}</span>${(p.tags||[]).slice(0,2).map(t=>`<span class="pc-tag">${esc(t)}</span>`).join('')}</div><div class="pc-reason" style="color:var(--accentB);font-size:11px;display:flex;align-items:center;gap:4px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>顾问协助申请，额度和利率更有保障 →</div></div>`;
   };
   if(products.length===0){
     // 根据实际数据生成具体的问题诊断和修复步骤
@@ -2631,21 +2625,37 @@ function renderMatchResult(r) {
         _gridHtml = `<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">当前暂无可直接申请的产品<br>请参考下方恢复路线图</div>`;
       }
     } else if (v2Level === 'B') {
-      // B级：拆两层——高置信（现在可申）+ 边缘（优化后更有把握）
-      const _EDGE_THRESHOLD = 80;
-      const _nowProds  = products.filter(p => p.probPct >= _EDGE_THRESHOLD);
-      const _edgeProds = products.filter(p => p.probPct < _EDGE_THRESHOLD);
-      // 第一层：现在可申，按类型分组
-      const _bigNow  = _nowProds.filter(p=>p.type==='bank'&&(p.tags||[]).includes('国有大行'));
-      const _othNow  = _nowProds.filter(p=>p.type==='bank'&&!(p.tags||[]).includes('国有大行'));
-      const _finNow  = _nowProds.filter(p=>p.type!=='bank');
-      if(_bigNow.length)  _gridHtml += _tierHd('国有大行','优先申请，利率最低') + _bigNow.map(_mkCard).join('');
-      if(_othNow.length)  _gridHtml += _tierHd('股份制 / 城商行','') + _othNow.map(_mkCard).join('');
-      if(_finNow.length)  _gridHtml += _tierHd('消费金融','备选，最后申请') + _finNow.map(_mkCard).join('');
-      // 第二层：优化后更有把握
-      if(_edgeProds.length) {
-        _gridHtml += _tierHd('优化后通过率更高', `${_edgeProds.length}款产品 · 联系顾问获取提升方案`);
-        _gridHtml += _edgeProds.map(_mkCardEdge).join('');
+      // B级：策略性分层——前10名"优先推荐"，剩余"顾问协助"
+      // 排序：银行类优先 > 利率低 > 标签命中多 > 本地银行优先
+      const _userTagHits = p => {
+        let hits = 0;
+        if (provident >= 2000 && (p.tags||[]).includes('公积金加分')) hits += 3;
+        if (['gov','institution','state'].includes(wt) && (p.bonus||'').includes('国企')) hits += 3;
+        if (['xmyh','xmns'].includes(p.id)) hits += 2;
+        if (hasSocial && p.social) hits += 1;
+        return hits;
+      };
+      const _bSorted = [...products].sort((a, b) => {
+        if (a.type === 'bank' && b.type !== 'bank') return -1;
+        if (a.type !== 'bank' && b.type === 'bank') return 1;
+        const tagDiff = _userTagHits(b) - _userTagHits(a);
+        if (tagDiff !== 0) return tagDiff;
+        return _parseRate(a) - _parseRate(b);
+      });
+      const _B_LAYER1_MAX = 10;
+      const _priProds  = _bSorted.slice(0, _B_LAYER1_MAX);
+      const _restProds = _bSorted.slice(_B_LAYER1_MAX);
+      // 第一层：优先推荐，按类型分组
+      const _bigPri = _priProds.filter(p=>p.type==='bank'&&(p.tags||[]).includes('国有大行'));
+      const _othPri = _priProds.filter(p=>p.type==='bank'&&!(p.tags||[]).includes('国有大行'));
+      const _finPri = _priProds.filter(p=>p.type!=='bank');
+      if(_bigPri.length) _gridHtml += _tierHd('国有大行','优先申请，利率最低') + _bigPri.map(_mkCard).join('');
+      if(_othPri.length) _gridHtml += _tierHd('股份制 / 城商行','') + _othPri.map(_mkCard).join('');
+      if(_finPri.length) _gridHtml += _tierHd('消费金融','备选，最后申请') + _finPri.map(_mkCard).join('');
+      // 第二层：顾问协助申请效果更佳
+      if(_restProds.length) {
+        _gridHtml += _tierHd('更多可申渠道', `另有 ${_restProds.length} 款 · 顾问协助申请额度和利率更有保障`);
+        _gridHtml += _restProds.map(_mkCardEdge).join('');
       }
     } else {
       // C级：保持原有三层分组
