@@ -2486,11 +2486,11 @@ function renderMatchResult(r) {
   }
   if (!isPaid) {
     const _ghostCard = () => `<div class="pw-ghost"><div class="pw-ghost-l"><div class="pw-ghost-name"></div><div class="pw-ghost-sub"></div></div><div class="pw-ghost-r"><div class="pw-ghost-pct"></div><div class="pw-ghost-rate"></div></div></div>`;
-    const _lockOverlay = `<div class="pw-lock-overlay"><div class="pw-lock-ring"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="pw-lock-lbl">REPORT LOCKED</div></div>`;
+    const _lockOverlay = `<div class="pw-lock-overlay"><div class="pw-lock-ring"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="pw-lock-lbl">专属方案已生成，待解锁</div></div>`;
     const _countHint = products.length > 0
       ? `检测到 <span style="color:var(--accentB);font-size:17px;font-weight:700">${products.length}</span> 家机构符合您的资质`
       : '征信分析已完成';
-    document.getElementById('productsGrid').innerHTML = `<div class="pw-wrap"><div class="pw-preview">${_ghostCard()}${_ghostCard()}${_ghostCard()}${_lockOverlay}<div class="pw-fade"></div></div><div class="pw-hint">${_countHint}</div><button class="pw-btn" onclick="showPayModal(()=>startMatching())">解锁完整分析报告 &nbsp; ¥9.9</button></div>`;
+    document.getElementById('productsGrid').innerHTML = `<div class="pw-wrap"><div class="pw-preview">${_ghostCard()}${_ghostCard()}${_ghostCard()}${_lockOverlay}<div class="pw-fade"></div></div><div class="pw-hint">${_countHint}</div><button class="pw-btn" onclick="showPayModal(()=>startMatching())">解锁方案 · 顾问一对一跟进 &nbsp; ¥9.9</button></div>`;
     document.getElementById('matchResult').style.display='block';
     document.getElementById('matchResult').scrollIntoView({behavior:'smooth',block:'start'});
     window._isMatching = false;
