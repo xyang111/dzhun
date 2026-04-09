@@ -3465,6 +3465,15 @@ window.addEventListener('pageshow', (evt) => {
 
 
 
+// ── 下载指引折叠展开 ──
+function toggleCreditGuide() {
+  const panel = document.getElementById('creditGuidePanel');
+  const arrow = document.getElementById('guideArrow');
+  const open = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  arrow.style.transform = open ? 'rotate(180deg)' : '';
+}
+
 // ── 微信 JS-SDK 分享配置 ──
 (async function initWechatShare() {
   if (typeof wx === 'undefined') return;

@@ -11,7 +11,7 @@
 <meta property="og:url" content="https://dzhun.com.cn/" />
 <meta property="og:type" content="website" />
 <meta name="description" content="102项检测维度，3分钟出报告，AI精准诊断你的信贷资质，首次免费。" />
-<link rel="stylesheet" href="style.css?v=1775624051">
+<link rel="stylesheet" href="style.css?v=1775701857">
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 </head>
 <body>
@@ -46,7 +46,7 @@
 
   <div class="pg-eyebrow">智能征信分析平台</div>
   <div class="pg-h1">个人征信智能解析</div>
-  <div class="pg-sub">上传简版征信报告，AI识别负债结构，精准匹配可申请金融产品</div>
+  <div class="pg-sub">上传简版征信报告，梳理负债结构 · 诊断信用健康，精准匹配产品与优化方案</div>
 
   <!-- STEP 1: UPLOAD -->
   <div class="pcard" id="uploadCard">
@@ -70,14 +70,46 @@
         </div>
         <div class="uz-title">拖拽或点击上传征信报告</div>
         <div class="uz-hint">
-          支持人行征信中心导出的 PDF 文件<br>
-          或手机截图（JPG / PNG），可多页
+          支持简版征信报告 PDF 文件或完整长截图，识别效果最佳
         </div>
         <button class="uz-btn" onclick="event.stopPropagation();document.getElementById('fileInput').click()">选择文件</button>
         <div class="uz-formats">
           <div class="uz-format">PDF</div>
           <div class="uz-format">JPG</div>
           <div class="uz-format">PNG</div>
+        </div>
+      </div>
+
+      <!-- 下载指引 -->
+      <div class="uz-guide-wrap">
+        <a class="uz-guide-toggle" href="javascript:void(0)" onclick="toggleCreditGuide()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          没有征信报告？查看下载指引
+          <span id="guideArrow" class="guide-arrow">▾</span>
+        </a>
+        <div id="creditGuidePanel" class="uz-guide-panel" style="display:none">
+          <div class="uz-guide-tip">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0CB87A" stroke-width="2" style="flex-shrink:0;margin-top:2px"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            个人主动查询征信属于「软查询」，不会影响你的征信评分
+          </div>
+          <div class="uz-guide-steps">
+            <div class="uz-guide-step">
+              <span class="uz-step-num">1</span>
+              <span>打开各大银行 App（工行、建行、农行、招行等均支持）</span>
+            </div>
+            <div class="uz-guide-step">
+              <span class="uz-step-num">2</span>
+              <span>首页搜索「个人信用报告」，按提示完成身份认证并申请简版征信</span>
+            </div>
+            <div class="uz-guide-step">
+              <span class="uz-step-num">3</span>
+              <span>报告生成后，导出 PDF 或截取完整长图，再上传至此</span>
+            </div>
+          </div>
+          <div class="uz-guide-wx">
+            如需一对一协助，关注微信公众号
+            <strong>「贷准科技」</strong>，发送「征信」获取专属下载指引
+          </div>
         </div>
       </div>
 
@@ -804,8 +836,8 @@
   </div>
 </footer>
 
-<script src="config.js?v=1775624051"></script>
-<script src="app.js?v=1775624052"></script>
+<script src="config.js?v=1775701857"></script>
+<script src="app.js?v=1775701857"></script>
 
 <!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
 <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">
