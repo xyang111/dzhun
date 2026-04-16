@@ -3741,14 +3741,35 @@ async function downloadPdfReport() {
   const payToken = getPayToken();
   const agentId  = window._currentAgent?.id || null;
 
+  // Pre-compute summary stats and loan monthlies in frontend (worker has no calcLoanMonthly)
+  const _pdfUi     = (() => { try { return collectInfoData(); } catch(e) { return {}; } })();
+  const _pdfLoans  = getActiveLoans(_recognizedData || {});
+  const _pdfCards  = getActiveCards(_recognizedData || {});
+  const _pdfOnline = [...new Set(_pdfLoans.filter(l => l.type === 'online').map(l => l.name.split('-')[0]))].length;
+  const _pdfMonthly = calcTotalMonthly(_pdfLoans, _pdfCards);
+  const _pdfDebt    = _pdfLoans.reduce((s,l) => s+(l.balance||0), 0) + _pdfCards.reduce((s,c) => s+(c.used||0), 0);
+  const _pdfIncome  = _pdfUi?.income || 0;
+
   try {
     const resp = await fetch(PROXY_URL + '/api/v1/pdf', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
-        ocrData:  _recognizedData,
+        ocrData: {
+          ...(_recognizedData || {}),
+          loans: (_recognizedData?.loans || []).map(l => ({ ...l, estMonthly: calcLoanMonthly(l) })),
+        },
         v2Score:  window._v2Result,
-        userInfo: (() => { try { return collectInfoData(); } catch(e) { return {}; } })(),
+        userInfo: _pdfUi,
+        pdfStats: {
+          totalDebt:        _pdfDebt,
+          totalMonthly:     _pdfMonthly,
+          activeLoansCount: _pdfLoans.length,
+          activeCardsCount: _pdfCards.length,
+          onlineInstCount:  _pdfOnline,
+          debtRatio:        _pdfIncome > 0 ? Math.round(_pdfMonthly / _pdfIncome * 100) : null,
+          age:              calcAgeFromId(_recognizedData?.id_number),
+        },
         payToken: payToken || undefined,
         agentId:  agentId  || undefined,
       }),
