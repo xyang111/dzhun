@@ -542,6 +542,40 @@ function renderBlastRisk(data) {
   if (ce) { ce.style.color = r.conc<=40?'var(--success)':r.conc<=70?'var(--warn)':'var(--danger)'; }
 }
 
+function renderQueryDetail(data) {
+  const wrap = document.getElementById('qdWrap');
+  if (!wrap) return;
+  const refDate = data.report_date || new Date().toISOString().slice(0, 10);
+  const refMs   = new Date(refDate).getTime();
+  const records = (data.query_records || []).filter(q => {
+    const diff = (refMs - new Date(q.date).getTime()) / 86400000;
+    return diff >= 0 && diff <= 183;
+  });
+  if (!records.length) return;
+  records.sort((a, b) => b.date.localeCompare(a.date));
+
+  const rows = records.map(q => {
+    const inst = q.institution ? `<span class="qd-inst" title="${q.institution}">${q.institution}</span>` : '<span style="color:var(--silver)">--</span>';
+    return `<tr><td>${inst}</td><td>${q.type}</td><td>${q.date}</td></tr>`;
+  }).join('');
+
+  document.getElementById('qdBody').innerHTML = `
+    <table class="qd-table">
+      <thead><tr><th>查询机构</th><th>查询类型</th><th>日期</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  wrap.style.display = 'block';
+}
+
+function toggleQueryDetail() {
+  const body = document.getElementById('qdBody');
+  const btn  = document.getElementById('qdToggle');
+  if (!body || !btn) return;
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  btn.textContent    = open ? '收起 ▲' : '查看明细 ▼';
+}
+
 // ═══════════════════════════════════════════
 // 月供估算（银行风控规则）
 // 规则：房贷×0.0055 / 车贷×0.0304 / 银行信用贷×0.0314（超2年×0.04）
@@ -1331,6 +1365,7 @@ function renderResult(data) {
   // 渲染基础评分 + 爆查风险
   renderCreditScore(data, null);
   renderBlastRisk(data);
+  renderQueryDetail(data);
   document.getElementById('sumDebtHint').textContent = '填写月收入后显示';
   // sumTotalDebt：当前负债 = 贷款余额合计 + 信用卡已用额度合计
   const totalLoanBalance = loans.reduce((s, l) => s + (l.balance || 0), 0);
@@ -3335,7 +3370,7 @@ function restartAll() {
   window._personName = null; window._personIdNo = null;
 
   // 重置新版结果页模块
-  ['csWrap','brWrap'].forEach(id => {
+  ['csWrap','brWrap','qdWrap'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });

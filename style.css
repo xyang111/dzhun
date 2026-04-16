@@ -2380,3 +2380,13 @@ main, header { position:relative; z-index:1; }
 .hero-note-icon {
   display: inline-flex; align-items: center; vertical-align: middle; margin-right: 6px; flex-shrink: 0;
 }
+
+/* ── 查询明细折叠 ── */
+.qd-wrap { border-radius: 12px; overflow: hidden; border: 1px solid var(--border2); margin-bottom: 12px; }
+.qd-toggle { background: none; border: none; color: var(--accentB); font-size: 12px; cursor: pointer; padding: 0; }
+.qd-body { padding: 0 16px 12px; }
+.qd-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.qd-table th { color: var(--silver); font-weight: 400; padding: 8px 4px 4px; text-align: left; border-bottom: 1px solid var(--border2); }
+.qd-table td { padding: 7px 4px; border-bottom: 1px solid var(--border2); color: var(--text); }
+.qd-table tr:last-child td { border-bottom: none; }
+.qd-inst { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
