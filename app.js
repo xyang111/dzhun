@@ -1216,6 +1216,8 @@ async function startAnalysis() {
     if (data.error) throw new Error(typeof data.error === 'string' ? data.error : (data.error.message || 'API错误'));
 
     const raw = data.raw;
+    // 代理商模式：OCR 扣次后同步刷新剩余次数角标
+    if (data.agentRemaining != null) updateAgentQuotaBadge(data.agentRemaining);
     setStep(3); // rs4：汇总有效负债与查询数据
     const extracted = extractJson(raw);
     if (!extracted) throw new Error('未能识别到征信数据，请确认是人行征信报告');
@@ -3168,6 +3170,11 @@ function initContactPhone() {
   if (agentId && AGENTS[agentId]) {
     _currentAgent = window._currentAgent = { id: agentId, ...AGENTS[agentId] };
     console.log('[贷准] 代理商渠道:', _currentAgent.name, agentId);
+    // 异步拉取剩余配额显示
+    fetch(PROXY_URL + '/api/v1/agent/info?agent=' + encodeURIComponent(agentId))
+      .then(r => r.json())
+      .then(d => { if (d.remaining != null) updateAgentQuotaBadge(d.remaining); })
+      .catch(() => {});
   }
 
   const phone = _currentAgent ? _currentAgent.phone : CONTACT_PHONE;
@@ -3186,6 +3193,18 @@ function initContactPhone() {
 
   // 空产品引导里的联系电话也同步
   window._agentPhone = phone;
+}
+
+function updateAgentQuotaBadge(remaining) {
+  const badge = document.getElementById('agentQuotaBadge');
+  const num   = document.getElementById('agentQuotaNum');
+  if (!badge || !num) return;
+  num.textContent = remaining;
+  badge.style.display = 'block';
+  // 次数偏少时变红提示
+  badge.style.color   = remaining <= 20 ? '#e05a5a' : '#e6963a';
+  badge.style.background = remaining <= 20 ? 'rgba(224,90,90,0.08)' : 'rgba(230,150,58,0.08)';
+  badge.style.borderColor = remaining <= 20 ? 'rgba(224,90,90,0.28)' : 'rgba(230,150,58,0.28)';
 }
 // 微信环境检测
 const _isWeChat = /micromessenger/i.test(navigator.userAgent);
