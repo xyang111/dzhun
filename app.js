@@ -1,3 +1,16 @@
+// ── 动态产品库（从服务端拉取，fallback 到 config.js 的 BANK_PRODUCTS）──
+window._dynProducts = null;
+(async function fetchProducts() {
+  try {
+    const r = await fetch(PROXY_URL + '/api/v1/products');
+    if (r.ok) {
+      const arr = await r.json();
+      if (Array.isArray(arr) && arr.length > 0) window._dynProducts = arr;
+    }
+  } catch(e) {}
+})();
+function getProducts() { return window._dynProducts || BANK_PRODUCTS; }
+
 // ── 本地兜底匹配（AI失败时使用，逻辑与产品库完全同步）──
 function localFallbackMatch(data, v2Score = 0) {
   // 逾期与不良记录状态解析
@@ -55,7 +68,7 @@ function localFallbackMatch(data, v2Score = 0) {
   // 产品分层：V2.0评分决定推荐产品类型（≥650银行优先；400-649混合；<400消费金融为主）
   const _tier = v2Score >= 650 ? 'bank' : v2Score >= 400 ? 'mixed' : 'finance';
 
-  BANK_PRODUCTS.forEach(p => {
+  getProducts().forEach(p => {
     // ── 一票否决：征信硬性条件 ──
     if (hasOverdue)    return;           // 当前逾期 → 排除所有产品
     if (hasSeriousOv)  return;           // 连三/累六/M2/超60天 → 排除所有产品
@@ -985,9 +998,9 @@ function handleFiles(files) {
 }
 
 function _processPdf(f) {
-  const maxMB = 20;
+  const maxMB = 3;
   if (f.size > maxMB * 1024 * 1024) {
-    alert(`文件过大（${(f.size/1024/1024).toFixed(1)}MB），请压缩至 ${maxMB}MB 以内后重试`);
+    alert(`PDF过大（${(f.size/1024/1024).toFixed(1)}MB），简版征信通常不超过3MB，请确认上传的是人行简版征信`);
     return;
   }
   const reader = new FileReader();
@@ -1020,10 +1033,15 @@ function _processPdf(f) {
 
 function _processImages(files) {
   if (!files.length) { alert('不支持的文件格式，请上传 PDF 或图片'); return; }
-  const maxMB = 20;
-  const totalSize = files.reduce((s, f) => s + f.size, 0);
-  if (totalSize > maxMB * 1024 * 1024) {
-    alert(`文件总大小过大（${(totalSize/1024/1024).toFixed(1)}MB），请压缩至 ${maxMB}MB 以内后重试`);
+  const maxCount = 12;
+  const maxMBEach = 3;
+  if (files.length > maxCount) {
+    alert(`最多上传${maxCount}张截图，简版征信通常只需2-4张`);
+    return;
+  }
+  const oversized = files.find(f => f.size > maxMBEach * 1024 * 1024);
+  if (oversized) {
+    alert(`图片"${oversized.name}"超过${maxMBEach}MB，请压缩后重试`);
     return;
   }
 
@@ -1800,7 +1818,7 @@ async function startMatching() {
   let _v2ScoreForMatch = 0;
   try {
     const _v2Engine = new ScoreEngine(_recognizedData || {}, userInfo);
-    _v2Result = _v2Engine.compute(typeof BANK_PRODUCTS !== 'undefined' ? BANK_PRODUCTS : []);
+    _v2Result = _v2Engine.compute(getProducts());
     window._v2Result = _v2Result;
     _v2ScoreForMatch = _v2Result.score || 0;
     // 异步上报评分记录到 D1（fire-and-forget，失败不影响主流程）
@@ -1840,7 +1858,7 @@ async function startMatching() {
     : '（本地规则引擎未匹配到可申请产品）';
 
   const _rejectedSummary = (() => {
-    const all = (typeof BANK_PRODUCTS !== 'undefined' ? BANK_PRODUCTS : []);
+    const all = getProducts();
     const passedIds = new Set(_localProds.map(p => p.bank + p.product));
     // 找到被排除的主要原因
     const reasons = [];
@@ -2658,7 +2676,7 @@ function renderMatchResult(r) {
 
     // ── 差距可视化：近似产品 ──
     const _matchedIds = new Set(products.map(p => p.id));
-    const _gapItems = (typeof BANK_PRODUCTS !== 'undefined' ? BANK_PRODUCTS : [])
+    const _gapItems = getProducts()
       .filter(p => !_matchedIds.has(p.id) && p.type === 'bank')
       .map(p => {
         const gaps = [];
@@ -2952,6 +2970,14 @@ function buildReportText() {
     + `\n     推荐理由: ${p.reason||'--'}`
   ).join('\n') || '  暂无匹配产品';
 
+  const _v2 = window._v2Result || {};
+  const _v2score = _v2.score ? Math.round(_v2.score) : '--';
+  const _v2level = _v2.level || '--';
+  const _ds = _v2.domainScores || {};
+  const _v2line = _v2.score
+    ? `V2.0评分：${_v2score}分 · ${_v2level}级 | 信用${Math.round(_ds.credit||0)} 稳定${Math.round(_ds.stability||0)} 资产${Math.round(_ds.asset||0)} 反欺诈${Math.round(_ds.fraud||0)}`
+    : '（评分未生成）';
+
   return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 贷准 AI 征信分析报告
 报告时间：${new Date().toLocaleString('zh-CN')}
@@ -2961,6 +2987,7 @@ function buildReportText() {
 姓名：${name}  |  年龄：${age ? age+'岁' : '--'}
 身份证：${idNo}
 征信报告日期：${rptDate}
+${_v2line}
 
 【补充信息】
 月收入：${userInfo.income ? userInfo.income+'元' : '未填写'}
