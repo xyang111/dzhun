@@ -992,15 +992,24 @@ async function handleMatch(request, env) {
     return jsonResp({ error: '请求格式错误' }, 400, request);
   }
 
-  // 付费鉴权
+  // 付费鉴权：pay token 或 agentId 二选一
   const payToken = body._pay_token || '';
+  const agentId  = body._agent_id  || '';
   delete body._pay_token;
-  if (!payToken) {
+  delete body._agent_id;
+
+  if (!payToken && !agentId) {
     return jsonResp({ error: { message: '需要付费后才能查看匹配结果', code: 'PAYMENT_REQUIRED' } }, 402, request);
   }
-  const tokenRaw = await env.ORDERS.get(`token:${payToken}`);
-  if (!tokenRaw) {
-    return jsonResp({ error: { message: '支付凭证无效或已过期，请重新付费', code: 'PAYMENT_REQUIRED' } }, 402, request);
+  if (agentId) {
+    const agentRaw = await env.ORDERS.get(`agent:${agentId}`);
+    if (!agentRaw) return jsonResp({ error: { message: '代理商账号不存在', code: 'PAYMENT_REQUIRED' } }, 403, request);
+    // 代理商验证通过，继续
+  } else {
+    const tokenRaw = await env.ORDERS.get(`token:${payToken}`);
+    if (!tokenRaw) {
+      return jsonResp({ error: { message: '支付凭证无效或已过期，请重新付费', code: 'PAYMENT_REQUIRED' } }, 402, request);
+    }
   }
   const td = JSON.parse(tokenRaw);
   if (td.expiresAt < Date.now()) {

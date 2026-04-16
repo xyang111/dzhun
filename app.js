@@ -1954,7 +1954,8 @@ async function startMatching() {
 
   // ── AI 在后台补充文字建议（不阻塞结果展示）──
   const aiPayToken = getPayToken() || '';
-  if (aiPayToken) {
+  const _isAgentMode = !!window._currentAgent;
+  if (aiPayToken || _isAgentMode) {
     const _matchPayload = {
       creditData: {
         loanCount:           loans.length,
@@ -1990,7 +1991,7 @@ async function startMatching() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
-          body: JSON.stringify({ _pay_token: aiPayToken, payload: _matchPayload }),
+          body: JSON.stringify({ _pay_token: aiPayToken, _agent_id: window._currentAgent?.id || null, payload: _matchPayload }),
         });
         clearTimeout(t);
         if (!resp.ok) return; // 失败静默，本地结果已展示
@@ -2537,7 +2538,7 @@ function renderMatchResult(r) {
   // 产品卡片渲染（分三层：国有大行 / 股份制+城商行 / 消费金融）
   // 付费守卫：未付费只展示摘要，产品列表不渲染
   const _tok = getPayToken();
-  const isPaid = !!_tok;
+  const isPaid = !!_tok || !!window._currentAgent;
   // 已付费：在额度徽章旁显示剩余有效时间
   if (isPaid) {
     const expMs = parseInt(localStorage.getItem('_payTokenExp') || '0');
