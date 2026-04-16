@@ -2390,3 +2390,7 @@ main, header { position:relative; z-index:1; }
 .qd-table td { padding: 7px 4px; border-bottom: 1px solid var(--border2); color: var(--text); }
 .qd-table tr:last-child td { border-bottom: none; }
 .qd-inst { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── PDF 下载按钮 ── */
+.pdf-dl-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px; background: var(--raised); border: 1px solid var(--border2); border-radius: 12px; color: var(--accentB); font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 16px; box-sizing: border-box; }
+.pdf-dl-btn:disabled { opacity: 0.5; cursor: not-allowed; }

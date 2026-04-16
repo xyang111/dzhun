@@ -730,6 +730,7 @@ export default {
     if (normPath === '/pay/create')        return handlePayCreate(request, env);
     if (normPath === '/pay/wechat/confirm') return handleWechatConfirm(request, env);
     if (normPath === '/report')            return handleReport(request, env);
+    if (normPath === '/pdf')               return handlePdf(request, env);
     if (normPath === '/ocr')               return handleOCR(request, env);
     if (normPath === '/match')             return handleMatch(request, env);
     if (normPath === '/score')             return handleScore(request, env);
@@ -1694,4 +1695,128 @@ function jsonResp(data, status, request) {
     status,
     headers: { ...corsHeaders(request), 'Content-Type': 'application/json' },
   });
+}
+
+// ═══════════════════════════════════════════
+// /pdf — 生成 PDF 报告（付费用户或代理商）
+// ═══════════════════════════════════════════
+async function handlePdf(request, env) {
+  let body;
+  try { body = await request.json(); } catch (e) {
+    return jsonResp({ error: '请求格式错误' }, 400, request);
+  }
+
+  const { ocrData, v2Score, agentId, payToken } = body;
+  if (!ocrData) return jsonResp({ error: '缺少报告数据' }, 400, request);
+
+  // 鉴权：付费 token 或代理商 agentId 二选一即可
+  if (!payToken && !agentId) {
+    return jsonResp({ error: '请先完成付费后再下载' }, 402, request);
+  }
+  if (agentId) {
+    const raw = await env.ORDERS.get(`agent:${agentId}`);
+    if (!raw) return jsonResp({ error: '代理商账号不存在' }, 403, request);
+  }
+  if (payToken) {
+    const tokenData = await env.ORDERS.get(`pay:${payToken}`);
+    if (!tokenData) return jsonResp({ error: '付费凭证无效或已过期' }, 402, request);
+  }
+
+  const secret = env.PDF_SERVICE_SECRET;
+  if (!secret) return jsonResp({ error: 'PDF服务未配置' }, 500, request);
+
+  const name     = ocrData.person_name || '用户';
+  const rDate    = (ocrData.report_date || '').replace(/-/g, '');
+  const filename = `贷准报告_${name}_${rDate}`;
+  const html     = buildPdfHtml(ocrData, v2Score);
+
+  try {
+    const resp = await fetch('https://dzhun.com.cn/pdf-render', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'x-pdf-secret': secret },
+      body:    JSON.stringify({ html, filename }),
+    });
+    if (!resp.ok) {
+      const err = await resp.text();
+      console.error('[PDF] service error:', resp.status, err);
+      return jsonResp({ error: 'PDF生成失败，请稍后重试' }, 500, request);
+    }
+    const pdf = await resp.arrayBuffer();
+    return new Response(pdf, {
+      status:  200,
+      headers: {
+        'Content-Type':        'application/pdf',
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(filename)}.pdf`,
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
+  } catch (e) {
+    console.error('[PDF] fetch error:', e.message);
+    return jsonResp({ error: 'PDF服务连接失败，请稍后重试' }, 500, request);
+  }
+}
+
+// ── buildPdfHtml：将报告数据渲染为可供 Puppeteer 使用的 HTML ──
+function buildPdfHtml(data, v2) {
+  const name    = data.person_name || '--';
+  const idNo    = (data.id_number  || '').replace(/^(.{6}).+(.{4})$/, '$1********$2');
+  const rDate   = data.report_date || '--';
+  const score   = v2?.score  || '--';
+  const level   = v2?.level  || '--';
+  const genTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+
+  const refMs   = new Date(rDate).getTime();
+  const qRows   = (data.query_records || [])
+    .filter(q => (refMs - new Date(q.date).getTime()) / 86400000 <= 183)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .map(q => `<tr><td>${q.institution || '--'}</td><td>${q.type}</td><td>${q.date}</td></tr>`)
+    .join('') || '<tr><td colspan="3" style="color:#999;text-align:center">无近半年查询记录</td></tr>';
+
+  const loanRows = (data.loans || [])
+    .filter(l => l.status !== '结清' && l.status !== '已结清')
+    .map(l => `<tr><td>${l.name || '--'}</td><td>${(l.balance || 0).toLocaleString()}</td><td>${l.status || '--'}</td></tr>`)
+    .join('') || '<tr><td colspan="3" style="color:#999;text-align:center">无未结清贷款</td></tr>';
+
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: "PingFang SC","Microsoft YaHei",sans-serif; color: #1a1a2e; margin: 0; padding: 0; font-size: 13px; }
+  h1 { font-size: 20px; color: #1a1a2e; margin: 0 0 4px; }
+  .sub { color: #666; font-size: 12px; margin-bottom: 20px; }
+  .section { margin-bottom: 20px; }
+  .section-title { font-size: 14px; font-weight: 600; color: #1a1a2e; border-left: 3px solid #4169e1; padding-left: 8px; margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #f0f4ff; color: #444; font-weight: 500; padding: 7px 8px; text-align: left; }
+  td { padding: 7px 8px; border-bottom: 1px solid #eee; }
+  .score-box { display: inline-block; background: #f0f4ff; border-radius: 8px; padding: 12px 24px; text-align: center; margin-bottom: 16px; }
+  .score-num { font-size: 36px; font-weight: 700; color: #4169e1; }
+  .score-lbl { font-size: 12px; color: #666; }
+  .footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #eee; color: #999; font-size: 11px; text-align: center; }
+</style>
+</head>
+<body>
+<h1>贷准 · 智能贷款评估报告</h1>
+<div class="sub">姓名：${name} &nbsp;|&nbsp; 证件号：${idNo} &nbsp;|&nbsp; 报告日期：${rDate}</div>
+<div class="section">
+  <div class="section-title">综合评分</div>
+  <div class="score-box">
+    <div class="score-num">${score}</div>
+    <div class="score-lbl">评级：${level}</div>
+  </div>
+</div>
+<div class="section">
+  <div class="section-title">近半年查询记录</div>
+  <table><thead><tr><th>查询机构</th><th>查询类型</th><th>查询日期</th></tr></thead>
+  <tbody>${qRows}</tbody></table>
+</div>
+<div class="section">
+  <div class="section-title">当前未结清贷款</div>
+  <table><thead><tr><th>机构</th><th>余额（元）</th><th>状态</th></tr></thead>
+  <tbody>${loanRows}</tbody></table>
+</div>
+<div class="footer">由 dzhun.com.cn 生成 · ${genTime} · 仅供参考，以银行实际审批为准</div>
+</body>
+</html>`;
 }

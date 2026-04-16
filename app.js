@@ -2778,6 +2778,13 @@ function renderMatchResult(r) {
   // ── D级：显示恢复路线图 ──
   if (v2Level === 'D') _renderRehabRoadmap(r);
 
+  // PDF 下载按钮（付费用户或代理商都可下载）
+  const _pdfWrap = document.getElementById('pdfDlWrap');
+  if (_pdfWrap && (isPaid || window._currentAgent)) {
+    _pdfWrap.style.display = 'block';
+    _pdfWrap.innerHTML = `<button class="pdf-dl-btn" id="pdfDlBtn" onclick="downloadPdfReport()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>下载报告 PDF</button>`;
+  }
+
   document.getElementById('matchResult').style.display='block';
   document.getElementById('matchResult').scrollIntoView({behavior:'smooth',block:'start'});
   window._isMatching = false; // 释放匹配状态锁
@@ -3370,7 +3377,7 @@ function restartAll() {
   window._personName = null; window._personIdNo = null;
 
   // 重置新版结果页模块
-  ['csWrap','brWrap','qdWrap'].forEach(id => {
+  ['csWrap','brWrap','qdWrap','pdfDlWrap'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -3725,3 +3732,45 @@ function toggleCreditGuide() {
     });
   } catch (e) { /* 静默失败，OG标签兜底 */ }
 })();
+
+async function downloadPdfReport() {
+  const btn = document.getElementById('pdfDlBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '生成中...'; }
+
+  const payToken = getPayToken();
+  const agentId  = window._currentAgent?.id || null;
+
+  try {
+    const resp = await fetch(PROXY_URL + '/api/v1/pdf', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        ocrData:  window._recognizedData,
+        v2Score:  window._v2Result,
+        payToken: payToken || undefined,
+        agentId:  agentId  || undefined,
+      }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: 'PDF生成失败' }));
+      alert(err.error || 'PDF生成失败，请稍后重试');
+      return;
+    }
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const name = window._recognizedData?.person_name || '用户';
+    const date = (window._recognizedData?.report_date || '').replace(/-/g, '');
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `贷准报告_${name}_${date}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('下载失败，请检查网络后重试');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>下载报告 PDF';
+    }
+  }
+}
