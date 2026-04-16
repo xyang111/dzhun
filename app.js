@@ -3748,6 +3748,7 @@ async function downloadPdfReport() {
       body:    JSON.stringify({
         ocrData:  _recognizedData,
         v2Score:  window._v2Result,
+        userInfo: (() => { try { return collectInfoData(); } catch(e) { return {}; } })(),
         payToken: payToken || undefined,
         agentId:  agentId  || undefined,
       }),
