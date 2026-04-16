@@ -1201,7 +1201,7 @@ async function startAnalysis() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
-      body: JSON.stringify({ fileBlocks: _fileBlocks, cacheKey }),
+      body: JSON.stringify({ fileBlocks: _fileBlocks, cacheKey, agentId: window._currentAgent?.id || null }),
     });
     clearTimeout(timeout);
     clearTimeout(_t1); clearTimeout(_t2); clearTimeout(_t3);

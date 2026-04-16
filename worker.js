@@ -752,12 +752,12 @@ async function handleOCR(request, env) {
     return jsonResp({ error: '请求格式错误' }, 400, request);
   }
 
-  const { fileBlocks, cacheKey } = body;
+  const { fileBlocks, cacheKey, agentId } = body;
   if (!fileBlocks || !fileBlocks.length) {
     return jsonResp({ error: '缺少文件内容' }, 400, request);
   }
 
-  // 缓存查询：命中直接返回，不计入限流
+  // 缓存查询：命中直接返回，不计入限流也不扣代理商配额
   if (cacheKey && env.CACHE) {
     const cached = await env.CACHE.get(`ocr:${cacheKey}`);
     if (cached) {
@@ -766,15 +766,26 @@ async function handleOCR(request, env) {
     }
   }
 
-  // 缓存未命中，IP 限流：每 IP 每 24 小时最多 30 次
-  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const rateLimitKey = `ocr_rate:${ip}`;
-  const countRaw = await env.CACHE.get(rateLimitKey);
-  const count = countRaw ? parseInt(countRaw) : 0;
-  if (count >= 30) {
-    return jsonResp({ error: '今日识别次数已达上限，请明日再试' }, 429, request);
+  // 代理商渠道：检查配额（缓存未命中时才扣）
+  let agentData = null;
+  if (agentId) {
+    const raw = await env.ORDERS.get(`agent:${agentId}`);
+    if (!raw) return jsonResp({ error: '代理商账号不存在，请联系贷准' }, 403, request);
+    agentData = JSON.parse(raw);
+    if (agentData.used >= agentData.quota) {
+      return jsonResp({ error: `代理商额度已用完（${agentData.quota}次），请联系贷准充值` }, 403, request);
+    }
+  } else {
+    // C 端用户：IP 限流
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const rateLimitKey = `ocr_rate:${ip}`;
+    const countRaw = await env.CACHE.get(rateLimitKey);
+    const count = countRaw ? parseInt(countRaw) : 0;
+    if (count >= 30) {
+      return jsonResp({ error: '今日识别次数已达上限，请明日再试' }, 429, request);
+    }
+    await env.CACHE.put(rateLimitKey, String(count + 1), { expirationTtl: 86400 });
   }
-  await env.CACHE.put(rateLimitKey, String(count + 1), { expirationTtl: 86400 });
 
   const claudeKey    = env.ANTHROPIC_API_KEY;
   const textinAppId  = env.TEXTIN_APP_ID;
@@ -842,6 +853,14 @@ async function handleOCR(request, env) {
     catch (_) { console.error('[OCR] invalid JSON, skip cache, len:', raw.length); }
   }
 
+  // 辅助：OCR 成功后扣代理商配额
+  async function deductAgent() {
+    if (!agentId || !agentData) return;
+    agentData.used += 1;
+    await env.ORDERS.put(`agent:${agentId}`, JSON.stringify(agentData));
+    console.log(`[OCR] agent ${agentId} used=${agentData.used}/${agentData.quota}`);
+  }
+
   // ════════════════════════════════════════════════════════
   // 主路径：Textin（图片→文字）+ Claude Haiku（文字→JSON）
   // 优势：Textin专业OCR快且准，Haiku处理纯文字比Sonnet Vision便宜15倍
@@ -886,6 +905,7 @@ async function handleOCR(request, env) {
           if (confidence >= 0.8) {
             const raw = JSON.stringify(ruleResult);
             await writeCache(raw);
+            await deductAgent();
             return jsonResp({ raw, _engine: 'textin+rules' }, 200, request);
           }
           console.log('[OCR] rule engine conf too low → Haiku fallback');
@@ -920,6 +940,7 @@ async function handleOCR(request, env) {
 
         const raw = extractRaw((cd.content||[]).map(b=>b.text||'').join(''));
         await writeCache(raw);
+        await deductAgent();
         return jsonResp({ raw, _engine: 'textin+haiku' }, 200, request);
       }
 
@@ -953,6 +974,7 @@ async function handleOCR(request, env) {
     console.log('[Sonnet] stop_reason:', data.stop_reason, 'tokens:', data.usage?.output_tokens);
     const raw = extractRaw((data.content||[]).map(b=>b.text||'').join(''));
     await writeCache(raw);
+    await deductAgent();
     return jsonResp({ raw, _engine: 'claude-sonnet-vision' }, 200, request);
   } catch (e) {
     return jsonResp({ error: 'OCR 调用失败: ' + e.message }, 502, request);
