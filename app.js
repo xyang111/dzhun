@@ -3746,7 +3746,7 @@ async function downloadPdfReport() {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
-        ocrData:  window._recognizedData,
+        ocrData:  _recognizedData,
         v2Score:  window._v2Result,
         payToken: payToken || undefined,
         agentId:  agentId  || undefined,
@@ -3759,8 +3759,8 @@ async function downloadPdfReport() {
     }
     const blob = await resp.blob();
     const url  = URL.createObjectURL(blob);
-    const name = window._recognizedData?.person_name || '用户';
-    const date = (window._recognizedData?.report_date || '').replace(/-/g, '');
+    const name = _recognizedData?.person_name || '用户';
+    const date = (_recognizedData?.report_date || '').replace(/-/g, '');
     const a    = document.createElement('a');
     a.href     = url;
     a.download = `贷准报告_${name}_${date}.pdf`;
