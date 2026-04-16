@@ -3166,7 +3166,7 @@ function initContactPhone() {
   // 读取URL中的agent参数
   const agentId = new URLSearchParams(location.search).get('agent');
   if (agentId && AGENTS[agentId]) {
-    _currentAgent = { id: agentId, ...AGENTS[agentId] };
+    _currentAgent = window._currentAgent = { id: agentId, ...AGENTS[agentId] };
     console.log('[贷准] 代理商渠道:', _currentAgent.name, agentId);
   }
 
