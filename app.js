@@ -128,6 +128,14 @@ function localFallbackMatch(data, v2Score = 0) {
       ? (probPct >= 60 ? '高' : probPct >= 45 ? '中' : probPct >= 30 ? '低' : '不推荐')
       : (probPct >= 70 ? '高' : probPct >= 50 ? '中' : probPct >= 35 ? '低' : '不推荐');
 
+    // ── 等级门槛过滤：低概率产品直接排除，不进入展示列表 ──
+    // C级：银行产品通过率<50%不展示（避免大量"低/不推荐"银行产品占位）
+    if (_v2Level === 'C' && p.type === 'bank' && probPct < 50) return;
+    // D级：银行产品全部排除（仅展示消金兜底方案）
+    if (_v2Level === 'D' && p.type === 'bank') return;
+    // 所有等级：消金产品通过率<30%不展示
+    if (p.type === 'finance' && probPct < 30) return;
+
     // ── 精细化推荐理由生成（达到AI输出质量）──
     // reason: 产品卡片显示的简短理由（1句，含具体数字）
     // reason_detail: 点击展开的详细理由（2-3个维度）

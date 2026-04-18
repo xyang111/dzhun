@@ -720,6 +720,9 @@ export default {
     if (request.method === 'GET' && gNormPath === '/products') {
       return handleProductsGet(request, env);
     }
+    if (request.method === 'GET' && gNormPath === '/agent/info') {
+      return handleAgentInfo(request, env);
+    }
 
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405, headers: corsHeaders(request) });
@@ -854,12 +857,13 @@ async function handleOCR(request, env) {
     catch (_) { console.error('[OCR] invalid JSON, skip cache, len:', raw.length); }
   }
 
-  // 辅助：OCR 成功后扣代理商配额
+  // 辅助：OCR 成功后扣代理商配额，返回扣后剩余次数
   async function deductAgent() {
-    if (!agentId || !agentData) return;
+    if (!agentId || !agentData) return null;
     agentData.used += 1;
     await env.ORDERS.put(`agent:${agentId}`, JSON.stringify(agentData));
     console.log(`[OCR] agent ${agentId} used=${agentData.used}/${agentData.quota}`);
+    return agentData.quota - agentData.used;
   }
 
   // ════════════════════════════════════════════════════════
@@ -906,8 +910,8 @@ async function handleOCR(request, env) {
           if (confidence >= 0.8) {
             const raw = JSON.stringify(ruleResult);
             await writeCache(raw);
-            await deductAgent();
-            return jsonResp({ raw, _engine: 'textin+rules' }, 200, request);
+            const _rem1 = await deductAgent();
+            return jsonResp({ raw, _engine: 'textin+rules', agentRemaining: _rem1 }, 200, request);
           }
           console.log('[OCR] rule engine conf too low → Haiku fallback');
         } catch (e) {
@@ -941,8 +945,8 @@ async function handleOCR(request, env) {
 
         const raw = extractRaw((cd.content||[]).map(b=>b.text||'').join(''));
         await writeCache(raw);
-        await deductAgent();
-        return jsonResp({ raw, _engine: 'textin+haiku' }, 200, request);
+        const _rem2 = await deductAgent();
+        return jsonResp({ raw, _engine: 'textin+haiku', agentRemaining: _rem2 }, 200, request);
       }
 
       if (!textinFailed) console.warn('[Textin] empty markdown → fallback');
@@ -975,8 +979,8 @@ async function handleOCR(request, env) {
     console.log('[Sonnet] stop_reason:', data.stop_reason, 'tokens:', data.usage?.output_tokens);
     const raw = extractRaw((data.content||[]).map(b=>b.text||'').join(''));
     await writeCache(raw);
-    await deductAgent();
-    return jsonResp({ raw, _engine: 'claude-sonnet-vision' }, 200, request);
+    const _rem3 = await deductAgent();
+    return jsonResp({ raw, _engine: 'claude-sonnet-vision', agentRemaining: _rem3 }, 200, request);
   } catch (e) {
     return jsonResp({ error: 'OCR 调用失败: ' + e.message }, 502, request);
   }
@@ -1004,16 +1008,16 @@ async function handleMatch(request, env) {
   if (agentId) {
     const agentRaw = await env.ORDERS.get(`agent:${agentId}`);
     if (!agentRaw) return jsonResp({ error: { message: '代理商账号不存在', code: 'PAYMENT_REQUIRED' } }, 403, request);
-    // 代理商验证通过，继续
+    // 代理商验证通过，直接继续（无需 token 过期检查）
   } else {
     const tokenRaw = await env.ORDERS.get(`token:${payToken}`);
     if (!tokenRaw) {
       return jsonResp({ error: { message: '支付凭证无效或已过期，请重新付费', code: 'PAYMENT_REQUIRED' } }, 402, request);
     }
-  }
-  const td = JSON.parse(tokenRaw);
-  if (td.expiresAt < Date.now()) {
-    return jsonResp({ error: { message: '支付凭证已过期（24小时内有效），请重新付费', code: 'PAYMENT_REQUIRED' } }, 402, request);
+    const td = JSON.parse(tokenRaw);
+    if (td.expiresAt < Date.now()) {
+      return jsonResp({ error: { message: '支付凭证已过期（24小时内有效），请重新付费', code: 'PAYMENT_REQUIRED' } }, 402, request);
+    }
   }
 
   const apiKey = env.DEEPSEEK_API_KEY;
@@ -1707,6 +1711,19 @@ function jsonResp(data, status, request) {
 }
 
 // ═══════════════════════════════════════════
+// /agent/info — 查询代理商配额（页面加载时调用）
+// ═══════════════════════════════════════════
+async function handleAgentInfo(request, env) {
+  const url = new URL(request.url);
+  const agentId = url.searchParams.get('agent');
+  if (!agentId) return jsonResp({ error: '缺少 agent 参数' }, 400, request);
+  const raw = await env.ORDERS.get(`agent:${agentId}`);
+  if (!raw) return jsonResp({ error: '代理商不存在' }, 404, request);
+  const d = JSON.parse(raw);
+  return jsonResp({ name: d.name, quota: d.quota, used: d.used, remaining: d.quota - d.used }, 200, request);
+}
+
+// ═══════════════════════════════════════════
 // /pdf — 生成 PDF 报告（付费用户或代理商）
 // ═══════════════════════════════════════════
 async function handlePdf(request, env) {
@@ -1715,7 +1732,7 @@ async function handlePdf(request, env) {
     return jsonResp({ error: '请求格式错误' }, 400, request);
   }
 
-  const { ocrData, v2Score, agentId, payToken } = body;
+  const { ocrData, v2Score, userInfo, pdfStats, agentId, payToken } = body;
   if (!ocrData) return jsonResp({ error: '缺少报告数据' }, 400, request);
 
   // 鉴权：付费 token 或代理商 agentId 二选一即可
@@ -1737,7 +1754,7 @@ async function handlePdf(request, env) {
   const name     = ocrData.person_name || '用户';
   const rDate    = (ocrData.report_date || '').replace(/-/g, '');
   const filename = `贷准报告_${name}_${rDate}`;
-  const html     = buildPdfHtml(ocrData, v2Score);
+  const html     = buildPdfHtml(ocrData, v2Score, userInfo, pdfStats);
 
   try {
     const resp = await fetch('https://dzhun.com.cn/pdf-render', {
@@ -1766,48 +1783,168 @@ async function handlePdf(request, env) {
 }
 
 // ── buildPdfHtml：将报告数据渲染为可供 Puppeteer 使用的 HTML ──
-function buildPdfHtml(data, v2) {
+function buildPdfHtml(data, v2, userInfo, pdfStats) {
   const name    = data.person_name || '--';
-  const idNo    = (data.id_number  || '').replace(/^(.{6}).+(.{4})$/, '$1********$2');
+  const idNo    = (data.id_number  || '').replace(/^(.{6}).+(.{4})$/, '$1········$2');
   const rDate   = data.report_date || '--';
-  const score   = v2?.score  || '--';
-  const level   = v2?.level  || '--';
+  const score   = v2?.score  ?? '--';
+  const level   = v2?.level  ?? '--';
   const genTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+  const fmtNum  = n => (n == null ? '--' : Number(n).toLocaleString());
 
-  const refMs   = new Date(rDate).getTime();
-  const qRows   = (data.query_records || [])
+  // ── 查询次数统计 ──
+  const APPLY_TYPES = new Set(['贷款审批','信用卡审批','担保资格审查','资信审查','保前审查','融资租赁审批']);
+  const refMs = rDate !== '--' ? new Date(rDate).getTime() : Date.now();
+  const monthsAgo = (m) => { const d = new Date(refMs); d.setMonth(d.getMonth() - m); return d; };
+  const qRecs = (data.query_records || []).filter(q => q.date && APPLY_TYPES.has(q.type));
+  const q1m = qRecs.filter(q => new Date(q.date) >= monthsAgo(1)).length;
+  const q3m = qRecs.filter(q => new Date(q.date) >= monthsAgo(3)).length;
+  const q6m = qRecs.filter(q => new Date(q.date) >= monthsAgo(6)).length;
+
+  // ── 近半年查询明细 ──
+  const qRows = qRecs
     .filter(q => (refMs - new Date(q.date).getTime()) / 86400000 <= 183)
     .sort((a, b) => b.date.localeCompare(a.date))
     .map(q => `<tr><td>${q.institution || '--'}</td><td>${q.type}</td><td>${q.date}</td></tr>`)
-    .join('') || '<tr><td colspan="3" style="color:#999;text-align:center">无近半年查询记录</td></tr>';
+    .join('') || '<tr><td colspan="3" style="color:#999;text-align:center">无近半年申请类查询记录</td></tr>';
 
-  const loanRows = (data.loans || [])
-    .filter(l => l.status !== '结清' && l.status !== '已结清')
-    .map(l => `<tr><td>${l.name || '--'}</td><td>${(l.balance || 0).toLocaleString()}</td><td>${l.status || '--'}</td></tr>`)
-    .join('') || '<tr><td colspan="3" style="color:#999;text-align:center">无未结清贷款</td></tr>';
+  // ── 贷款明细（未结清在前，结清灰色在后）──
+  const allLoans = data.loans || [];
+  const isSettled = l => l.status === '结清' || l.status === '已结清';
+  const activeLoans  = allLoans.filter(l => !isSettled(l));
+  const settledLoans = allLoans.filter(l =>  isSettled(l));
+  const catLabel = l => {
+    const cm = { mortgage:'房贷', car:'车贷', credit:'银行信用贷', finance:'消费金融' };
+    if (l.type === 'online') return l.online_subtype === 'microloan' ? '小额贷款' : l.online_subtype === 'online_bank' ? '助贷银行' : '消费金融';
+    return cm[l.loan_category] || '银行贷款';
+  };
+  const loanRows = [...activeLoans, ...settledLoans].map(l => {
+    const grey    = isSettled(l) ? 'color:#aaa' : '';
+    const monthly = l.estMonthly > 0 ? fmtNum(Math.round(l.estMonthly)) + '元' : '--';
+    return `<tr style="${grey}">
+      <td>${l.name || '--'}${l.is_revolving ? ' <span style="font-size:10px;color:#0cb87a">[循环]</span>' : ''}</td>
+      <td>${catLabel(l)}</td>
+      <td style="text-align:right">${l.credit_limit ? fmtNum(l.credit_limit) + '元' : '--'}</td>
+      <td style="text-align:right">${l.balance != null ? fmtNum(l.balance) + '元' : '--'}</td>
+      <td style="text-align:right">${monthly}<span style="font-size:9px;color:#aaa"> 估</span></td>
+      <td style="text-align:center">${l.issued_date || '--'}</td>
+      <td style="text-align:center">${l.due_date || (l.is_revolving ? '循环' : '--')}</td>
+      <td>${l.status || '--'}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" style="color:#999;text-align:center">无贷款记录</td></tr>';
+
+  // ── 信用卡明细 ──
+  const cards = data.cards || [];
+  const activeCards = cards.filter(c => c.status !== '销户' && c.status !== '已销户');
+  const cardRows = cards.map(c => {
+    const util    = c.limit > 0 ? Math.round((c.used || 0) / c.limit * 100) : null;
+    const settled = c.status === '销户' || c.status === '已销户';
+    return `<tr style="${settled ? 'color:#aaa' : ''}">
+      <td>${c.name || '--'}</td>
+      <td style="text-align:right">${c.limit ? fmtNum(c.limit) + '元' : '--'}</td>
+      <td style="text-align:right">${c.used != null ? fmtNum(c.used) + '元' : '--'}</td>
+      <td style="text-align:right">${util != null ? util + '%' : '--'}</td>
+      <td>${c.status || '--'}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" style="color:#999;text-align:center">无信用卡记录</td></tr>';
+
+  // ── 各维度评分（key: credit/stability/asset/fraud）──
+  let domainHtml = '';
+  if (v2?.domainScores) {
+    const d = v2.domainScores;
+    const domains = [
+      { name: '信用行为', key: 'credit',    weight: '40%' },
+      { name: '稳定性',   key: 'stability', weight: '30%' },
+      { name: '资产偿债', key: 'asset',     weight: '25%' },
+      { name: '反欺诈',   key: 'fraud',     weight: '5%'  },
+    ];
+    domainHtml = `
+<div class="section">
+  <div class="section-title">各维度评分</div>
+  <table><thead><tr><th>维度</th><th>权重</th><th>得分（满分100）</th></tr></thead>
+  <tbody>${domains.map(dm => {
+    const val = d[dm.key];
+    const score = val != null ? Math.round(val) : null;
+    const color = score == null ? '' : score >= 70 ? 'color:#22a55e' : score >= 45 ? 'color:#e6963a' : 'color:#e05a5a';
+    return `<tr><td>${dm.name}</td><td style="color:#888">${dm.weight}</td><td style="font-weight:600;${color}">${score != null ? score : '--'}</td></tr>`;
+  }).join('')}</tbody></table>
+</div>`;
+  }
+
+  // ── 负债概览汇总 ──
+  let summaryHtml = '';
+  if (pdfStats) {
+    const st = pdfStats;
+    const drColor = st.debtRatio == null ? '' : st.debtRatio <= 40 ? 'color:#22a55e' : st.debtRatio <= 60 ? 'color:#e6963a' : 'color:#e05a5a';
+    const onlineColor = st.onlineInstCount >= 5 ? 'color:#e05a5a' : st.onlineInstCount >= 3 ? 'color:#e6963a' : 'color:#22a55e';
+    summaryHtml = `
+<div class="section">
+  <div class="section-title">负债概览</div>
+  <div class="stat-grid">
+    <div class="stat-item"><div class="stat-val">${st.totalDebt > 0 ? fmtNum(Math.round(st.totalDebt)) + '元' : '--'}</div><div class="stat-lbl">当前总负债</div></div>
+    <div class="stat-item"><div class="stat-val">${st.totalMonthly > 0 ? fmtNum(Math.round(st.totalMonthly)) + '元' : '--'}</div><div class="stat-lbl">月还款估算</div></div>
+    <div class="stat-item"><div class="stat-val" style="${drColor}">${st.debtRatio != null ? st.debtRatio + '%' : '--'}</div><div class="stat-lbl">月还款负债率</div></div>
+    <div class="stat-item"><div class="stat-val">${st.activeLoansCount ?? '--'}</div><div class="stat-lbl">未结清贷款</div></div>
+    <div class="stat-item"><div class="stat-val">${st.activeCardsCount ?? '--'}</div><div class="stat-lbl">未销户信用卡</div></div>
+    <div class="stat-item"><div class="stat-val" style="${onlineColor}">${st.onlineInstCount ?? '--'}</div><div class="stat-lbl">网贷机构数</div></div>
+    <div class="stat-item"><div class="stat-val">${st.age ? st.age + '岁' : '--'}</div><div class="stat-lbl">年龄</div></div>
+  </div>
+</div>`;
+  }
+
+  // ── 申请人补充信息 ──
+  let userInfoHtml = '';
+  if (userInfo && typeof userInfo === 'object') {
+    const infoRows = [
+      ['月收入',   userInfo.income     ? fmtNum(userInfo.income) + ' 元' : '未填写'],
+      ['工作性质', userInfo.work       || '未填写'],
+      ['社保情况', userInfo.social     || '未填写'],
+      ['公积金月缴', userInfo.provident ? fmtNum(userInfo.provident) + ' 元/月' : '未填写'],
+      ['学历',     userInfo.edu        || '未填写'],
+      ['户籍',     userInfo.hukou      || '未填写'],
+      ['固定支出', userInfo.fixed_expense ? fmtNum(userInfo.fixed_expense) + ' 元/月' : '未填写'],
+      ['名下资产', userInfo.assets     || '未填写'],
+    ];
+    userInfoHtml = `
+<div class="section">
+  <div class="section-title">申请人补充信息</div>
+  <table><tbody>
+    ${infoRows.map(([k, v]) => `<tr><td style="color:#666;width:32%">${k}</td><td>${v}</td></tr>`).join('')}
+  </tbody></table>
+</div>`;
+  }
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <style>
-  body { font-family: "PingFang SC","Microsoft YaHei",sans-serif; color: #1a1a2e; margin: 0; padding: 0; font-size: 13px; }
+  body { font-family: "WenQuanYi Micro Hei","PingFang SC","Microsoft YaHei",sans-serif; color: #1a1a2e; margin: 0; padding: 24px 28px; font-size: 13px; }
   h1 { font-size: 20px; color: #1a1a2e; margin: 0 0 4px; }
   .sub { color: #666; font-size: 12px; margin-bottom: 20px; }
   .section { margin-bottom: 20px; }
   .section-title { font-size: 14px; font-weight: 600; color: #1a1a2e; border-left: 3px solid #4169e1; padding-left: 8px; margin-bottom: 10px; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th { background: #f0f4ff; color: #444; font-weight: 500; padding: 7px 8px; text-align: left; }
-  td { padding: 7px 8px; border-bottom: 1px solid #eee; }
-  .score-box { display: inline-block; background: #f0f4ff; border-radius: 8px; padding: 12px 24px; text-align: center; margin-bottom: 16px; }
+  th { background: #f0f4ff; color: #444; font-weight: 500; padding: 6px 8px; text-align: left; }
+  td { padding: 6px 8px; border-bottom: 1px solid #eee; }
+  .score-box { display: inline-block; background: #f0f4ff; border-radius: 8px; padding: 12px 24px; text-align: center; margin-bottom: 8px; }
   .score-num { font-size: 36px; font-weight: 700; color: #4169e1; }
-  .score-lbl { font-size: 12px; color: #666; }
-  .footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #eee; color: #999; font-size: 11px; text-align: center; }
+  .score-lbl { font-size: 12px; color: #666; margin-top: 4px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .stat-item { background: #f5f7ff; border-radius: 6px; padding: 10px; text-align: center; }
+  .stat-val { font-size: 18px; font-weight: 700; color: #1a1a2e; }
+  .stat-lbl { font-size: 11px; color: #888; margin-top: 3px; }
+  .q-counts { display: flex; gap: 14px; margin-bottom: 10px; }
+  .q-count-item { flex: 1; background: #f5f7ff; border-radius: 6px; padding: 10px; text-align: center; }
+  .q-count-num { font-size: 22px; font-weight: 700; color: #4169e1; }
+  .q-count-lbl { font-size: 11px; color: #666; margin-top: 2px; }
+  .footer { margin-top: 28px; padding-top: 12px; border-top: 1px solid #eee; color: #999; font-size: 11px; text-align: center; }
 </style>
 </head>
 <body>
 <h1>贷准 · 智能贷款评估报告</h1>
 <div class="sub">姓名：${name} &nbsp;|&nbsp; 证件号：${idNo} &nbsp;|&nbsp; 报告日期：${rDate}</div>
+
 <div class="section">
   <div class="section-title">综合评分</div>
   <div class="score-box">
@@ -1815,16 +1952,40 @@ function buildPdfHtml(data, v2) {
     <div class="score-lbl">评级：${level}</div>
   </div>
 </div>
+
+${summaryHtml}
+
+${domainHtml}
+
+${userInfoHtml}
+
 <div class="section">
-  <div class="section-title">近半年查询记录</div>
+  <div class="section-title">征信查询次数统计（申请类）</div>
+  <div class="q-counts">
+    <div class="q-count-item"><div class="q-count-num">${q1m}</div><div class="q-count-lbl">近1个月</div></div>
+    <div class="q-count-item"><div class="q-count-num">${q3m}</div><div class="q-count-lbl">近3个月</div></div>
+    <div class="q-count-item"><div class="q-count-num">${q6m}</div><div class="q-count-lbl">近6个月</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">近半年查询记录明细</div>
   <table><thead><tr><th>查询机构</th><th>查询类型</th><th>查询日期</th></tr></thead>
   <tbody>${qRows}</tbody></table>
 </div>
+
 <div class="section">
-  <div class="section-title">当前未结清贷款</div>
-  <table><thead><tr><th>机构</th><th>余额（元）</th><th>状态</th></tr></thead>
+  <div class="section-title">贷款明细（共 ${allLoans.length} 条 / 未结清 ${activeLoans.length} 条）</div>
+  <table><thead><tr><th>机构</th><th>类型</th><th style="text-align:right">授信额度</th><th style="text-align:right">当前余额</th><th style="text-align:right">预估月还款</th><th style="text-align:center">发放日期</th><th style="text-align:center">到期日期</th><th>状态</th></tr></thead>
   <tbody>${loanRows}</tbody></table>
 </div>
+
+<div class="section">
+  <div class="section-title">信用卡明细（共 ${cards.length} 张 / 未销户 ${activeCards.length} 张）</div>
+  <table><thead><tr><th>发卡行</th><th style="text-align:right">授信额度</th><th style="text-align:right">已用额度</th><th style="text-align:right">使用率</th><th>状态</th></tr></thead>
+  <tbody>${cardRows}</tbody></table>
+</div>
+
 <div class="footer">由 dzhun.com.cn 生成 · ${genTime} · 仅供参考，以银行实际审批为准</div>
 </body>
 </html>`;
