@@ -1880,9 +1880,10 @@ function buildPdfHtml(data, v2, userInfo, pdfStats) {
   const refMs = rDate !== '--' ? new Date(rDate).getTime() : Date.now();
   const monthsAgo = (m) => { const d = new Date(refMs); d.setMonth(d.getMonth() - m); return d; };
   const qRecs = (data.query_records || []).filter(q => q.date && APPLY_TYPES.has(q.type));
-  const q1m = qRecs.filter(q => new Date(q.date) >= monthsAgo(1)).length;
-  const q3m = qRecs.filter(q => new Date(q.date) >= monthsAgo(3)).length;
-  const q6m = qRecs.filter(q => new Date(q.date) >= monthsAgo(6)).length;
+  const q1m  = qRecs.filter(q => new Date(q.date) >= monthsAgo(1)).length;
+  const q3m  = qRecs.filter(q => new Date(q.date) >= monthsAgo(3)).length;
+  const q6m  = qRecs.filter(q => new Date(q.date) >= monthsAgo(6)).length;
+  const q12m = qRecs.filter(q => new Date(q.date) >= monthsAgo(12)).length;
 
   // ── 近半年查询明细 ──
   const qRows = qRecs
@@ -2048,6 +2049,7 @@ ${userInfoHtml}
     <div class="q-count-item"><div class="q-count-num">${q1m}</div><div class="q-count-lbl">近1个月</div></div>
     <div class="q-count-item"><div class="q-count-num">${q3m}</div><div class="q-count-lbl">近3个月</div></div>
     <div class="q-count-item"><div class="q-count-num">${q6m}</div><div class="q-count-lbl">近6个月</div></div>
+    <div class="q-count-item"><div class="q-count-num">${q12m}</div><div class="q-count-lbl">近12个月</div></div>
   </div>
 </div>
 

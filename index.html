@@ -518,7 +518,7 @@
 
           <!-- 户籍 -->
           <div class="if-group">
-            <label class="if-label">户籍所在地</label>
+            <label class="if-label">户籍所在地 <span class="if-req">*</span></label>
             <select id="if-hukou" class="if-select">
               <option value="">请选择</option>
               <option value="local">本地户籍（厦门）</option>
@@ -529,7 +529,7 @@
 
           <!-- 学历 -->
           <div class="if-group">
-            <label class="if-label">学历</label>
+            <label class="if-label">学历 <span class="if-req">*</span></label>
             <select id="if-edu" class="if-select">
               <option value="">请选择</option>
               <option value="bachelor">全日制本科及以上</option>
@@ -541,7 +541,7 @@
 
           <!-- 社保 -->
           <div class="if-group">
-            <label class="if-label">社保缴纳情况</label>
+            <label class="if-label">社保缴纳情况 <span class="if-req">*</span></label>
             <div class="if-toggle-row">
               <button class="if-toggle" id="social-yes" onclick="selectToggle('social','yes',this)">有缴纳</button>
               <button class="if-toggle" id="social-no"  onclick="selectToggle('social','no',this)">无缴纳</button>
@@ -553,19 +553,19 @@
 
           <!-- 公积金 -->
           <div class="if-group">
-            <label class="if-label">公积金月缴额（元）</label>
+            <label class="if-label">公积金月缴额（元）<span class="if-req">*</span></label>
             <input type="number" id="if-provident" class="if-input" placeholder="个人+单位合计，无则填 0">
           </div>
 
           <!-- 月固定支出 -->
           <div class="if-group">
-            <label class="if-label">月固定生活支出（元）</label>
+            <label class="if-label">月固定生活支出（元）<span class="if-req">*</span></label>
             <input type="number" id="if-fixed-expense" class="if-input" placeholder="房租/餐饮/交通等，不含贷款还款">
           </div>
 
           <!-- 资产情况 -->
           <div class="if-group if-group-full">
-            <label class="if-label">名下资产（可多选）</label>
+            <label class="if-label">名下资产（可多选）<span class="if-req">*</span></label>
             <div class="if-asset-grid">
               <div class="if-asset" id="asset-house" onclick="toggleAssetBtn('house',this)">
                 <span class="ia-icon">
@@ -879,7 +879,7 @@
 </footer>
 
 <script src="config.js?v=1776483600"></script>
-<script src="app.js?v=1776560000"></script>
+<script src="app.js?v=1776600000"></script>
 
 <!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
 <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">

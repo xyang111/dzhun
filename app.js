@@ -1603,8 +1603,43 @@ function renderResult(data) {
 // ═══════════════════════════════════════════
 // STEP 2: PRODUCT MATCHING
 // ═══════════════════════════════════════════
+function _validateInfoForm() {
+  const missing = [];
+  const _hi = id => { const el = document.getElementById(id); if (el) { el.style.outline = '2px solid var(--danger)'; setTimeout(() => { el.style.outline = ''; }, 3000); } };
+  const income = document.getElementById('if-income');
+  if (!income || !income.value || parseFloat(income.value) <= 0) { _hi('if-income'); missing.push('月收入'); }
+  const work = document.getElementById('if-work');
+  if (!work || !work.value) { _hi('if-work'); missing.push('工作单位性质'); }
+  const hukou = document.getElementById('if-hukou');
+  if (!hukou || !hukou.value) { _hi('if-hukou'); missing.push('户籍所在地'); }
+  const edu = document.getElementById('if-edu');
+  if (!edu || !edu.value) { _hi('if-edu'); missing.push('学历'); }
+  if (!_socialState.val) {
+    ['social-yes','social-no'].forEach(id => { const el=document.getElementById(id); if(el){el.style.outline='2px solid var(--danger)';setTimeout(()=>{el.style.outline='';},3000);} });
+    missing.push('社保缴纳情况');
+  } else if (_socialState.val === 'yes') {
+    const sm = document.getElementById('if-social-months');
+    if (!sm || !sm.value) { _hi('if-social-months'); missing.push('社保缴纳月数'); }
+  }
+  const prov = document.getElementById('if-provident');
+  if (!prov || prov.value === '') { _hi('if-provident'); missing.push('公积金月缴额（无则填0）'); }
+  const fx = document.getElementById('if-fixed-expense');
+  if (!fx || fx.value === '') { _hi('if-fixed-expense'); missing.push('月固定生活支出（无则填0）'); }
+  const hasAsset = Object.values(_assetState).some(v => v);
+  if (!hasAsset) {
+    ['asset-house','asset-car','asset-biz','asset-none'].forEach(id => { const el=document.getElementById(id); if(el){el.style.outline='2px solid var(--danger)';setTimeout(()=>{el.style.outline='';},3000);} });
+    missing.push('名下资产');
+  }
+  if (missing.length > 0) {
+    alert('以下信息未填写，请补充后再提交：\n\n• ' + missing.join('\n• '));
+    return false;
+  }
+  return true;
+}
+
 async function startMatching() {
   if (window._isMatching) return;
+  if (!_validateInfoForm()) return;
   window._isMatching = true;
   // 安全兜底：90秒后强制释放（匹配最长不超过这个时间）
   const _matchGuard = setTimeout(() => { window._isMatching = false; }, 90000);
