@@ -2038,6 +2038,11 @@ async function startMatching() {
         // AI 完成后隐藏"还有X个因素没分析完"提示（convHidden，不是整个CTA区）
         const _ctaHiddenEl = document.getElementById('convHidden');
         if (_ctaHiddenEl) _ctaHiddenEl.parentElement && (_ctaHiddenEl.style.display = 'none');
+        // AI完成：显示状态条（引导用户查看优化方案，手机端防止漏看）
+        if (aiResult.optimization?.length > 0) {
+          const _bar = document.getElementById('aiStatusBar');
+          if (_bar) _bar.style.display = 'flex';
+        }
       } catch(e) { /* 超时或网络失败，静默忽略 */ }
     })();
   }

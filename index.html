@@ -791,8 +791,23 @@
           <!-- 征信全面分析报告 -->
           <div id="analysisReport" style="display:none;margin-top:20px">
 
+            <!-- AI分析状态条（DeepSeek完成后显示） -->
+            <div id="aiStatusBar" style="display:none;background:rgba(59,123,246,.12);border:1px solid rgba(59,123,246,.35);padding:10px 14px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:8px;cursor:pointer" onclick="document.getElementById('optimizationSection').scrollIntoView({behavior:'smooth',block:'start'})">
+              <div style="display:flex;align-items:center;gap:8px">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accentB)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                <span style="font-size:12px;color:var(--accentB);font-weight:600;letter-spacing:.04em">AI分析已完成 · 征信优化方案已生成</span>
+              </div>
+              <span style="font-size:11px;color:var(--silver)">点击查看 ↓</span>
+            </div>
+
             <!-- 风险等级 -->
             <div id="riskLevelBanner" class="risk-banner"></div>
+
+            <!-- 征信优化方案（提前，AI专属内容优先展示） -->
+            <div class="analysis-section" id="optimizationSection" style="display:none">
+              <div class="as-header"><span class="as-title">征信优化方案（可落地）</span></div>
+              <div class="as-body" id="optimizationBody"></div>
+            </div>
 
             <!-- 专属优化建议 -->
             <div class="analysis-section" id="adviceSection" style="display:none;margin-bottom:12px">
@@ -817,12 +832,6 @@
             <div class="analysis-section" id="rejectedSection" style="display:none">
               <div class="as-header"><span class="as-title">不可申请的产品类型</span></div>
               <div class="as-body" id="rejectedBody"></div>
-            </div>
-
-            <!-- 征信优化方案 -->
-            <div class="analysis-section" id="optimizationSection" style="display:none">
-              <div class="as-header"><span class="as-title">征信优化方案（可落地）</span></div>
-              <div class="as-body" id="optimizationBody"></div>
             </div>
 
             <!-- 优化后可匹配产品 -->
@@ -870,7 +879,7 @@
 </footer>
 
 <script src="config.js?v=1776483600"></script>
-<script src="app.js?v=1776483600"></script>
+<script src="app.js?v=1776485916"></script>
 
 <!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
 <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">
