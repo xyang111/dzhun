@@ -2027,7 +2027,7 @@ async function startMatching() {
         let respData;
         try { respData = JSON.parse(respText); } catch(pe) { _showAiBar('AI响应解析失败', true); return; }
         if (respData.error) { _showAiBar('AI返回错误: ' + JSON.stringify(respData.error).slice(0,60), true); return; }
-        const raw = (respData.content || []).map(b => b.text || '').join('').replace(/```json[^`]*```|```/g, '').trim();
+        const raw = (respData.content || []).map(b => b.text || '').join('').replace(/```json[\s\S]*?```|```[\s\S]*?```|```/g, '').trim();
         const aiResult = extractJson(raw);
         if (!aiResult) { _showAiBar('AI内容解析失败 raw=' + raw.slice(0,80), true); return; }
         // 只更新 AI 文字字段对应的 DOM，不重渲染产品列表

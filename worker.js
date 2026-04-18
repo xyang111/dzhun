@@ -1035,6 +1035,7 @@ async function handleMatch(request, env) {
       body: JSON.stringify({
         model: 'deepseek-chat',
         max_tokens: 2000,
+        response_format: { type: 'json_object' },
         messages: [{ role: 'user', content: prompt }],
       }),
     });
