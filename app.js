@@ -1993,6 +1993,24 @@ async function startMatching() {
       })) : [],
     };
     // 直接调 Worker /match，不经过 callMatch（避免 402 时误删 token 或弹付费框）
+    const _showAiBar = (msg, isErr) => {
+      const _bar = document.getElementById('aiStatusBar');
+      if (!_bar) return;
+      _bar.style.display = 'flex';
+      const _icon = _bar.querySelector('svg');
+      const _txt  = _bar.querySelector('span');
+      const _sub  = _bar.querySelectorAll('span')[1];
+      if (isErr) {
+        _bar.style.background = 'rgba(248,113,113,.10)';
+        _bar.style.borderColor = 'rgba(248,113,113,.35)';
+        if (_icon) _icon.setAttribute('stroke','#f87171');
+        if (_txt)  { _txt.style.color = '#f87171'; _txt.textContent = msg; }
+        if (_sub)  _sub.style.display = 'none';
+        _bar.onclick = null;
+      } else {
+        if (_txt) _txt.textContent = msg;
+      }
+    };
     (async () => {
       try {
         const controller = new AbortController();
@@ -2004,13 +2022,14 @@ async function startMatching() {
           body: JSON.stringify({ _pay_token: aiPayToken, _agent_id: window._currentAgent?.id || null, payload: _matchPayload }),
         });
         clearTimeout(t);
-        if (!resp.ok) return; // 失败静默，本地结果已展示
+        if (!resp.ok) { _showAiBar('AI分析请求失败 HTTP ' + resp.status, true); return; }
         const respText = await resp.text();
-        const respData = JSON.parse(respText);
-        if (respData.error) return;
+        let respData;
+        try { respData = JSON.parse(respText); } catch(pe) { _showAiBar('AI响应解析失败', true); return; }
+        if (respData.error) { _showAiBar('AI返回错误: ' + JSON.stringify(respData.error).slice(0,60), true); return; }
         const raw = (respData.content || []).map(b => b.text || '').join('').replace(/```json[^`]*```|```/g, '').trim();
         const aiResult = extractJson(raw);
-        if (!aiResult) return;
+        if (!aiResult) { _showAiBar('AI内容解析失败 raw=' + raw.slice(0,80), true); return; }
         // 只更新 AI 文字字段对应的 DOM，不重渲染产品列表
         const _esc = s => s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '';
         if (aiResult.optimization?.length > 0) {
@@ -2035,15 +2054,12 @@ async function startMatching() {
           const banner = document.getElementById('riskLevelBanner');
           if (banner) { const desc = banner.querySelector('.rb-desc'); if (desc) desc.textContent = aiResult.key_risk; }
         }
-        // AI 完成后隐藏"还有X个因素没分析完"提示（convHidden，不是整个CTA区）
+        // AI 完成后隐藏"还有X个因素没分析完"提示
         const _ctaHiddenEl = document.getElementById('convHidden');
         if (_ctaHiddenEl) _ctaHiddenEl.parentElement && (_ctaHiddenEl.style.display = 'none');
-        // AI完成：显示状态条（引导用户查看优化方案，手机端防止漏看）
-        if (aiResult.optimization?.length > 0) {
-          const _bar = document.getElementById('aiStatusBar');
-          if (_bar) _bar.style.display = 'flex';
-        }
-      } catch(e) { /* 超时或网络失败，静默忽略 */ }
+        // 显示成功状态条
+        _showAiBar('AI分析已完成 · 征信优化方案已生成', false);
+      } catch(e) { _showAiBar('AI分析超时或网络错误: ' + e.message, true); }
     })();
   }
 }
