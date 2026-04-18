@@ -2638,13 +2638,20 @@ function renderMatchResult(r) {
   };
   // ── 代理商模式：只展示征信诊断，不展示具体产品 ──
   if (_currentAgent) {
-    // 隐藏产品对比和策略类模块（对代理商客户无意义）
+    // 替换hero区：只显示评分等级，不提及产品数量
+    const _agHeroEl = document.getElementById('heroContent');
+    if (_agHeroEl) {
+      const _lvLabel = {A:'优质资质',B:'良好资质',C:'中等资质',D:'资质偏弱'}[v2Level] || v2Level+'级';
+      const _lvColor = {A:'var(--success)',B:'var(--accentB)',C:'#fbbf24',D:'var(--danger)'}[v2Level] || 'var(--accentB)';
+      const _lvEye   = {A:'A级 · PREMIUM',B:'B级 · GOOD',C:'C级 · MODERATE',D:'D级 · RECOVERY'}[v2Level] || v2Level+'级';
+      _agHeroEl.innerHTML = `<div class="hero-wrap"><div class="hero-eyebrow">${_lvEye}</div><div class="hero-title">征信综合评分 <span style="color:${_lvColor}">${v2Score > 0 ? v2Score : '--'}</span> 分</div><div class="hero-sub">资质等级 ${_lvLabel} · 详细征信问题和改善建议见下方报告</div></div>`;
+    }
+    // 隐藏产品对比和策略类模块
     ['convLoss','convPath','convClient','wlTip','convUrgent','convLift'].forEach(id => {
       const el = document.getElementById(id); if (el) el.style.display = 'none';
     });
     const _agPhone = _currentAgent.phone || CONTACT_PHONE;
-    const _agName  = _currentAgent.name  || '专属顾问';
-    document.getElementById('productsGrid').innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);padding:20px;margin-bottom:8px"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">ADVISOR CONSULTATION</div><div style="font-size:14px;font-weight:600;color:var(--white);margin-bottom:6px">征信分析已完成</div><div style="font-size:12px;color:var(--silver);line-height:1.7;margin-bottom:18px">根据您的征信情况，已完成资质评估。<br>请联系您的专属顾问，获取针对性产品方案和申请策略。</div><a href="tel:${esc(_agPhone)}" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;text-align:center;background:var(--accentB);color:#fff;padding:14px;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:inherit;letter-spacing:.06em;text-decoration:none;margin-bottom:10px;box-sizing:border-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 15z"/></svg>${esc(_agName)} · 立即电话咨询</a><button onclick="document.getElementById('qrModal').style.display='flex'" style="display:block;width:100%;text-align:center;background:transparent;color:var(--accentB);padding:12px;font-size:13px;font-weight:600;border:1px solid rgba(59,123,246,.45);cursor:pointer;font-family:inherit;letter-spacing:.06em">微信扫码 · 免费获取完整方案</button></div>`;
+    document.getElementById('productsGrid').innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);padding:20px;margin-bottom:8px"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">ADVISOR CONSULTATION</div><div style="font-size:14px;font-weight:600;color:var(--white);margin-bottom:6px">征信分析已完成</div><div style="font-size:12px;color:var(--silver);line-height:1.7;margin-bottom:18px">根据您的征信情况，已完成资质评估。<br>请联系专属顾问，获取针对性产品方案和申请策略。</div><a href="tel:${esc(_agPhone)}" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;text-align:center;background:var(--accentB);color:#fff;padding:14px;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:inherit;letter-spacing:.06em;text-decoration:none;margin-bottom:10px;box-sizing:border-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 15z"/></svg>立即电话咨询专属顾问</a><button onclick="showQrModal()" style="display:block;width:100%;text-align:center;background:transparent;color:var(--accentB);padding:12px;font-size:13px;font-weight:600;border:1px solid rgba(59,123,246,.45);cursor:pointer;font-family:inherit;letter-spacing:.06em">微信扫码 · 免费获取完整方案</button></div>`;
     // adviceSection（征信问题 + 改善建议）由下方代码正常渲染，无需跳过
   } else if(products.length===0){
     // 根据实际数据生成具体的问题诊断和修复步骤
@@ -3208,6 +3215,16 @@ function initContactPhone() {
 
   // 空产品引导里的联系电话也同步
   window._agentPhone = phone;
+
+  // 代理商模式：替换页面上涉及"产品匹配"的静态文案
+  if (_currentAgent) {
+    const _pgSub = document.querySelector('.pg-sub');
+    if (_pgSub) _pgSub.textContent = '上传简版征信报告，梳理负债结构 · 诊断信用健康，获取专属改善建议';
+    const _cardTitle = document.querySelector('#productsWrap .card-title');
+    if (_cardTitle) _cardTitle.textContent = '征信诊断报告';
+    const _matchLockHint = document.getElementById('matchLockHint');
+    if (_matchLockHint) _matchLockHint.style.display = 'none';
+  }
 }
 
 function updateAgentQuotaBadge(remaining) {
