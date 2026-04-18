@@ -2383,11 +2383,16 @@ function renderMatchResult(r) {
   const v2Score   = (window._v2Result && window._v2Result.score) || 0;
 
   // 更新产品数量，切换header锁定提示
-  document.getElementById('matchCount').textContent = products.length;
   const _lockHint = document.getElementById('matchLockHint');
   const _countWrap = document.getElementById('matchCountWrap');
   if (_lockHint) _lockHint.style.display = 'none';
-  if (_countWrap) _countWrap.style.display = '';
+  if (_currentAgent) {
+    // 代理商模式：header显示"征信报告已完成"而非产品数量
+    if (_countWrap) { _countWrap.innerHTML = '<span style="color:var(--silver)">征信报告已完成</span>'; _countWrap.style.display = ''; }
+  } else {
+    document.getElementById('matchCount').textContent = products.length;
+    if (_countWrap) _countWrap.style.display = '';
+  }
 
   // 更新评分卡底部统计（当前/优化后可申请）
   const _ssEl = document.getElementById('scoreStats');
@@ -2631,7 +2636,17 @@ function renderMatchResult(r) {
   const _mkCardEdge = p => {
     return `<div class="product-card" style="opacity:0.6;border-color:rgba(255,255,255,.08)"><div class="pc-top"><div class="pc-info"><div class="pc-bank">${esc(p.bank)}</div><div class="pc-product">${esc(p.product)}</div></div><div class="pc-rate">${esc(p.rate)}</div></div><div class="pc-tags"><span class="pc-tag">${esc(p.amount)}</span>${(p.tags||[]).slice(0,2).map(t=>`<span class="pc-tag">${esc(t)}</span>`).join('')}</div></div>`;
   };
-  if(products.length===0){
+  // ── 代理商模式：只展示征信诊断，不展示具体产品 ──
+  if (_currentAgent) {
+    // 隐藏产品对比和策略类模块（对代理商客户无意义）
+    ['convLoss','convPath','convClient','wlTip','convUrgent','convLift'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
+    const _agPhone = _currentAgent.phone || CONTACT_PHONE;
+    const _agName  = _currentAgent.name  || '专属顾问';
+    document.getElementById('productsGrid').innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);padding:20px;margin-bottom:8px"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">ADVISOR CONSULTATION</div><div style="font-size:14px;font-weight:600;color:var(--white);margin-bottom:6px">征信分析已完成</div><div style="font-size:12px;color:var(--silver);line-height:1.7;margin-bottom:18px">根据您的征信情况，已完成资质评估。<br>请联系您的专属顾问，获取针对性产品方案和申请策略。</div><a href="tel:${esc(_agPhone)}" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;text-align:center;background:var(--accentB);color:#fff;padding:14px;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:inherit;letter-spacing:.06em;text-decoration:none;margin-bottom:10px;box-sizing:border-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 15z"/></svg>${esc(_agName)} · 立即电话咨询</a><button onclick="document.getElementById('qrModal').style.display='flex'" style="display:block;width:100%;text-align:center;background:transparent;color:var(--accentB);padding:12px;font-size:13px;font-weight:600;border:1px solid rgba(59,123,246,.45);cursor:pointer;font-family:inherit;letter-spacing:.06em">微信扫码 · 免费获取完整方案</button></div>`;
+    // adviceSection（征信问题 + 改善建议）由下方代码正常渲染，无需跳过
+  } else if(products.length===0){
     // 根据实际数据生成具体的问题诊断和修复步骤
     const _zxProblems=[];
     if((data2.overdue_current||0)>0) _zxProblems.push({icon:'',text:`当前逾期 ${data2.overdue_current} 笔未结清，银行一票否决，必须立即结清`});
