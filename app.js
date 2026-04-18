@@ -3131,6 +3131,34 @@ async function autoSendReport() {
       return;
     }
     const name = window._personName || '未识别';
+
+    // 代理商渠道：额外携带 PDF 所需数据，Worker 会推送 PDF 到企业微信群
+    let pdfData = null;
+    if (_currentAgent) {
+      try {
+        const ui      = collectInfoData();
+        const loans   = getActiveLoans(_recognizedData || {});
+        const cards   = getActiveCards(_recognizedData || {});
+        const online  = [...new Set(loans.filter(l=>l.type==='online').map(l=>l.name.split('-')[0]))].length;
+        const monthly = calcTotalMonthly(loans, cards);
+        const debt    = loans.reduce((s,l)=>s+(l.balance||0),0) + cards.reduce((s,c)=>s+(c.used||0),0);
+        pdfData = {
+          ocrData:  { ...(_recognizedData||{}), loans: (_recognizedData?.loans||[]).map(l=>({...l, estMonthly: calcLoanMonthly(l)})) },
+          v2Score:  window._v2Result,
+          userInfo: ui,
+          pdfStats: {
+            totalDebt:        debt,
+            totalMonthly:     monthly,
+            activeLoansCount: loans.length,
+            activeCardsCount: cards.length,
+            onlineInstCount:  online,
+            debtRatio:        ui?.income > 0 ? Math.round(monthly / ui.income * 100) : null,
+            age:              calcAgeFromId(_recognizedData?.id_number),
+          },
+        };
+      } catch(e) { pdfData = null; }
+    }
+
     await fetch(REPORT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -3140,12 +3168,11 @@ async function autoSendReport() {
         '提交时间': new Date().toLocaleString('zh-CN'),
         '渠道代理': _currentAgent ? `${_currentAgent.name} / ${_currentAgent.phone} / ID:${_currentAgent.id}` : '直客',
         '完整报告': reportText,
+        agent_id:   _currentAgent?.id || null,
+        ...(pdfData ? { pdfData } : {}),
       }),
     });
     console.log('[贷准] 报告已推送');
-
-    // 企业微信推送由 Cloudflare Worker 处理（前端直接fetch会被CORS拦截）
-    // Worker 收到报告后根据 agent_id 自动推送到对应群
   } catch(e) {
     console.warn('[贷准] 报告推送失败', e);
   }

@@ -1573,6 +1573,11 @@ async function handleScoreAdmin(request, env) {
   }
 }
 
+// 代理商企业微信群机器人 Webhook（key 与 config.js 保持一致）
+const AGENT_WEBHOOKS = {
+  'XY001': 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=eeac39a4-e6f8-487d-8a3c-92f6421829b2',
+};
+
 async function handleReport(request, env) {
   let body;
   try { body = await request.json(); } catch (e) {
@@ -1592,10 +1597,68 @@ async function handleReport(request, env) {
     });
     const data = await resendResp.json();
     const ok   = resendResp.status === 200 || resendResp.status === 201;
+
+    // 代理商渠道：fire-and-forget 推送 PDF 到企业微信群
+    const agentId  = body.agent_id;
+    const pdfData  = body.pdfData;
+    const webhook  = agentId && AGENT_WEBHOOKS[agentId];
+    if (webhook && pdfData?.ocrData && env.PDF_SERVICE_SECRET) {
+      sendWechatPdf(pdfData, name, time, body['渠道代理'] || agentId, webhook, env).catch(() => {});
+    }
+
     return jsonResp({ ok, ...data }, ok ? 200 : 502, request);
   } catch (e) {
     return jsonResp({ ok: false, error: e.message }, 502, request);
   }
+}
+
+async function sendWechatPdf(pdfData, clientName, submitTime, agentLabel, webhookUrl, env) {
+  const key = new URL(webhookUrl).searchParams.get('key');
+  if (!key) return;
+
+  const { ocrData, v2Score, userInfo, pdfStats } = pdfData;
+  const personName = ocrData.person_name || clientName || '用户';
+  const rDate      = (ocrData.report_date || '').replace(/-/g, '');
+  const filename   = `贷准报告_${personName}_${rDate}.pdf`;
+
+  // 1. 生成 PDF
+  const html = buildPdfHtml(ocrData, v2Score, userInfo, pdfStats);
+  const pdfResp = await fetch('https://dzhun.com.cn/pdf-render', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', 'x-pdf-secret': env.PDF_SERVICE_SECRET },
+    body:    JSON.stringify({ html, filename: filename.replace('.pdf', '') }),
+  });
+  if (!pdfResp.ok) return;
+  const pdfBuffer = await pdfResp.arrayBuffer();
+
+  // 2. 上传到企业微信媒体接口
+  const formData = new FormData();
+  formData.append('media', new Blob([pdfBuffer], { type: 'application/pdf' }), filename);
+  const uploadResp = await fetch(
+    `https://qyapi.weixin.qq.com/cgi-bin/webhook/upload_media?key=${key}&type=file`,
+    { method: 'POST', body: formData }
+  );
+  if (!uploadResp.ok) return;
+  const uploadData = await uploadResp.json();
+  if (uploadData.errcode !== 0) return;
+
+  // 3. 先发文字摘要，再发 PDF 文件
+  const scoreLabel = v2Score?.level ? `${v2Score.level}级（${v2Score.score}分）` : '--';
+  await fetch(webhookUrl, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({
+      msgtype:  'markdown',
+      markdown: {
+        content: `## 新客户报告\n> **姓名**：${personName}\n> **评分**：${scoreLabel}\n> **渠道**：${agentLabel}\n> **时间**：${submitTime}`,
+      },
+    }),
+  });
+  await fetch(webhookUrl, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ msgtype: 'file', file: { media_id: uploadData.media_id } }),
+  });
 }
 
 // ═══════════════════════════════════════════
