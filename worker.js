@@ -685,7 +685,7 @@ ${levelInstruction}
 // 主路由
 // ═══════════════════════════════════════════
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: corsHeaders(request) });
     }
@@ -732,7 +732,7 @@ export default {
     const normPath = path.replace(/^\/api\/v1/, ''); // 去掉版本前缀后统一匹配
     if (normPath === '/pay/create')        return handlePayCreate(request, env);
     if (normPath === '/pay/wechat/confirm') return handleWechatConfirm(request, env);
-    if (normPath === '/report')            return handleReport(request, env);
+    if (normPath === '/report')            return handleReport(request, env, ctx);
     if (normPath === '/pdf')               return handlePdf(request, env);
     if (normPath === '/ocr')               return handleOCR(request, env);
     if (normPath === '/match')             return handleMatch(request, env);
@@ -1578,7 +1578,7 @@ const AGENT_WEBHOOKS = {
   'XY001': 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=eeac39a4-e6f8-487d-8a3c-92f6421829b2',
 };
 
-async function handleReport(request, env) {
+async function handleReport(request, env, ctx) {
   let body;
   try { body = await request.json(); } catch (e) {
     return jsonResp({ ok: false, error: 'Invalid JSON' }, 400, request);
@@ -1603,7 +1603,9 @@ async function handleReport(request, env) {
     const pdfData  = body.pdfData;
     const webhook  = agentId && AGENT_WEBHOOKS[agentId];
     if (webhook && pdfData?.ocrData && env.PDF_SERVICE_SECRET) {
-      sendWechatPdf(pdfData, name, time, body['渠道代理'] || agentId, webhook, env).catch(() => {});
+      ctx.waitUntil(sendWechatPdf(pdfData, name, time, body['渠道代理'] || agentId, webhook, env).catch(e => {
+        console.error('[WeChat] sendWechatPdf 顶层错误:', e.message);
+      }));
     }
 
     return jsonResp({ ok, ...data }, ok ? 200 : 502, request);
@@ -1614,7 +1616,7 @@ async function handleReport(request, env) {
 
 async function sendWechatPdf(pdfData, clientName, submitTime, agentLabel, webhookUrl, env) {
   const key = new URL(webhookUrl).searchParams.get('key');
-  if (!key) return;
+  if (!key) { console.error('[WeChat] invalid webhook URL, no key'); return; }
 
   const { ocrData, v2Score, userInfo, pdfStats } = pdfData;
   const personName = ocrData.person_name || clientName || '用户';
@@ -1628,19 +1630,36 @@ async function sendWechatPdf(pdfData, clientName, submitTime, agentLabel, webhoo
     headers: { 'Content-Type': 'application/json', 'x-pdf-secret': env.PDF_SERVICE_SECRET },
     body:    JSON.stringify({ html, filename: filename.replace('.pdf', '') }),
   });
-  if (!pdfResp.ok) return;
+  if (!pdfResp.ok) {
+    console.error('[WeChat] PDF生成失败:', pdfResp.status);
+    return;
+  }
   const pdfBuffer = await pdfResp.arrayBuffer();
 
-  // 2. 上传到企业微信媒体接口
-  const formData = new FormData();
-  formData.append('media', new Blob([pdfBuffer], { type: 'application/pdf' }), filename);
+  // 2. 上传到企业微信媒体接口（手动构建 multipart，避免 Worker FormData 处理 ArrayBuffer 异常）
+  const boundary = '----WeBound' + Math.random().toString(36).slice(2, 10);
+  const CRLF = '\r\n';
+  const pdfBytes = new Uint8Array(pdfBuffer);
+  const preamble = new TextEncoder().encode(
+    `--${boundary}${CRLF}` +
+    `Content-Disposition: form-data; name="media"; filename="${filename}"${CRLF}` +
+    `Content-Type: application/pdf${CRLF}${CRLF}`
+  );
+  const epilogue = new TextEncoder().encode(`${CRLF}--${boundary}--${CRLF}`);
+  const multipart = new Uint8Array(preamble.length + pdfBytes.length + epilogue.length);
+  multipart.set(preamble, 0);
+  multipart.set(pdfBytes, preamble.length);
+  multipart.set(epilogue, preamble.length + pdfBytes.length);
+
   const uploadResp = await fetch(
     `https://qyapi.weixin.qq.com/cgi-bin/webhook/upload_media?key=${key}&type=file`,
-    { method: 'POST', body: formData }
+    { method: 'POST', headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` }, body: multipart }
   );
-  if (!uploadResp.ok) return;
   const uploadData = await uploadResp.json();
-  if (uploadData.errcode !== 0) return;
+  if (!uploadResp.ok || uploadData.errcode !== 0) {
+    console.error('[WeChat] 媒体上传失败:', uploadData.errcode, uploadData.errmsg);
+    return;
+  }
 
   // 3. 先发文字摘要，再发 PDF 文件
   const scoreLabel = v2Score?.level ? `${v2Score.level}级（${v2Score.score}分）` : '--';
