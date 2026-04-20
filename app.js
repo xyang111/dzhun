@@ -1087,7 +1087,7 @@ function _processImages(files) {
     return;
   }
 
-  const MAX_W = 1200, MAX_H = 1800; // 1200px对征信识别足够清晰
+  const MAX_W = 1200, MAX_H = 8000; // 宽度限1200，高度放宽至8000以支持4页长图
   let pending = files.length;
   const blocks = new Array(files.length);
 
