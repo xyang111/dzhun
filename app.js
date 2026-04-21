@@ -3338,6 +3338,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initContactPhone();
   initAdvisorBadge();
 
+  // 安卓微信 X5 内核不支持 accept=".pdf,image/*"，改为 */* 让文件管理器出现
+  if (/MicroMessenger/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent)) {
+    const fi = document.getElementById('fileInput');
+    if (fi) fi.accept = '*/*';
+  }
+
   // 实时时钟
   (function tickClock(){
     const el = document.getElementById('hClock');
@@ -3432,7 +3438,8 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(r => r.json())
       .then(d => {
         if (d.openid) sessionStorage.setItem('_wxOpenid', d.openid);
-        history.replaceState(null, '', location.origin + location.pathname);
+        const _agentKeep = _urlParams2.get('agent');
+        history.replaceState(null, '', location.origin + location.pathname + (_agentKeep ? '?agent=' + _agentKeep : ''));
       })
       .catch(() => {});
   } else if (!sessionStorage.getItem('_wxOpenid')) {
