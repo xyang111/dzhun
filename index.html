@@ -371,12 +371,6 @@ nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.97);backdrop-
 .cta-h em{font-style:normal;color:#93C5FD;}
 .cta-sub{font-size:14px;color:rgba(255,255,255,.5);line-height:1.8;margin-bottom:28px;}
 .cta-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);padding:22px;text-align:left;margin-bottom:14px;}
-.cta-card-lbl{font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;}
-.cta-upload{border:1.5px dashed rgba(255,255,255,.22);padding:20px;text-align:center;cursor:pointer;transition:border-color .2s;}
-.cta-upload:hover{border-color:rgba(255,255,255,.45);}
-.cta-upload-icon{color:rgba(255,255,255,.38);margin-bottom:8px;}
-.cta-upload-text{font-size:14px;color:rgba(255,255,255,.75);margin-bottom:4px;}
-.cta-upload-hint{font-size:12px;color:rgba(255,255,255,.35);}
 .cta-btn{width:100%;margin-top:12px;font-size:15px;font-weight:700;background:var(--blue);color:#fff;border:none;padding:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;border-radius:2px;}
 .cta-btn:hover{background:var(--blue-d);box-shadow:0 8px 28px rgba(27,80,204,.5);transform:translateY(-1px);}
 
@@ -422,7 +416,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
       <a href="#sample" class="nav-link">样例报告</a>
       <a href="#faq" class="nav-link">常见问题</a>
       <div class="nav-online"><span class="nav-dot"></span>顾问在线</div>
-      <a href="#cta" class="nav-btn">开始体检</a>
+      <a href="/checkup.html" class="nav-btn">开始体检</a>
     </div>
   </div>
 </nav>
@@ -443,7 +437,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
           保护信用分：人行征信体系非常敏感。如果自己跑 5 家银行去申请贷款，银行会进行 5 次「硬查询」，这会直接导致信用分大幅下降。而通过贷准平台，通常只需进行一次「软查询」即可评估资质，不会损害信用分，并给出适合你当前资质的申请建议。
         </p>
         <div class="hero-btns">
-          <a href="#cta" class="btn-p">
+          <a href="/checkup.html" class="btn-p">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/></svg>
             上传征信报告，开始体检
           </a>
@@ -643,7 +637,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
   <div class="inner" style="padding-bottom:72px;">
     <div class="mid-cta reveal">
       <div class="mid-cta-text">想知道你目前的申请风险？<strong>上传征信报告，3 分钟出结果</strong></div>
-      <a href="#cta" class="mid-cta-btn">先测一下我的申请风险</a>
+      <a href="/checkup.html" class="mid-cta-btn">先测一下我的申请风险</a>
     </div>
   </div>
 </section>
@@ -852,7 +846,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
   <div class="inner" style="padding-bottom:72px;">
     <div class="mid-cta reveal">
       <div class="mid-cta-text">看完样例，想生成你自己的体检报告？<strong>3 分钟出结果，不推销贷款</strong></div>
-      <a href="#cta" class="mid-cta-btn">上传报告，生成我的体检结果</a>
+      <a href="/checkup.html" class="mid-cta-btn">上传报告，生成我的体检结果</a>
     </div>
   </div>
 </section>
@@ -981,7 +975,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
   <div class="inner" style="padding-bottom:72px;">
     <div class="mid-cta reveal">
       <div class="mid-cta-text">问题都了解了？<strong>开始体检，3 分钟看清自己的征信资质</strong></div>
-      <a href="#cta" class="mid-cta-btn">开始征信体检</a>
+      <a href="/checkup.html" class="mid-cta-btn">开始征信体检</a>
     </div>
   </div>
 </section>
@@ -993,13 +987,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
     <h2 class="cta-h reveal">先看清楚，<br><em>再决定下一步</em></h2>
     <p class="cta-sub reveal">贷准不是帮你乱申请贷款，<br>而是帮你先判断该不该申请、怎么申请、适合申请什么。</p>
     <div class="cta-card reveal">
-      <div class="cta-card-lbl">上传人行简版征信报告</div>
-      <div class="cta-upload" onclick="window.location.href='/checkup.html'">
-        <div class="cta-upload-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/></svg></div>
-        <div class="cta-upload-text">拖拽或点击上传征信报告</div>
-        <div class="cta-upload-hint">支持 PDF · JPG · PNG · 简版征信</div>
-      </div>
-      <button class="cta-btn" onclick="window.location.href='/checkup.html'">
+      <button class="cta-btn" onclick="window.location.href='/checkup.html'" style="margin-top:0">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
         上传征信报告，开始体检
       </button>
