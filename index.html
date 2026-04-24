@@ -3,957 +3,1072 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>贷准 · AI信用数据分析与方案建议</title>
-<!-- Open Graph / WeChat Share -->
-<meta property="og:title" content="给征信做一次体检 — 贷准 AI" />
-<meta property="og:description" content="102项检测维度，3分钟出报告，AI精准诊断你的信贷资质，首次免费。" />
+<title>贷准 · 申请贷款前，先做一次征信体检</title>
+<meta name="description" content="贷准帮你读懂简版征信报告，识别当前负债、查询和逾期风险，先判断该不该申请、怎么申请、适合申请什么。不替你提交贷款，不擅自发起查询。">
+<meta property="og:title" content="申请贷款前，先做一次征信体检 — 贷准 AI" />
+<meta property="og:description" content="AI 读懂你的简版征信：负债结构 / 查询风险 / 优化建议。不替你申请贷款，不擅自发起查询。" />
 <meta property="og:image" content="https://dzhun.com.cn/share-cover.png" />
 <meta property="og:url" content="https://dzhun.com.cn/" />
 <meta property="og:type" content="website" />
-<meta name="description" content="102项检测维度，3分钟出报告，AI精准诊断你的信贷资质，首次免费。" />
-<link rel="stylesheet" href="style.css?v=1776671957">
-<script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+<script>
+  /* 代理商链接（?agent=XY001）自动转发到工具页，无需通知代理商换链接 */
+  if (/[?&]agent=/.test(location.search)) {
+    location.replace('/checkup.html' + location.search + location.hash);
+  }
+</script>
+<style>
+:root {
+  --bg:        #F5F7FA;
+  --bg2:       #EDF0F5;
+  --surface:   #FFFFFF;
+  --border:    #E2E8F2;
+  --border2:   #C8D3E8;
+  --ink:       #0F2742;
+  --ink2:      #2D4468;
+  --muted:     #607090;
+  --faint:     #98A8C0;
+  --blue:      #1B50CC;
+  --blue-d:    #1340A8;
+  --blue-lt:   #EBF0FF;
+  --blue-mid:  #DAEAFF;
+  --teal:      #1A7A64;
+  --teal-lt:   #E4F4EF;
+  --amber:     #B85C00;
+  --amber-lt:  #FEF3E2;
+  --red:       #C42B2B;
+  --red-lt:    #FEE8E8;
+  --shadow-sm: 0 1px 3px rgba(15,39,66,.07);
+  --shadow:    0 4px 16px rgba(15,39,66,.09), 0 1px 4px rgba(15,39,66,.05);
+  --shadow-lg: 0 16px 48px rgba(15,39,66,.14);
+  --mono: 'SF Mono','Menlo','Consolas','Courier New',monospace;
+  --sans: 'Noto Sans SC','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+a{text-decoration:none;color:inherit;}
+.inner{max-width:1100px;margin:0 auto;padding:0 clamp(20px,5vw,52px);}
+
+/* ── NAV ── */
+nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);box-shadow:0 1px 4px rgba(15,39,66,.06);}
+.nav-inner{max-width:1100px;margin:0 auto;padding:0 clamp(20px,5vw,52px);height:60px;display:flex;align-items:center;gap:28px;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:34px;height:34px;background:var(--ink);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo-name{font-size:18px;font-weight:900;color:var(--ink);letter-spacing:-.01em;}
+.logo-name em{font-style:normal;color:var(--blue);}
+.logo-div{width:1px;height:18px;background:var(--border2);margin:0 4px;}
+.logo-desc{font-size:11px;color:var(--muted);letter-spacing:.03em;white-space:nowrap;}
+.nav-r{margin-left:auto;display:flex;align-items:center;gap:14px;}
+.nav-link{font-size:13px;color:var(--muted);transition:color .2s;}
+.nav-link:hover{color:var(--blue);}
+.nav-online{font-size:11px;font-weight:500;color:var(--teal);background:var(--teal-lt);border:1px solid rgba(26,122,100,.2);padding:4px 11px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:var(--teal);animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.nav-btn{font-size:13px;font-weight:700;background:var(--blue);color:#fff;border:none;padding:9px 22px;cursor:pointer;transition:all .2s;white-space:nowrap;border-radius:2px;}
+.nav-btn:hover{background:var(--blue-d);box-shadow:0 4px 16px rgba(27,80,204,.3);}
+@media(max-width:640px){.logo-div,.logo-desc,.nav-link,.nav-online{display:none;}}
+
+/* ── SECTION ── */
+.label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px;margin-bottom:12px;}
+.label::before{content:'';width:16px;height:2px;flex-shrink:0;border-radius:1px;}
+.label.blue{color:var(--blue);} .label.blue::before{background:var(--blue);}
+.label.teal{color:var(--teal);} .label.teal::before{background:var(--teal);}
+.label.amber{color:var(--amber);} .label.amber::before{background:var(--amber);}
+.label.grey{color:var(--muted);} .label.grey::before{background:var(--border2);}
+.sec-h{font-size:clamp(22px,3.5vw,36px);font-weight:800;letter-spacing:-.025em;line-height:1.15;color:var(--ink);margin-bottom:10px;}
+.sec-sub{font-size:15px;color:var(--muted);line-height:1.9;max-width:580px;margin-bottom:44px;}
+.sec-sub strong{color:var(--ink2);font-weight:600;}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .55s ease,transform .55s ease;}
+.reveal.in{opacity:1;transform:none;}
+.d1{transition-delay:.07s;}.d2{transition-delay:.14s;}.d3{transition-delay:.21s;}.d4{transition-delay:.28s;}
+
+/* ── HERO ── */
+#hero{background:var(--surface);border-bottom:1px solid var(--border);padding:64px 0 72px;}
+.hero-grid{display:grid;grid-template-columns:1fr 520px;gap:52px;align-items:center;}
+@media(max-width:1000px){.hero-grid{grid-template-columns:1fr 420px;gap:36px;}}
+@media(max-width:800px){.hero-grid{grid-template-columns:1fr;}}
+
+.hero-eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--teal);background:var(--teal-lt);border:1px solid rgba(26,122,100,.18);padding:5px 14px;border-radius:20px;margin-bottom:18px;animation:fadeUp .45s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.hero-h1{font-size:clamp(26px,4.2vw,48px);font-weight:900;line-height:1.1;letter-spacing:-.03em;color:var(--ink);margin-bottom:10px;animation:fadeUp .45s .07s ease both;}
+.hero-h1 .hi{color:var(--blue);}
+.hero-value{font-size:clamp(15px,1.8vw,17px);font-weight:600;color:var(--ink2);line-height:1.6;margin-bottom:6px;animation:fadeUp .45s .11s ease both;}
+.hero-explain{font-size:14px;color:var(--muted);line-height:1.75;max-width:440px;margin-bottom:26px;animation:fadeUp .45s .15s ease both;}
+.hero-btns{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;animation:fadeUp .45s .19s ease both;}
+.btn-p{font-size:15px;font-weight:700;background:var(--blue);color:#fff;border:none;padding:14px 30px;cursor:pointer;transition:all .22s;display:inline-flex;align-items:center;gap:8px;text-decoration:none;border-radius:2px;}
+.btn-p:hover{background:var(--blue-d);box-shadow:0 6px 24px rgba(27,80,204,.32);transform:translateY(-1px);}
+.btn-g{font-size:14px;font-weight:500;background:transparent;color:var(--ink2);border:1.5px solid var(--border2);padding:14px 22px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;text-decoration:none;border-radius:2px;}
+.btn-g:hover{border-color:var(--blue);color:var(--blue);}
+.hero-safety{display:flex;flex-direction:column;gap:8px;animation:fadeUp .45s .23s ease both;}
+.hs-row{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted);}
+.hs-check{width:20px;height:20px;border-radius:50%;background:var(--teal-lt);border:1.5px solid rgba(26,122,100,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--teal);}
+
+/* ── HERO REPORT CARD ── */
+.hero-report{background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-lg);animation:fadeUp .55s .28s ease both;position:relative;}
+.rc-topbar{background:var(--ink);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
+.rc-topbar-title{font-size:11px;font-weight:600;color:rgba(255,255,255,.5);letter-spacing:.07em;}
+.rc-status{font-size:11px;font-weight:700;padding:4px 12px;border-radius:2px;letter-spacing:.06em;}
+.rc-status.caution{background:rgba(184,92,0,.28);color:#FFC857;border:1px solid rgba(184,92,0,.5);}
+.rc-status.ok{background:rgba(26,122,100,.28);color:#5DDEBE;border:1px solid rgba(26,122,100,.5);}
+.rc-status.bad{background:rgba(196,43,43,.28);color:#FFA0A0;border:1px solid rgba(196,43,43,.5);}
+
+/* Score + overview strip */
+.rc-overview{display:grid;grid-template-columns:auto 1fr;gap:0;border-bottom:1px solid var(--border);}
+.rc-ring-wrap{padding:16px 18px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid var(--border);background:var(--bg);}
+.rc-ring{position:relative;width:72px;height:72px;}
+.rc-ring svg{transform:rotate(-90deg);}
+.rc-ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+.rc-ring-num{font-size:20px;font-weight:900;color:var(--ink);line-height:1;}
+.rc-ring-sub{font-size:9px;color:var(--muted);letter-spacing:.04em;margin-top:1px;}
+.rc-grade{font-size:11px;font-weight:700;color:var(--amber);margin-top:7px;text-align:center;}
+.rc-metrics{display:grid;grid-template-columns:1fr 1fr;gap:0;}
+.rc-metric{padding:12px 14px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);}
+.rc-metric:nth-child(2n){border-right:none;}
+.rc-metric:nth-last-child(-n+2){border-bottom:none;}
+.rc-metric-lbl{font-size:11px;color:var(--muted);margin-bottom:3px;}
+.rc-metric-val{font-size:16px;font-weight:800;}
+.rc-metric-val.ok{color:var(--teal);}
+.rc-metric-val.warn{color:var(--amber);}
+.rc-metric-val.bad{color:var(--red);}
+.rc-metric-val.blue{color:var(--blue);}
+.rc-metric-sub{font-size:10px;color:var(--faint);margin-top:1px;}
+
+/* Progress bar */
+.rc-bar-row{padding:12px 20px;border-bottom:1px solid var(--border);}
+.rc-bar-top{display:flex;justify-content:space-between;margin-bottom:7px;}
+.rc-bar-lbl{font-size:13px;color:var(--muted);}
+.rc-bar-val{font-size:13px;font-weight:700;color:var(--amber);}
+.rc-bar-track{height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;}
+.rc-bar-fill{height:100%;border-radius:4px;transition:width 1.5s ease;}
+
+/* Alert */
+.rc-alert{margin:12px 16px 0;background:var(--amber-lt);border:1px solid rgba(184,92,0,.22);padding:11px 13px;display:flex;gap:9px;align-items:flex-start;border-left:3px solid var(--amber);}
+.rc-alert-icon{color:var(--amber);flex-shrink:0;margin-top:1px;}
+.rc-alert-text{font-size:13px;color:#7C4500;line-height:1.6;}
+.rc-alert-text strong{color:#5C3300;}
+
+/* Suggest */
+.rc-suggest{margin:10px 16px 14px;background:var(--blue-lt);border:1px solid rgba(27,80,204,.15);padding:11px 13px;border-left:3px solid var(--blue);}
+.rc-sug-lbl{font-size:10px;font-weight:700;color:var(--blue);letter-spacing:.1em;text-transform:uppercase;margin-bottom:7px;}
+.rc-sug-item{font-size:13px;color:var(--ink2);line-height:1.65;display:flex;gap:6px;}
+.rc-sug-item::before{content:'→';color:var(--blue);flex-shrink:0;font-family:var(--mono);}
+.rc-sug-item+.rc-sug-item{margin-top:5px;}
+.rc-note{text-align:center;padding:9px;font-size:11px;color:var(--faint);background:var(--bg);border-top:1px solid var(--border);}
+
+/* ── WHY NOT RUSH ── */
+#why-not{background:var(--bg);border-bottom:1px solid var(--border);padding:72px 0;}
+.wnr-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;}
+@media(max-width:700px){.wnr-grid{grid-template-columns:1fr;}}
+.wnr-left{}
+.wnr-spiral{display:flex;flex-direction:column;gap:0;margin-top:8px;}
+.spiral-step{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--border);position:relative;}
+.spiral-step:last-child{border-bottom:none;}
+.spiral-num{width:28px;height:28px;flex-shrink:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:var(--mono);}
+.spiral-num.s1{background:var(--amber-lt);color:var(--amber);border:1px solid rgba(184,92,0,.25);}
+.spiral-num.s2{background:#FEE3E3;color:#B02020;border:1px solid rgba(196,43,43,.25);}
+.spiral-num.s3{background:#FDDEDE;color:var(--red);border:1px solid rgba(196,43,43,.35);}
+.spiral-body{}
+.spiral-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:3px;}
+.spiral-desc{font-size:13px;color:var(--muted);line-height:1.65;}
+.spiral-tag{font-size:10px;font-weight:600;color:var(--red);background:var(--red-lt);padding:2px 9px;border-radius:20px;display:inline-block;margin-top:6px;}
+.wnr-arrow{text-align:left;padding:4px 0 4px 8px;color:var(--faint);font-size:14px;}
+.wnr-right{}
+.wnr-contrast{background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-sm);}
+.wnr-contrast-header{background:var(--bg2);padding:12px 18px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;}
+.wnr-contrast-col{padding:18px;}
+.wnr-contrast-col+.wnr-contrast-col{border-top:1px solid var(--border);}
+.wnr-contrast-tag{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:10px;}
+.wnr-contrast-tag.bad{color:var(--red);background:var(--red-lt);}
+.wnr-contrast-tag.good{color:var(--teal);background:var(--teal-lt);}
+.wnr-contrast-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px;}
+.wnr-list{list-style:none;display:flex;flex-direction:column;gap:7px;}
+.wnr-list li{font-size:13px;color:var(--muted);line-height:1.6;padding-left:16px;position:relative;}
+.wnr-list.bad li::before{content:'×';position:absolute;left:0;color:var(--red);font-weight:700;}
+.wnr-list.good li::before{content:'✓';position:absolute;left:0;color:var(--teal);font-weight:700;}
+.wnr-list li strong{color:var(--ink2);}
+
+/* ── PAIN ── */
+#pain{background:var(--surface);border-bottom:1px solid var(--border);padding:72px 0 0;}
+#pain .inner{padding-bottom:0;}
+.pain-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+@media(max-width:800px){.pain-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:440px){.pain-grid{grid-template-columns:1fr;}}
+.pain-card{background:var(--bg);border:1px solid var(--border);padding:22px 18px;transition:box-shadow .22s,border-color .22s;}
+.pain-card:hover{box-shadow:var(--shadow);border-color:var(--border2);}
+.pain-num{font-family:var(--mono);font-size:9px;color:var(--faint);letter-spacing:.12em;margin-bottom:12px;}
+.pain-icon{width:38px;height:38px;background:var(--amber-lt);display:flex;align-items:center;justify-content:center;margin-bottom:12px;}
+.pain-h{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:5px;}
+.pain-p{font-size:13px;color:var(--muted);line-height:1.75;}
+.pain-tag{font-size:11px;font-weight:600;color:var(--amber);background:var(--amber-lt);padding:3px 10px;border-radius:20px;display:inline-block;margin-top:10px;}
+.mid-cta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;background:var(--blue-lt);border:1px solid rgba(27,80,204,.15);padding:18px 24px;margin-top:40px;}
+.mid-cta-text{font-size:15px;color:var(--ink2);}
+.mid-cta-text strong{font-weight:700;color:var(--blue);}
+.mid-cta-btn{font-size:13px;font-weight:700;background:var(--blue);color:#fff;border:none;padding:10px 22px;cursor:pointer;border-radius:2px;white-space:nowrap;transition:all .2s;text-decoration:none;display:inline-block;}
+.mid-cta-btn:hover{background:var(--blue-d);transform:translateY(-1px);}
+
+/* ── ANALYSIS ── */
+#analysis{background:var(--bg);border-bottom:1px solid var(--border);padding:72px 0;}
+.analysis-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;}
+@media(max-width:760px){.analysis-grid{grid-template-columns:1fr;}}
+.check-items{display:flex;flex-direction:column;gap:2px;}
+.check-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);transition:background .2s,border-color .2s;}
+.check-item:hover{background:var(--bg);border-color:var(--border2);}
+.ci-check{width:24px;height:24px;flex-shrink:0;border-radius:50%;background:var(--teal-lt);border:1px solid rgba(26,122,100,.2);display:flex;align-items:center;justify-content:center;color:var(--teal);}
+.ci-name{font-size:13px;font-weight:600;color:var(--ink);}
+.ci-desc{font-size:11px;color:var(--muted);margin-top:2px;}
+.ci-badge{margin-left:auto;font-size:11px;font-weight:600;color:var(--teal);background:var(--teal-lt);padding:2px 10px;border-radius:20px;white-space:nowrap;}
+.mini-dash{display:flex;flex-direction:column;gap:12px;}
+.md-card{background:var(--surface);border:1px solid var(--border);padding:18px;box-shadow:var(--shadow-sm);}
+.md-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;}
+.md-stats{display:flex;gap:0;border:1px solid var(--border);}
+.md-stat{flex:1;padding:11px 10px;border-right:1px solid var(--border);text-align:center;}
+.md-stat:last-child{border-right:none;}
+.md-sv{font-size:22px;font-weight:800;color:var(--ink);}
+.md-sv.warn{color:var(--amber);}
+.md-sv.ok{color:var(--teal);}
+.md-sl{font-size:10px;color:var(--muted);margin-top:3px;}
+.qbars,.ubars{display:flex;flex-direction:column;gap:9px;}
+.qb-row,.ub-row{display:flex;align-items:center;gap:10px;}
+.qb-lbl,.ub-bank{font-size:12px;color:var(--muted);min-width:52px;}
+.qb-track,.ub-track{flex:1;height:7px;background:var(--bg2);border-radius:4px;overflow:hidden;}
+.qb-fill,.ub-fill{height:100%;border-radius:4px;transition:width 1.2s ease;}
+.qb-fill.ok{background:var(--teal);}
+.qb-fill.mid{background:var(--amber);}
+.qb-fill.bad{background:var(--red);}
+.qb-val{font-size:12px;font-weight:600;min-width:26px;text-align:right;}
+.qb-val.ok{color:var(--teal);}
+.qb-val.mid{color:var(--amber);}
+.qb-val.bad{color:var(--red);}
+.ub-pct{font-size:12px;font-weight:600;min-width:34px;text-align:right;}
+
+/* ── STEPS ── */
+#steps{background:var(--surface);border-bottom:1px solid var(--border);padding:72px 0;}
+.steps-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+@media(max-width:660px){.steps-row{grid-template-columns:1fr;}}
+.step-card{background:var(--bg);border:1px solid var(--border);padding:26px 22px;position:relative;overflow:hidden;transition:box-shadow .22s;}
+.step-card:hover{box-shadow:var(--shadow);}
+.step-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.step-card:nth-child(1)::before{background:var(--blue);}
+.step-card:nth-child(2)::before{background:linear-gradient(90deg,var(--blue),var(--teal));}
+.step-card:nth-child(3)::before{background:var(--teal);}
+.step-num{font-family:var(--mono);font-size:9px;color:var(--blue);letter-spacing:.16em;margin-bottom:12px;}
+.step-icon{width:38px;height:38px;background:var(--blue-lt);display:flex;align-items:center;justify-content:center;margin-bottom:12px;color:var(--blue);}
+.step-title{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:7px;}
+.step-desc{font-size:13px;color:var(--muted);line-height:1.8;}
+.step-chip{font-size:11px;font-weight:600;color:var(--teal);background:var(--teal-lt);padding:3px 10px;border-radius:20px;display:inline-block;margin-top:10px;}
+.steps-note{margin-top:16px;padding:14px 18px;background:var(--bg);border:1px solid var(--border);display:flex;gap:12px;align-items:flex-start;}
+.sn-icon{color:var(--muted);flex-shrink:0;margin-top:2px;}
+.sn-text{font-size:13px;color:var(--muted);line-height:1.75;}
+.sn-text strong{color:var(--blue);font-weight:600;}
+
+/* ── TRUST ── */
+#trust{background:var(--bg2);border-bottom:1px solid var(--border);padding:72px 0;}
+.trust-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+@media(max-width:700px){.trust-3{grid-template-columns:1fr;}}
+.trust-card{background:var(--surface);border:1px solid var(--border);padding:22px 18px;box-shadow:var(--shadow-sm);}
+.tc-icon{width:38px;height:38px;background:var(--teal-lt);display:flex;align-items:center;justify-content:center;margin-bottom:12px;color:var(--teal);}
+.tc-title{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:5px;}
+.tc-desc{font-size:13px;color:var(--muted);line-height:1.75;}
+.trust-list{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--border);background:var(--surface);}
+.tl-item{flex:1;min-width:180px;padding:11px 16px;border-right:1px solid var(--border);font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px;}
+.tl-item:last-child{border-right:none;}
+.tl-check{width:17px;height:17px;border-radius:50%;background:var(--teal-lt);border:1px solid rgba(26,122,100,.22);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--teal);font-size:9px;}
+
+/* ── SAMPLE REPORT ── */
+#sample{background:var(--bg);border-bottom:1px solid var(--border);padding:72px 0 0;}
+#sample .inner{padding-bottom:0;}
+.sample-grid{display:grid;grid-template-columns:3fr 2fr;gap:32px;align-items:start;}
+@media(max-width:800px){.sample-grid{grid-template-columns:1fr;}}
+
+/* Report mockup */
+.sample-report{background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-lg);overflow:hidden;}
+.sr-topbar{background:var(--ink);padding:13px 18px;display:flex;align-items:center;justify-content:space-between;}
+.sr-topbar-title{font-size:11px;font-weight:600;color:rgba(255,255,255,.5);letter-spacing:.07em;}
+.sr-level{font-size:11px;font-weight:700;padding:4px 12px;border-radius:2px;letter-spacing:.06em;}
+.sr-level.caution{background:rgba(184,92,0,.28);color:#FFC857;border:1px solid rgba(184,92,0,.5);}
+
+/* Score bar at top of report */
+.sr-score-bar{display:flex;align-items:center;gap:16px;padding:14px 18px;border-bottom:1px solid var(--border);background:var(--bg);}
+.sr-score-circle{position:relative;width:56px;height:56px;flex-shrink:0;}
+.sr-score-circle svg{transform:rotate(-90deg);}
+.sr-score-val{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:15px;font-weight:900;color:var(--ink);}
+.sr-score-info{}
+.sr-score-grade{font-size:13px;font-weight:700;color:var(--amber);}
+.sr-score-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-top:2px;}
+
+/* Four result sections */
+.sr-sections{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border);}
+.sr-section{padding:16px 18px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);}
+.sr-section:nth-child(2n){border-right:none;}
+.sr-section:nth-last-child(-n+2){border-bottom:none;}
+.sr-sec-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px;}
+.sr-sec-label.ok{color:var(--teal);}
+.sr-sec-label.bad{color:var(--red);}
+.sr-sec-label.plan{color:var(--blue);}
+.sr-sec-label.dir{color:var(--ink2);}
+.sr-tags{display:flex;flex-wrap:wrap;gap:5px;}
+.sr-tag{font-size:12px;padding:4px 10px;border-radius:20px;}
+.sr-tag.ok{color:var(--teal);background:var(--teal-lt);border:1px solid rgba(26,122,100,.2);}
+.sr-tag.bad{color:var(--red);background:var(--red-lt);border:1px solid rgba(196,43,43,.2);}
+.sr-plans{display:flex;flex-direction:column;gap:7px;}
+.sr-plan{display:flex;align-items:flex-start;gap:8px;}
+.sr-plan-badge{font-size:10px;font-weight:700;color:var(--blue);background:var(--blue-lt);padding:2px 8px;white-space:nowrap;flex-shrink:0;border-radius:2px;margin-top:2px;}
+.sr-plan-text{font-size:12px;color:var(--ink2);line-height:1.6;}
+.sr-dirs{display:flex;flex-direction:column;gap:6px;}
+.sr-dir{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--bg);border:1px solid var(--border);}
+.sr-dir-name{font-size:12px;color:var(--ink2);}
+.sr-dir-badge{font-size:10px;font-weight:600;padding:2px 9px;border-radius:20px;}
+.sr-dir-badge.yes{color:var(--teal);background:var(--teal-lt);}
+.sr-dir-badge.maybe{color:var(--amber);background:var(--amber-lt);}
+.sr-dir-badge.no{color:var(--red);background:var(--red-lt);}
+
+.sample-explain{display:flex;flex-direction:column;gap:20px;padding-top:4px;}
+.se-h{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+.se-p{font-size:13px;color:var(--muted);line-height:1.8;}
+.se-p strong{color:var(--ink2);}
+.se-callout{font-size:13px;color:var(--ink2);line-height:1.75;padding:13px 15px;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--border2);}
+.se-callout strong{color:var(--blue);}
+
+/* ── WHO ── */
+#who{background:var(--surface);border-bottom:1px solid var(--border);padding:72px 0;}
+.who-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+@media(max-width:700px){.who-grid{grid-template-columns:1fr;}}
+.who-card{background:var(--bg);border:1px solid var(--border);padding:20px 18px;transition:background .2s,border-color .2s;position:relative;}
+.who-card:hover{background:var(--surface);border-color:var(--border2);}
+.who-card.featured{background:var(--blue-lt);border-color:rgba(27,80,204,.22);}
+.who-card.featured::before{content:'核心场景';position:absolute;top:0;right:0;font-size:10px;font-weight:700;background:var(--blue);color:#fff;padding:3px 10px;letter-spacing:.04em;}
+.who-icon{width:34px;height:34px;background:var(--blue-lt);display:flex;align-items:center;justify-content:center;margin-bottom:11px;color:var(--blue);}
+.who-card.featured .who-icon{background:rgba(27,80,204,.15);}
+.who-name{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:5px;}
+.who-desc{font-size:13px;color:var(--muted);line-height:1.7;}
+.who-fit{font-size:11px;font-weight:600;color:var(--blue);background:var(--blue-mid);padding:2px 9px;border-radius:20px;display:inline-block;margin-top:9px;}
+
+/* ── FAQ ── */
+#faq{background:var(--bg);border-bottom:1px solid var(--border);padding:72px 0 0;}
+#faq .inner{padding-bottom:0;}
+.faq-list{background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-sm);}
+.faq-item{border-bottom:1px solid var(--border);}
+.faq-item:last-child{border-bottom:none;}
+.faq-q{width:100%;text-align:left;background:none;border:none;padding:17px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:16px;transition:background .2s;}
+.faq-q:hover{background:var(--bg);}
+.faq-q-text{font-size:15px;font-weight:600;color:var(--ink);text-align:left;line-height:1.5;}
+.faq-arrow{width:22px;height:22px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0;transition:all .25s;font-size:12px;}
+.faq-item.open .faq-arrow{background:var(--blue);color:#fff;transform:rotate(180deg);}
+.faq-a{display:none;padding:0 20px 18px;font-size:14px;color:var(--muted);line-height:1.85;}
+.faq-a strong{color:var(--ink2);}
+.faq-a p{margin-bottom:10px;}
+.faq-a p:last-child{margin-bottom:0;}
+.faq-a .faq-sub{font-size:13px;font-weight:700;color:var(--ink2);margin:10px 0 4px;}
+.faq-item.open .faq-a{display:block;}
+.faq-item.open .faq-q{background:var(--bg);}
+
+/* ── FINAL CTA ── */
+#cta{background:linear-gradient(160deg,#0F2742 0%,#1A3A72 100%);padding:72px 0;position:relative;overflow:hidden;}
+#cta::before{content:'';position:absolute;top:-100px;right:-60px;width:400px;height:400px;background:radial-gradient(circle,rgba(27,80,204,.2),transparent 65%);pointer-events:none;}
+.cta-inner{max-width:520px;margin:0 auto;text-align:center;padding:0 clamp(20px,5vw,40px);position:relative;z-index:1;}
+.cta-tag{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:rgba(255,255,255,.55);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:5px 14px;border-radius:20px;margin-bottom:16px;letter-spacing:.06em;}
+.cta-h{font-size:clamp(22px,4vw,38px);font-weight:900;letter-spacing:-.025em;line-height:1.1;color:#fff;margin-bottom:10px;}
+.cta-h em{font-style:normal;color:#93C5FD;}
+.cta-sub{font-size:14px;color:rgba(255,255,255,.5);line-height:1.8;margin-bottom:28px;}
+.cta-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);padding:22px;text-align:left;margin-bottom:14px;}
+.cta-card-lbl{font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;}
+.cta-upload{border:1.5px dashed rgba(255,255,255,.22);padding:20px;text-align:center;cursor:pointer;transition:border-color .2s;}
+.cta-upload:hover{border-color:rgba(255,255,255,.45);}
+.cta-upload-icon{color:rgba(255,255,255,.38);margin-bottom:8px;}
+.cta-upload-text{font-size:14px;color:rgba(255,255,255,.75);margin-bottom:4px;}
+.cta-upload-hint{font-size:12px;color:rgba(255,255,255,.35);}
+.cta-btn{width:100%;margin-top:12px;font-size:15px;font-weight:700;background:var(--blue);color:#fff;border:none;padding:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;border-radius:2px;}
+.cta-btn:hover{background:var(--blue-d);box-shadow:0 8px 28px rgba(27,80,204,.5);transform:translateY(-1px);}
+
+/* Upload safety promises */
+.cta-safety-promises{display:flex;flex-direction:column;gap:7px;margin-top:14px;}
+.cta-sp-row{display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.55);}
+.cta-sp-check{width:18px;height:18px;border-radius:50%;background:rgba(26,122,100,.25);border:1px solid rgba(26,122,100,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#6EE7D4;font-size:10px;}
+
+.cta-chips{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.cta-chip{font-size:11px;font-weight:600;color:rgba(255,255,255,.5);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);padding:3px 11px;border-radius:20px;}
+
+/* ── FOOTER ── */
+footer{background:var(--surface);border-top:1px solid var(--border);padding:20px clamp(20px,5vw,52px);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.footer-brand{display:flex;align-items:center;gap:8px;}
+.footer-icon{width:22px;height:22px;background:var(--ink);display:flex;align-items:center;justify-content:center;}
+.footer-name{font-size:14px;font-weight:700;color:var(--ink);}
+.footer-name em{font-style:normal;color:var(--blue);}
+.footer-disc{font-size:11px;color:var(--faint);line-height:1.7;text-align:center;flex:1;min-width:200px;}
+.footer-disc a{color:var(--faint);}
+.footer-r{font-size:11px;color:var(--faint);text-align:right;}
+
+</style>
 </head>
 <body>
 
-<div class="scanline"></div>
-
-<!-- ── Header ── -->
-<header>
-  <div class="logo">
-    <div class="logo-mark">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <rect x="1" y="1" width="5" height="5" stroke="#3B7BF6" stroke-width="1"/>
-        <rect x="8" y="1" width="5" height="5" fill="#3B7BF6" opacity=".4"/>
-        <rect x="1" y="8" width="5" height="5" fill="#3B7BF6" opacity=".2"/>
-        <rect x="8" y="8" width="5" height="5" stroke="#3B7BF6" stroke-width="1" stroke-dasharray="1.5 1"/>
-      </svg>
-    </div>
-    <div class="logo-text"><em>贷</em>准科技</div>
-    <div class="logo-sep"></div>
-    <div class="logo-sub">CREDIT INTELLIGENCE</div>
-  </div>
-  <div class="header-r">
-    <div class="h-agent-quota" id="agentQuotaBadge" style="display:none">
-      剩余 <span id="agentQuotaNum">--</span> 次
-    </div>
-    <div class="h-badge" id="advisorBadge" onclick="showQrModal()">
-      <span class="h-badge-dot" id="advisorDot"></span>
-      <span id="advisorBadgeText">顾问在线</span>
-    </div>
-    <div class="h-clock" id="hClock">--:--:--</div>
-    <div class="h-icp">闽ICP备2026009746号</div>
-  </div>
-</header>
-
-<!-- ── Main ── -->
-<main>
-<div class="container">
-
-  <div class="pg-eyebrow">智能征信分析平台</div>
-  <div class="pg-h1">个人征信智能解析</div>
-  <div class="pg-sub">上传简版征信报告，梳理负债结构 · 诊断信用健康，精准匹配产品与优化方案</div>
-
-  <!-- STEP 1: UPLOAD -->
-  <div class="pcard" id="uploadCard">
-    <div class="card-bar">
-      <span class="step-tag">STEP 01</span>
-      <span class="card-title">上传人行简版征信报告</span>
-      <span class="card-status"><span class="dot"></span>READY</span>
-    </div>
-    <div class="cbody">
-      <div class="upload-zone" id="uploadZone"
-        ondragover="event.preventDefault();this.classList.add('dragover')"
-        ondragleave="this.classList.remove('dragover')"
-        ondrop="handleDrop(event)"
-        onclick="document.getElementById('fileInput').click()">
-        <input type="file" id="fileInput" accept=".pdf,image/*" multiple style="display:none" onchange="handleFiles(this.files)">
-        <div class="uz-ring">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B7BF6" stroke-width="1.5" stroke-linecap="square">
-            <path d="M12 15V3"/><path d="M7 8l5-5 5 5"/>
-            <path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/>
-          </svg>
-        </div>
-        <div class="uz-title">拖拽或点击上传征信报告</div>
-        <div class="uz-hint">
-          支持简版征信报告 PDF 文件或完整长截图，识别效果最佳
-        </div>
-        <button class="uz-btn" onclick="event.stopPropagation();document.getElementById('fileInput').click()">选择文件</button>
-        <div class="uz-formats">
-          <div class="uz-format">PDF</div>
-          <div class="uz-format">JPG</div>
-          <div class="uz-format">PNG</div>
-        </div>
-      </div>
-
-      <!-- 下载指引 -->
-      <div class="uz-guide-wrap">
-        <a class="uz-guide-toggle" href="javascript:void(0)" onclick="toggleCreditGuide()">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-          没有征信报告？查看下载指引
-          <span id="guideArrow" class="guide-arrow">▾</span>
-        </a>
-        <div id="creditGuidePanel" class="uz-guide-panel" style="display:none">
-          <div class="uz-guide-tip">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0CB87A" stroke-width="2" style="flex-shrink:0;margin-top:2px"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            个人主动查询征信属于「软查询」，不会影响你的征信评分
-          </div>
-          <div class="uz-guide-steps">
-            <div class="uz-guide-step">
-              <span class="uz-step-num">1</span>
-              <span>打开各大银行 App（工行、建行、农行、招行等均支持）</span>
-            </div>
-            <div class="uz-guide-step">
-              <span class="uz-step-num">2</span>
-              <span>首页搜索「个人信用报告」，按提示完成身份认证并申请简版征信</span>
-            </div>
-            <div class="uz-guide-step">
-              <span class="uz-step-num">3</span>
-              <span>报告生成后，导出 PDF 或截取完整长图，再上传至此</span>
-            </div>
-          </div>
-          <div class="uz-guide-wx">
-            如需一对一协助，关注微信公众号
-            <strong>「贷准科技」</strong>，发送「征信」获取专属下载指引
-          </div>
-        </div>
-      </div>
-
-      <div class="file-info" id="fileInfo">
-        <span class="fi-icon" id="fileIcon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0CB87A" stroke-width="1.5" stroke-linecap="square">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
-          </svg>
-        </span>
-        <div>
-          <div class="fi-name" id="fileName">--</div>
-          <div class="fi-size" id="fileSize">--</div>
-        </div>
-        <button class="fi-remove" onclick="clearFile()" title="移除">×</button>
-      </div>
-
-      <div class="consent-row">
-        <input type="checkbox" id="consentCheck" onchange="document.getElementById('analyzeBtn').disabled=!(this.checked&&window._fileReady)">
-        <label for="consentCheck">我已阅读并同意 <a href="/privacy.html" target="_blank">《个人信息保护政策》</a> 及 <a href="/auth.html" target="_blank">《征信数据分析授权协议》</a>，数据仅用于本次AI算法本地解析，不留存、不泄露</label>
-      </div>
-      <button class="btn-cta" id="analyzeBtn" onclick="startAnalysis()" disabled>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
-          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="logo">
+      <div class="logo-icon">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <rect x="1" y="1" width="5" height="5" stroke="white" stroke-width="1"/>
+          <rect x="8" y="1" width="5" height="5" fill="white" opacity=".5"/>
+          <rect x="1" y="8" width="5" height="5" fill="white" opacity=".25"/>
+          <rect x="8" y="8" width="5" height="5" stroke="white" stroke-width="1" stroke-dasharray="1.5 1"/>
         </svg>
-        <span id="analyzeBtnText">请先上传征信报告</span>
-      </button>
-      <div class="sec-note">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-        </svg>
-        TLS 加密传输 · 识别完成即销毁 · 不留存原始图片
+      </div>
+      <div class="logo-name"><em>贷</em>准</div>
+      <div class="logo-div"></div>
+      <div class="logo-desc">征信体检 · 申请前分析</div>
+    </a>
+    <div class="nav-r">
+      <a href="#sample" class="nav-link">样例报告</a>
+      <a href="#faq" class="nav-link">常见问题</a>
+      <div class="nav-online"><span class="nav-dot"></span>顾问在线</div>
+      <a href="#cta" class="nav-btn">开始体检</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ① HERO -->
+<section id="hero">
+  <div class="inner">
+    <div class="hero-grid">
+      <!-- Left -->
+      <div>
+        <div class="hero-eyebrow">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          贷款申请前的征信体检工具
+        </div>
+        <h1 class="hero-h1">申请贷款前，<br>先做一次<span class="hi">征信体检</span></h1>
+        <p class="hero-value">知道自己该不该申请、适合申请什么，比盲目出击更重要。</p>
+        <p class="hero-explain">
+          保护信用分：人行征信体系非常敏感。如果自己跑 5 家银行去申请贷款，银行会进行 5 次「硬查询」，这会直接导致信用分大幅下降。而通过贷准平台，通常只需进行一次「软查询」即可评估资质，不会损害信用分，并给出适合你当前资质的申请建议。
+        </p>
+        <div class="hero-btns">
+          <a href="#cta" class="btn-p">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/></svg>
+            上传征信报告，开始体检
+          </a>
+          <a href="#sample" class="btn-g">查看样例报告 →</a>
+        </div>
+        <div class="hero-safety">
+          <div class="hs-row">
+            <div class="hs-check"><svg width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            不主动向银行发起查询，不影响你的征信
+          </div>
+          <div class="hs-row">
+            <div class="hs-check"><svg width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            不替你提交贷款申请，决策权完全在你
+          </div>
+          <div class="hs-row">
+            <div class="hs-check"><svg width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            不承诺下款结果，只做申请前资质体检
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: larger report card -->
+      <div class="hero-report reveal d2">
+        <div class="rc-topbar">
+          <span class="rc-topbar-title">征信体检报告 · SAMPLE</span>
+          <span class="rc-status caution">谨慎申请</span>
+        </div>
+
+        <!-- Score + 4 metrics -->
+        <div class="rc-overview">
+          <div class="rc-ring-wrap">
+            <div class="rc-ring">
+              <svg width="72" height="72" viewBox="0 0 72 72">
+                <circle cx="36" cy="36" r="29" fill="none" stroke="#E2E8F2" stroke-width="7"/>
+                <circle cx="36" cy="36" r="29" fill="none" stroke="#B85C00" stroke-width="7"
+                  stroke-dasharray="182" stroke-dashoffset="64" stroke-linecap="round"/>
+              </svg>
+              <div class="rc-ring-center">
+                <div class="rc-ring-num">65</div>
+                <div class="rc-ring-sub">/ 100</div>
+              </div>
+            </div>
+            <div class="rc-grade">谨慎申请</div>
+          </div>
+          <div class="rc-metrics">
+            <div class="rc-metric">
+              <div class="rc-metric-lbl">未结清贷款</div>
+              <div class="rc-metric-val blue">3 笔</div>
+              <div class="rc-metric-sub">含房贷 1 笔</div>
+            </div>
+            <div class="rc-metric">
+              <div class="rc-metric-lbl">未销户信用卡</div>
+              <div class="rc-metric-val blue">4 张</div>
+              <div class="rc-metric-sub">综合额度 9.2万</div>
+            </div>
+            <div class="rc-metric">
+              <div class="rc-metric-lbl">近 3 月查询</div>
+              <div class="rc-metric-val bad">8 次</div>
+              <div class="rc-metric-sub">↑ 偏多，需冷却</div>
+            </div>
+            <div class="rc-metric">
+              <div class="rc-metric-lbl">当前逾期</div>
+              <div class="rc-metric-val ok">无</div>
+              <div class="rc-metric-sub">历史逾期：0次</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rc-bar-row">
+          <div class="rc-bar-top">
+            <span class="rc-bar-lbl">信用卡综合使用率</span>
+            <span class="rc-bar-val">72%  · 偏高</span>
+          </div>
+          <div class="rc-bar-track">
+            <div class="rc-bar-fill" id="rcBarFill" data-w="72%" style="width:0%;background:linear-gradient(90deg,var(--blue),var(--amber))"></div>
+          </div>
+        </div>
+
+        <div class="rc-alert">
+          <div class="rc-alert-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+          <div class="rc-alert-text"><strong>近 3 月查询次数已接近风控阈值。</strong>建议暂缓密集申请，先做使用率优化。</div>
+        </div>
+        <div class="rc-suggest">
+          <div class="rc-sug-lbl">优化方向</div>
+          <div class="rc-sug-item">先将工行信用卡使用率从 92% 降至 50% 以下</div>
+          <div class="rc-sug-item">等待 30 天查询冷却后，再申请低查询要求产品</div>
+        </div>
+        <div class="rc-note">以上为样例数据 · 真实报告基于你的征信文件实时生成</div>
       </div>
     </div>
   </div>
+</section>
 
-  <!-- STEP 2: READING ANIMATION -->
-  <div class="pcard" id="readingCard" style="display:none">
-    <div class="card-bar">
-      <span class="step-tag">STEP 02</span>
-      <span class="card-title">征信数据识别中</span>
-      <span class="card-status">
-        <span style="width:8px;height:8px;border:1.5px solid var(--accentB);border-top-color:transparent;border-radius:50%;animation:rotateCW .7s linear infinite;display:inline-block"></span>
-        PROCESSING
-      </span>
-    </div>
-    <div class="loading-wrap">
-      <div class="geo-loader">
-        <div class="geo-outer"></div>
-        <div class="geo-mid"></div>
-        <div class="geo-inner"></div>
+<!-- ② 为什么不要一上来就申请 -->
+<section id="why-not">
+  <div class="inner">
+    <div class="label amber reveal">为什么不要一上来就申请</div>
+    <h2 class="sec-h reveal">盲目出击，每次被拒都在<br>悄悄损耗你的征信</h2>
+    <p class="sec-sub reveal">很多人不了解：每次正式申请，银行都会调取征信，留下一次<strong>审批查询记录</strong>。短期内多次出现，会被银行视为高风险信号。</p>
+    <div class="wnr-grid">
+      <div class="wnr-left reveal">
+        <div class="wnr-spiral">
+          <div class="spiral-step">
+            <div class="spiral-num s1">1</div>
+            <div class="spiral-body">
+              <div class="spiral-title">申请 A 银行 → 被拒</div>
+              <div class="spiral-desc">留下第一次审批查询记录。你还不知道，征信已经开始"花"了。</div>
+              <span class="spiral-tag">查询 +1 · 征信受损</span>
+            </div>
+          </div>
+          <div class="wnr-arrow">↓</div>
+          <div class="spiral-step">
+            <div class="spiral-num s2">2</div>
+            <div class="spiral-body">
+              <div class="spiral-title">带着受损征信申请 B 银行 → 更容易被拒</div>
+              <div class="spiral-desc">B 银行看到了你上次被拒的记录，审批意愿更低，再次被拒概率大幅上升。</div>
+              <span class="spiral-tag">查询 +2 · 累计受损加重</span>
+            </div>
+          </div>
+          <div class="wnr-arrow">↓</div>
+          <div class="spiral-step">
+            <div class="spiral-num s3">3</div>
+            <div class="spiral-body">
+              <div class="spiral-title">征信全面恶化 → 连宽松机构也不批了</div>
+              <div class="spiral-desc">密集查询触发所有机构的风控红线，原本可以拿到的额度已经失去，恢复需要 6–24 个月。</div>
+              <span class="spiral-tag">进入高风险名单 · 恢复周期长</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="ld-eyebrow">AI CREDIT ANALYSIS ENGINE</div>
-      <div class="ld-title">正在解析征信数据</div>
-      <ul class="steps-list">
-        <li class="sl-item" id="rs1">
-          <span class="sl-n">01</span>
-          <span class="sl-idle"></span>
-          图片加密上传完成
-        </li>
-        <li class="sl-item" id="rs2">
-          <span class="sl-n">02</span>
-          <span class="sl-idle"></span>
-          账户及负债信息提取
-        </li>
-        <li class="sl-item" id="rs3">
-          <span class="sl-n">03</span>
-          <span class="sl-idle"></span>
-          AI 结构化解析中
-        </li>
-        <li class="sl-item" id="rs4">
-          <span class="sl-n">04</span>
-          <span class="sl-idle"></span>
-          负债率 / 查询风险计算
-        </li>
-        <li class="sl-item" id="rs5">
-          <span class="sl-n">05</span>
-          <span class="sl-idle"></span>
-          生成征信分析报告
-        </li>
-      </ul>
+      <div class="wnr-right reveal d2">
+        <div class="wnr-contrast">
+          <div class="wnr-contrast-header">两种路径的结果对比</div>
+          <div class="wnr-contrast-col">
+            <span class="wnr-contrast-tag bad">❌ 盲目申请</span>
+            <div class="wnr-contrast-title">多次被拒，征信越来越差</div>
+            <ul class="wnr-list bad">
+              <li>不知道自己资质，<strong>只能海投试运气</strong></li>
+              <li>每次被拒留下查询，<strong>后续更难通过</strong></li>
+              <li>征信"花掉"后，<strong>恢复需要 6–24 个月</strong></li>
+              <li>最终错过最佳申请窗口期</li>
+            </ul>
+          </div>
+          <div class="wnr-contrast-col">
+            <span class="wnr-contrast-tag good">✓ 先体检再出击</span>
+            <div class="wnr-contrast-title">精准出击，一次成功</div>
+            <ul class="wnr-list good">
+              <li>先了解当前资质和风险边界</li>
+              <li>知道哪类产品当前最适合申请</li>
+              <li><strong>只用一次查询的代价</strong>，拿到结果</li>
+              <li>征信保持健康，未来申请空间完整</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+</section>
 
-  <!-- STEP 3: RECOGNITION RESULT -->
-  <div id="resultArea" style="display:none">
-
-    <div class="pcard">
-      <div class="card-bar">
-        <span class="step-tag">STEP 02</span>
-        <span class="card-title">识别结果</span>
-        <span class="card-status">已过滤结清 · 销户 · 贷后查询</span>
+<!-- ③ PAIN -->
+<section id="pain">
+  <div class="inner" style="padding-top:72px;">
+    <div class="label amber reveal">常见误区</div>
+    <h2 class="sec-h reveal">申请前没看清征信，容易多走弯路</h2>
+    <p class="sec-sub reveal">很多申请失败，问题不是资质差，<strong>而是申请顺序和准备不足</strong>。</p>
+    <div class="pain-grid">
+      <div class="pain-card reveal d1">
+        <div class="pain-num">01</div>
+        <div class="pain-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B85C00" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>
+        <div class="pain-h">查询次数太多</div>
+        <p class="pain-p">每次正式申请都留下审批查询记录。短期密集被拒，会让后续银行更难批准你。</p>
+        <span class="pain-tag">审批查询会留痕</span>
       </div>
-      <div class="cbody">
+      <div class="pain-card reveal d2">
+        <div class="pain-num">02</div>
+        <div class="pain-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B85C00" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="1"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg></div>
+        <div class="pain-h">不清楚自己负债率</div>
+        <p class="pain-p">不知道银行如何看待你的账户结构，当前负债率是否超标，就直接申请了。</p>
+        <span class="pain-tag">负债结构不透明</span>
+      </div>
+      <div class="pain-card reveal d3">
+        <div class="pain-num">03</div>
+        <div class="pain-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B85C00" stroke-width="1.8" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+        <div class="pain-h">产品和资质不匹配</div>
+        <p class="pain-p">资质与产品要求不符，提交前不知道通过率极低，反复申请消耗征信记录。</p>
+        <span class="pain-tag">资质与产品错配</span>
+      </div>
+      <div class="pain-card reveal d4">
+        <div class="pain-num">04</div>
+        <div class="pain-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B85C00" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <div class="pain-h">征信报告看不懂</div>
+        <p class="pain-p">报告字段繁多，普通人很难判断哪些数据在拖累自己，哪些需要优先改善。</p>
+        <span class="pain-tag">关键信息难以判断</span>
+      </div>
+    </div>
+  </div>
+  <div class="inner" style="padding-bottom:72px;">
+    <div class="mid-cta reveal">
+      <div class="mid-cta-text">想知道你目前的申请风险？<strong>上传征信报告，3 分钟出结果</strong></div>
+      <a href="#cta" class="mid-cta-btn">先测一下我的申请风险</a>
+    </div>
+  </div>
+</section>
 
-        <!-- Notice -->
-        <div class="notice-tag">仅展示当前有效账户，已自动过滤所有已结清、销户及贷后管理查询</div>
-
-        <!-- ID Card info bar -->
-        <div class="id-info-grid" id="idInfoBar" style="display:none">
-          <div class="iib-item">
-            <span class="iib-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E7D9C" stroke-width="1.5" stroke-linecap="square">
-                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
-              </svg>
-            </span>
-            <div>
-              <div class="iib-label">姓名</div>
-              <div class="iib-val" id="iib-name">--</div>
-            </div>
-          </div>
-          <div class="iib-item">
-            <span class="iib-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E7D9C" stroke-width="1.5" stroke-linecap="square">
-                <rect x="2" y="5" width="20" height="14" rx="1"/><path d="M2 10h20"/>
-              </svg>
-            </span>
-            <div>
-              <div class="iib-label">身份证号</div>
-              <div class="iib-val iib-idno" id="iib-idno">--</div>
-            </div>
-          </div>
-          <div class="iib-item">
-            <span class="iib-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E7D9C" stroke-width="1.5" stroke-linecap="square">
-                <rect x="3" y="4" width="18" height="18" rx="1"/><path d="M16 2v4M8 2v4M3 10h18"/>
-              </svg>
-            </span>
-            <div>
-              <div class="iib-label">实际年龄</div>
-              <div class="iib-val" id="iib-age">--</div>
-            </div>
-          </div>
-          <div class="iib-item">
-            <span class="iib-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E7D9C" stroke-width="1.5" stroke-linecap="square">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
-              </svg>
-            </span>
-            <div>
-              <div class="iib-label">报告时间</div>
-              <div class="iib-val" id="iib-report-date">--</div>
-            </div>
+<!-- ④ ANALYSIS -->
+<section id="analysis">
+  <div class="inner">
+    <div class="label blue reveal">体检项目</div>
+    <h2 class="sec-h reveal">贷准帮你看懂这些关键项</h2>
+    <p class="sec-sub reveal">AI 自动提取并解读<strong>你最需要了解的每一项数据</strong>，全程基于你上传的报告文件。</p>
+    <div class="analysis-grid">
+      <div class="check-items reveal">
+        <div class="check-item"><div class="ci-check"><svg width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><div><div class="ci-name">当前有效账户</div><div class="ci-desc">自动过滤已结清、已注销及贷后管理记录</div></div><span class="ci-badge">自动识别</span></div>
+        <div class="check-item"><div class="ci-check"><svg width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><div><div class="ci-name">信用卡使用率</div><div class="ci-desc">每张卡使用率及综合使用率分析</div></div><span class="ci-badge">可视化</span></div>
+        <div class="check-item"><div class="ci-check"><svg width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><div><div class="ci-name">未结清贷款明细</div><div class="ci-desc">贷款类型、余额、月还款及负债率估算</div></div><span class="ci-badge">负债率计算</span></div>
+        <div class="check-item"><div class="ci-check"><svg width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><div><div class="ci-name">近 3 / 6 / 12 月查询</div><div class="ci-desc">审批查询次数及密度风险等级</div></div><span class="ci-badge">风险预警</span></div>
+        <div class="check-item"><div class="ci-check"><svg width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><div><div class="ci-name">逾期与异常记录</div><div class="ci-desc">当前是否存在逾期及历史严重程度</div></div><span class="ci-badge">重点标注</span></div>
+        <div class="check-item"><div class="ci-check"><svg width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><div><div class="ci-name">申请风险综合评级</div><div class="ci-desc">综合评估当前是否适合申请及建议方向</div></div><span class="ci-badge">综合评级</span></div>
+        <div class="check-item"><div class="ci-check"><svg width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><div><div class="ci-name">优化建议与产品方向</div><div class="ci-desc">30 / 90 / 180 天可落地改善路径</div></div><span class="ci-badge">个性化方案</span></div>
+      </div>
+      <div class="mini-dash reveal d2">
+        <div class="md-card">
+          <div class="md-label">负债概览</div>
+          <div class="md-stats">
+            <div class="md-stat"><div class="md-sv warn">3</div><div class="md-sl">未结清贷款</div></div>
+            <div class="md-stat"><div class="md-sv warn">4</div><div class="md-sl">未销户信用卡</div></div>
+            <div class="md-stat"><div class="md-sv ok">0</div><div class="md-sl">当前逾期</div></div>
           </div>
         </div>
-
-        <!-- Summary bar -->
-        <div class="metrics-grid" id="summaryBar">
-          <div class="mcell">
-            <div class="mlabel">当前负债 <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="12" height="4" rx="1"/><rect x="3" y="5" width="10" height="4" rx="1"/><rect x="4" y="1" width="8" height="4" rx="1"/></svg></div>
-            <div class="mval" id="sumTotalDebt">--</div>
-            <div class="msub">贷款+信用卡合计</div>
-          </div>
-          <div class="mcell">
-            <div class="mlabel">月均还款 <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><line x1="5" y1="1" x2="5" y2="5"/><line x1="11" y1="1" x2="11" y2="5"/><line x1="2" y1="7" x2="14" y2="7"/><polyline points="8,10 10,10 10,12"/><line x1="8" y1="10" x2="8" y2="12"/></svg></div>
-            <div class="mval" id="sumMonthly">--</div>
-            <div class="msub">估算值</div>
-          </div>
-          <div class="mcell">
-            <div class="mlabel">月还款负债率 <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10 A6 6 0 0 1 14 10"/><line x1="8" y1="10" x2="8" y2="4"/><circle cx="8" cy="10" r="1.5" fill="currentColor" stroke="none"/><line x1="4" y1="13" x2="12" y2="13"/></svg></div>
-            <div class="mval" id="sumDebtRatio">--</div>
-            <div class="msub" id="sumDebtHint"></div>
-          </div>
-          <div class="mcell">
-            <div class="mlabel">未结清贷款 <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2 L10 2 L13 5 L13 14 L3 14 Z"/><polyline points="10,2 10,5 13,5"/><line x1="5" y1="8" x2="11" y2="8"/><line x1="5" y1="11" x2="9" y2="11"/></svg></div>
-            <div class="mval" id="sumLoans">--</div>
-            <div class="msub">笔</div>
-          </div>
-          <div class="mcell">
-            <div class="mlabel">未销户信用卡 <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="14" height="9" rx="1.5"/><line x1="1" y1="7" x2="15" y2="7"/><line x1="4" y1="10.5" x2="6" y2="10.5" stroke-width="2"/><line x1="8" y1="10.5" x2="11" y2="10.5"/></svg></div>
-            <div class="mval" id="sumCards">--</div>
-            <div class="msub">张</div>
-          </div>
-          <div class="mcell">
-            <div class="mlabel">网贷机构数 <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="14" height="10" rx="1.5"/><line x1="5" y1="3" x2="5" y2="13"/><line x1="1" y1="7" x2="15" y2="7"/></svg></div>
-            <div class="mval" id="sumOnlineInst">--</div>
-            <div class="msub">家</div>
+        <div class="md-card">
+          <div class="md-label">审批查询次数</div>
+          <div class="qbars" id="qbars">
+            <div class="qb-row"><span class="qb-lbl">近 7 天</span><div class="qb-track"><div class="qb-fill ok" style="width:0%" data-w="20%"></div></div><span class="qb-val ok">1次</span></div>
+            <div class="qb-row"><span class="qb-lbl">近 1 月</span><div class="qb-track"><div class="qb-fill mid" style="width:0%" data-w="48%"></div></div><span class="qb-val mid">3次</span></div>
+            <div class="qb-row"><span class="qb-lbl">近 3 月</span><div class="qb-track"><div class="qb-fill bad" style="width:0%" data-w="78%"></div></div><span class="qb-val bad">8次</span></div>
+            <div class="qb-row"><span class="qb-lbl">近 6 月</span><div class="qb-track"><div class="qb-fill bad" style="width:0%" data-w="95%"></div></div><span class="qb-val bad">12次</span></div>
           </div>
         </div>
-
-        <!-- 爆查风险指标 -->
-        <div class="br-wrap" id="brWrap" style="display:none">
-          <div class="card-bar" style="background:var(--raised)">
-            <span class="step-tag">RISK</span>
-            <span class="card-title">征信风险指标</span>
-            <span class="card-status" id="brBadge"></span>
+        <div class="md-card">
+          <div class="md-label">信用卡使用率</div>
+          <div class="ubars" id="ubars">
+            <div class="ub-row"><span class="ub-bank">招商银行</span><div class="ub-track"><div class="ub-fill" style="width:0%;background:var(--teal)" data-w="45%"></div></div><span class="ub-pct" style="color:var(--teal)">45%</span></div>
+            <div class="ub-row"><span class="ub-bank">建设银行</span><div class="ub-track"><div class="ub-fill" style="width:0%;background:var(--amber)" data-w="78%"></div></div><span class="ub-pct" style="color:var(--amber)">78%</span></div>
+            <div class="ub-row"><span class="ub-bank">工商银行</span><div class="ub-track"><div class="ub-fill" style="width:0%;background:var(--red)" data-w="92%"></div></div><span class="ub-pct" style="color:var(--red)">92%</span></div>
+            <div class="ub-row"><span class="ub-bank">浦发银行</span><div class="ub-track"><div class="ub-fill" style="width:0%;background:var(--teal)" data-w="30%"></div></div><span class="ub-pct" style="color:var(--teal)">30%</span></div>
           </div>
-          <div class="risk-rows">
-            <div class="risk-row">
-              <div class="risk-top">
-                <span class="risk-name">查询安全指数</span>
-                <span class="risk-v" id="brRiskScore">--</span>
-              </div>
-              <div class="bar-track"><div class="bar-fill" id="brRiskBar" style="width:0%"></div></div>
-            </div>
-            <div class="risk-row">
-              <div class="risk-top">
-                <span class="risk-name">近7天查询</span>
-                <span class="risk-v" id="brQ7">--</span>
-              </div>
-              <div class="bar-track"><div class="bar-fill" id="brQ7Bar" style="width:0%"></div></div>
-            </div>
-            <div class="risk-row">
-              <div class="risk-top">
-                <span class="risk-name">近1月查询</span>
-                <span class="risk-v" id="brQ30">--</span>
-              </div>
-              <div class="bar-track"><div class="bar-fill" id="brQ30Bar" style="width:0%"></div></div>
-            </div>
-            <div class="risk-row">
-              <div class="risk-top">
-                <span class="risk-name">近3月查询</span>
-                <span class="risk-v" id="brQ90">--</span>
-              </div>
-              <div class="bar-track"><div class="bar-fill" id="brQ90Bar" style="width:0%"></div></div>
-            </div>
-            <div class="risk-row" style="border-bottom:none">
-              <div class="risk-top">
-                <span class="risk-name">集中度</span>
-                <span class="risk-v" id="brConc">--%</span>
-              </div>
-              <div class="bar-track"><div class="bar-fill" id="brConcBar" style="width:0%"></div></div>
-            </div>
-          </div>
-          <div class="br-tip" id="brTip"></div>
         </div>
+      </div>
+    </div>
+  </div>
+</section>
 
-        <!-- 查询机构明细（折叠） -->
-        <div class="qd-wrap" id="qdWrap" style="display:none">
-          <div class="card-bar" style="background:var(--raised)">
-            <span class="step-tag">QUERY</span>
-            <span class="card-title">近半年查询机构明细</span>
-            <button class="qd-toggle" id="qdToggle" onclick="toggleQueryDetail()">查看明细 ▼</button>
-          </div>
-          <div class="qd-body" id="qdBody" style="display:none"></div>
+<!-- ⑤ STEPS -->
+<section id="steps">
+  <div class="inner">
+    <div class="label blue reveal">三步流程</div>
+    <h2 class="sec-h reveal">上传报告，自动解析，查看建议</h2>
+    <p class="sec-sub reveal">全程无需手动填写，AI 自动提取征信关键字段，<strong>3 分钟生成体检结果</strong>。</p>
+    <div class="steps-row">
+      <div class="step-card reveal d1">
+        <div class="step-num">STEP 01</div>
+        <div class="step-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/></svg></div>
+        <div class="step-title">上传简版征信报告</div>
+        <p class="step-desc">在任意银行 App 申请简版征信，导出 PDF 或截图上传。支持拖拽，全程 TLS 加密传输。</p>
+        <span class="step-chip">软查询 · 零伤害 · 报告可下载</span>
+      </div>
+      <div class="step-card reveal d2">
+        <div class="step-num">STEP 02</div>
+        <div class="step-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="1"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+        <div class="step-title">贷准自动提取并解析</div>
+        <p class="step-desc">AI 自动识别账户、负债、查询记录，过滤已结清账户，生成结构化体检报告。</p>
+        <span class="step-chip">3 分钟 · 自动化</span>
+      </div>
+      <div class="step-card reveal d3">
+        <div class="step-num">STEP 03</div>
+        <div class="step-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+        <div class="step-title">查看申请建议和方向</div>
+        <p class="step-desc">获得风险等级、核心问题诊断、优化路径，以及适合当前资质的产品申请方向。</p>
+        <span class="step-chip">精准建议 · 可落地</span>
+      </div>
+    </div>
+    <div class="steps-note reveal">
+      <div class="sn-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+      <p class="sn-text"><strong>重要说明：</strong>上传报告只用于本次分析，贷准不会未经授权向银行提交贷款申请，也不会擅自发起征信查询。分析结果仅供申请前参考，不等于银行审批结果。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ⑥ TRUST -->
+<section id="trust">
+  <div class="inner">
+    <div class="label teal reveal">安全与承诺</div>
+    <h2 class="sec-h reveal">你需要知道我们不做什么</h2>
+    <p class="sec-sub reveal">这些承诺虽然保守，但每一条都关乎你的权益。</p>
+    <div class="trust-3">
+      <div class="trust-card reveal d1">
+        <div class="tc-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
+        <div class="tc-title">不主动发起银行查询</div>
+        <p class="tc-desc">所有分析基于你主动上传的报告，不会向人行或金融机构调取任何数据，不产生新查询记录。</p>
+      </div>
+      <div class="trust-card reveal d2">
+        <div class="tc-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></div>
+        <div class="tc-title">识别后即刻销毁</div>
+        <p class="tc-desc">原始征信图片或 PDF 完成识别后立即删除，不留存、不备份、不用于任何其他用途。</p>
+      </div>
+      <div class="trust-card reveal d3">
+        <div class="tc-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg></div>
+        <div class="tc-title">不出售你的数据</div>
+        <p class="tc-desc">你的征信数据仅用于本次分析，绝不共享给第三方，不用于广告推送或任何数据交易。</p>
+      </div>
+    </div>
+    <div class="trust-list reveal">
+      <div class="tl-item"><span class="tl-check">✓</span>不承诺贷款下款结果</div>
+      <div class="tl-item"><span class="tl-check">✓</span>不做征信修复服务</div>
+      <div class="tl-item"><span class="tl-check">✓</span>TLS 全程加密传输</div>
+      <div class="tl-item"><span class="tl-check">✓</span>用户可随时要求删除数据</div>
+      <div class="tl-item"><span class="tl-check">✓</span>分析结果不等于银行审批结果</div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑦ SAMPLE REPORT -->
+<section id="sample">
+  <div class="inner" style="padding-top:72px;">
+    <div class="label blue reveal">样例报告</div>
+    <h2 class="sec-h reveal">上传后，你能看到什么</h2>
+    <p class="sec-sub reveal">一份真实结构的体检报告，展示四类分析结果。</p>
+    <div class="sample-grid">
+      <div class="sample-report reveal">
+        <div class="sr-topbar">
+          <span class="sr-topbar-title">征信体检报告 · 样例</span>
+          <span class="sr-level caution">谨慎申请</span>
         </div>
-
-        <!-- 征信综合评分 -->
-        <div class="score-card" id="csWrap" style="display:none">
-          <div class="score-card-eyebrow">综合评分 <span id="scoreInfoBtn" onclick="alert('本评分基于贷准AI模型对征信关键风控维度的综合演算，非官方人行征信评分，仅供贷款方案参考，实际审批以银行为准。')" style="cursor:pointer;font-size:10px;color:var(--silver);border:1px solid var(--border2);border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;line-height:1">?</span></div>
-          <div class="ring-wrap">
-            <svg width="120" height="120" viewBox="0 0 84 84" style="transform:rotate(-90deg)">
-              <circle class="cs-gauge-bg" cx="42" cy="42" r="33"/>
-              <circle class="cs-gauge-fill" id="csGaugeFill" cx="42" cy="42" r="33" stroke-dasharray="207" stroke-dashoffset="207" stroke-linecap="butt"/>
+        <!-- Score bar -->
+        <div class="sr-score-bar">
+          <div class="sr-score-circle">
+            <svg width="56" height="56" viewBox="0 0 56 56">
+              <circle cx="28" cy="28" r="22" fill="none" stroke="#E2E8F2" stroke-width="6"/>
+              <circle cx="28" cy="28" r="22" fill="none" stroke="#B85C00" stroke-width="6"
+                stroke-dasharray="138" stroke-dashoffset="48" stroke-linecap="round"/>
             </svg>
-            <div class="ring-center">
-              <div class="ring-num" id="csScoreVal">--</div>
-              <div class="ring-lbl">/ 100</div>
-            </div>
+            <div class="sr-score-val">65</div>
           </div>
-          <div class="score-tier" id="csLevel">计算中…</div>
-          <div class="score-desc" id="csHint"></div>
-          <div class="cs-unlock" id="csUnlock" style="display:none" onclick="document.getElementById('matchBtn')?.click();document.getElementById('matchBtn')?.scrollIntoView({behavior:'smooth'})">
-            <div class="cs-unlock-txt">补充基础信息，可提升评分准确度</div>
-            <div class="cs-unlock-btn">立即补充 →</div>
+          <div class="sr-score-info">
+            <div class="sr-score-grade">谨慎申请 · 65 / 100</div>
+            <div class="sr-score-desc">查询次数偏多，信用卡使用率偏高<br>建议优化后再申请银行信用贷</div>
           </div>
-          <div class="score-stats" id="scoreStats" style="display:none">
-            <div class="score-stat-row">
-              <span class="score-stat-lbl">当前可申请</span>
-              <span class="score-stat-val" id="csCurrentCount">-- 款产品</span>
-            </div>
-            <div class="score-stat-row">
-              <span class="score-stat-lbl">优化后可申请</span>
-              <span class="score-stat-val green" id="csOptCount">-- 款产品</span>
-            </div>
-          </div>
-          <div class="cs-dims" id="csDims"></div>
         </div>
-
-        <!-- 网贷机构统计栏 -->
-        <div id="onlineStatsBox" style="display:none;border-radius:0;padding:13px 16px;margin-bottom:12px;font-size:13px;line-height:1.8;border-width:1px;border-style:solid"></div>
-
-        <!-- Warn box -->
-        <div class="warn-box" id="warnBox" style="display:none"></div>
-
-        <!-- Loans table -->
-        <div class="result-section" id="loansSection" style="display:none">
-          <div class="rs-header">
-            <span class="rs-title">贷款账户（未结清）</span>
-            <span class="rs-count" id="loanCount">0</span>
+        <!-- 4 sections in 2x2 grid -->
+        <div class="sr-sections">
+          <div class="sr-section">
+            <div class="sr-sec-label ok">✓ 主要优势</div>
+            <div class="sr-tags">
+              <span class="sr-tag ok">工资流水稳定</span>
+              <span class="sr-tag ok">无当前逾期</span>
+              <span class="sr-tag ok">信用账龄较长</span>
+              <span class="sr-tag ok">无网贷账户</span>
+            </div>
           </div>
-          <div class="rs-body">
-            <div class="tbl-scroll">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>机构</th>
-                    <th>类型</th>
-                    <th style="text-align:right">授信额度</th>
-                    <th style="text-align:right">余额</th>
-                    <th style="text-align:right">月还款</th>
-                    <th style="text-align:center">开立日期</th>
-                    <th style="text-align:center">状态</th>
-                  </tr>
-                </thead>
-                <tbody id="loansBody"></tbody>
-                <tfoot id="loansTfoot" style="display:none">
-                  <tr style="background:rgba(59,123,246,0.06);font-weight:700;font-size:12px">
-                    <td colspan="2" style="padding:10px;color:var(--plat)">合计</td>
-                    <td style="padding:10px;text-align:right;color:var(--plat)" id="loans-total-limit">--</td>
-                    <td style="padding:10px;text-align:right;color:var(--danger)" id="loans-total-balance">--</td>
-                    <td style="padding:10px;text-align:right;color:var(--accentB)" id="loans-total-monthly">--</td>
-                    <td colspan="2"></td>
-                  </tr>
-                </tfoot>
-              </table>
+          <div class="sr-section">
+            <div class="sr-sec-label bad">⚠ 主要风险</div>
+            <div class="sr-tags">
+              <span class="sr-tag bad">近3月查询8次</span>
+              <span class="sr-tag bad">信用卡使用率72%</span>
+              <span class="sr-tag bad">月还款负担较重</span>
+            </div>
+          </div>
+          <div class="sr-section">
+            <div class="sr-sec-label plan">→ 优化方案</div>
+            <div class="sr-plans">
+              <div class="sr-plan"><span class="sr-plan-badge">30天</span><span class="sr-plan-text">还清工行信用卡，综合使用率降至50%以下</span></div>
+              <div class="sr-plan"><span class="sr-plan-badge">90天</span><span class="sr-plan-text">查询冷却后，申请低查询要求银行信用贷</span></div>
+              <div class="sr-plan"><span class="sr-plan-badge">180天</span><span class="sr-plan-text">资质优化后，可申请更高额度产品</span></div>
+            </div>
+          </div>
+          <div class="sr-section">
+            <div class="sr-sec-label dir">≡ 匹配方向</div>
+            <div class="sr-dirs">
+              <div class="sr-dir"><span class="sr-dir-name">消费金融产品</span><span class="sr-dir-badge yes">当前可尝试</span></div>
+              <div class="sr-dir"><span class="sr-dir-name">银行信用贷（优化后）</span><span class="sr-dir-badge maybe">90天后</span></div>
+              <div class="sr-dir"><span class="sr-dir-name">大额抵押贷</span><span class="sr-dir-badge no">暂不建议</span></div>
             </div>
           </div>
         </div>
-
-        <!-- Cards table -->
-        <div class="result-section" id="cardsSection" style="display:none">
-          <div class="rs-header">
-            <span class="rs-title">信用卡账户（未销户）</span>
-            <span class="rs-count" id="cardCount">0</span>
-          </div>
-          <div class="rs-body">
-            <div class="tbl-scroll">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>发卡机构</th>
-                    <th style="text-align:right">授信额度</th>
-                    <th style="text-align:right">已用额度</th>
-                    <th style="text-align:right">使用率</th>
-                    <th style="text-align:center">状态</th>
-                  </tr>
-                </thead>
-                <tbody id="cardsBody"></tbody>
-                <tfoot id="cardsTfoot" style="display:none">
-                  <tr style="background:rgba(59,123,246,0.06);font-weight:700;font-size:12px">
-                    <td style="padding:10px;color:var(--plat)">合计</td>
-                    <td style="padding:10px;text-align:right;color:var(--plat)" id="cards-total-limit">--</td>
-                    <td style="padding:10px;text-align:right;color:var(--danger)" id="cards-total-used">--</td>
-                    <td style="padding:10px;text-align:right;color:var(--warn);font-weight:700" id="cards-total-util">--</td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Query stats -->
-        <div class="pcard" id="querySection" style="display:none">
-          <div class="card-bar">
-            <span class="step-tag">QUERY</span>
-            <span class="card-title">查询记录</span>
-            <span style="margin-left:auto;font-size:10px;color:var(--muted);font-family:'SF Mono',monospace">贷款审批 / 信用卡审批</span>
-          </div>
-          <div class="query-grid" id="queryGrid"></div>
-        </div>
-
-        <!-- Empty state -->
-        <div class="empty-state" id="emptyState" style="display:none">
-          未识别到有效账户信息<br>请确认上传的是人行征信报告（简版或详版）
-        </div>
-
-        <!-- Go to info form button -->
-        <button class="btn-cta" id="matchBtn" onclick="showInfoForm()" style="margin-top:8px">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-          </svg>
-          <span>下一步：补充基本信息 →</span>
-        </button>
-
       </div>
-    </div>
 
-    <!-- STEP 3: INFO FORM -->
-    <div class="pcard" id="infoCard" style="display:none">
-      <div class="card-bar">
-        <span class="step-tag">STEP 03</span>
-        <span class="card-title">补充基本信息</span>
-        <span class="card-status">帮助AI更精准匹配</span>
-      </div>
-      <div class="cbody">
-        <div style="text-align:center;font-size:12px;color:var(--warn);margin-bottom:14px;padding:10px 14px;background:rgba(217,128,0,0.08);border:1px solid rgba(217,128,0,0.2);">请填写真实信息，以便更精准地匹配适合您的产品。</div>
-        <div class="info-form-grid" id="infoFormGrid">
-
-          <!-- 月收入 -->
-          <div class="if-group">
-            <label class="if-label">月收入（元）<span class="if-req">*</span></label>
-            <input type="number" id="if-income" class="if-input" placeholder="税后实际到手金额">
-          </div>
-
-          <!-- 单位性质 -->
-          <div class="if-group">
-            <label class="if-label">工作单位性质 <span class="if-req">*</span></label>
-            <select id="if-work" class="if-select">
-              <option value="">请选择</option>
-              <option value="gov">政府机关 / 公务员</option>
-              <option value="institution">事业单位（学校/医院等）</option>
-              <option value="state">国有企业 / 央企</option>
-              <option value="listed">上市公司 / 500强</option>
-              <option value="private">私营企业</option>
-              <option value="self">个体工商户</option>
-              <option value="freelance">自由职业 / 无固定单位</option>
-            </select>
-          </div>
-
-          <!-- 户籍 -->
-          <div class="if-group">
-            <label class="if-label">户籍所在地 <span class="if-req">*</span></label>
-            <select id="if-hukou" class="if-select">
-              <option value="">请选择</option>
-              <option value="local">本地户籍（厦门）</option>
-              <option value="fujian">福建省内其他城市</option>
-              <option value="other">外省户籍</option>
-            </select>
-          </div>
-
-          <!-- 学历 -->
-          <div class="if-group">
-            <label class="if-label">学历 <span class="if-req">*</span></label>
-            <select id="if-edu" class="if-select">
-              <option value="">请选择</option>
-              <option value="bachelor">全日制本科及以上</option>
-              <option value="college">全日制大专</option>
-              <option value="other_degree">函授/自考本科或大专</option>
-              <option value="high">高中及以下</option>
-            </select>
-          </div>
-
-          <!-- 社保 -->
-          <div class="if-group">
-            <label class="if-label">社保缴纳情况 <span class="if-req">*</span></label>
-            <div class="if-toggle-row">
-              <button class="if-toggle" id="social-yes" onclick="selectToggle('social','yes',this)">有缴纳</button>
-              <button class="if-toggle" id="social-no"  onclick="selectToggle('social','no',this)">无缴纳</button>
-            </div>
-            <div id="social-months-wrap" style="display:none;margin-top:8px">
-              <input type="number" id="if-social-months" class="if-input" placeholder="已连续缴纳月数（如 24）">
-            </div>
-          </div>
-
-          <!-- 公积金 -->
-          <div class="if-group">
-            <label class="if-label">公积金月缴额（元）<span class="if-req">*</span></label>
-            <input type="number" id="if-provident" class="if-input" placeholder="个人+单位合计，无则填 0">
-          </div>
-
-          <!-- 月固定支出 -->
-          <div class="if-group">
-            <label class="if-label">月固定生活支出（元）<span class="if-req">*</span></label>
-            <input type="number" id="if-fixed-expense" class="if-input" placeholder="房租/餐饮/交通等，不含贷款还款">
-          </div>
-
-          <!-- 资产情况 -->
-          <div class="if-group if-group-full">
-            <label class="if-label">名下资产（可多选）<span class="if-req">*</span></label>
-            <div class="if-asset-grid">
-              <div class="if-asset" id="asset-house" onclick="toggleAssetBtn('house',this)">
-                <span class="ia-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6E7D9C" stroke-width="1.5" stroke-linecap="square">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-                  </svg>
-                </span>
-                <span class="ia-label">名下有房产</span>
-                <span class="ia-check"></span>
-              </div>
-              <div class="if-asset" id="asset-car" onclick="toggleAssetBtn('car',this)">
-                <span class="ia-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6E7D9C" stroke-width="1.5" stroke-linecap="square">
-                    <rect x="1" y="8" width="22" height="10" rx="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 8l3-5h6l3 5"/>
-                  </svg>
-                </span>
-                <span class="ia-label">名下有车辆</span>
-                <span class="ia-check"></span>
-              </div>
-              <div class="if-asset" id="asset-biz" onclick="toggleAssetBtn('biz',this)">
-                <span class="ia-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6E7D9C" stroke-width="1.5" stroke-linecap="square">
-                    <rect x="2" y="7" width="20" height="15" rx="1"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
-                  </svg>
-                </span>
-                <span class="ia-label">名下有营业执照</span>
-                <span class="ia-check"></span>
-              </div>
-              <div class="if-asset" id="asset-none" onclick="toggleAssetBtn('none',this)">
-                <span class="ia-icon" style="font-size:20px;color:var(--muted)">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333D5A" stroke-width="1.5" stroke-linecap="square">
-                    <line x1="5" y1="12" x2="19" y2="12"/>
-                  </svg>
-                </span>
-                <span class="ia-label">暂无以上资产</span>
-                <span class="ia-check"></span>
-              </div>
-            </div>
-            <!-- 房产子选项 -->
-            <div id="house-sub" style="display:none;margin-top:10px;background:var(--raised);border-left:2px solid var(--accentB);padding:12px 14px">
-              <label class="if-label" style="font-size:11px;margin-bottom:6px">房产状态</label>
-              <select id="if-house-status" class="if-select">
-                <option value="">请选择</option>
-                <option value="full">全款（无贷款）</option>
-                <option value="mortgage">按揭中</option>
-                <option value="mortgaged">已抵押贷款</option>
-              </select>
-            </div>
-          </div>
-
+      <div class="sample-explain reveal d2">
+        <div>
+          <div class="se-h">不只读数字，解读数字的意义</div>
+          <p class="se-p">贷准告诉你：哪些账户在拉低你的资质，哪些查询是无效损耗，<strong>当前最值得先做的一件事是什么</strong>。</p>
         </div>
-
-        <button class="btn-cta" id="startMatchBtn" onclick="startMatching()" style="margin-top:8px">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
-            <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
-          </svg>
-          <span>开始AI智能解析 →</span>
-        </button>
-        <div class="sec-note">以上信息仅用于本次匹配分析，不作其他用途</div>
-      </div>
-    </div>
-
-    <!-- STEP 4: MATCHING -->
-    <div id="incomeWarnBanner" style="display:none;margin-bottom:12px;background:rgba(217,128,0,0.08);border:1px solid rgba(217,128,0,0.25);padding:12px 16px;font-size:13px;color:var(--warn)">
-      <strong style="color:var(--white)">提示：未填写月收入</strong>，系统无法计算负债率，部分超负债上限的产品可能仍会显示——建议返回补充月收入后重新分析，结果将更准确。
-    </div>
-    <div class="pcard" id="matchingCard" style="display:none">
-      <div class="card-bar">
-        <span class="step-tag">STEP 04</span>
-        <span class="card-title">AI 智能解析</span>
-        <span class="card-status">
-          <span style="width:8px;height:8px;border:1.5px solid var(--accentB);border-top-color:transparent;border-radius:50%;animation:rotateCW .7s linear infinite;display:inline-block"></span>
-          PROCESSING
-        </span>
-      </div>
-      <div class="cbody">
-        <!-- Loading -->
-        <div class="matching-loading" id="matchingLoading" style="display:block">
-          <div class="ml-corners"><span class="ml-c tl"></span><span class="ml-c tr"></span><span class="ml-c bl"></span><span class="ml-c br"></span></div>
-          <div class="term-hd">
-            <div class="term-eye"><div class="term-eye-r1"></div><div class="term-eye-r2"></div><div class="term-eye-dot"></div></div>
-            <span class="term-badge">RISK ENGINE v2.0</span>
-            <span class="term-badge-r" id="termDimCount">0 / 102</span>
-          </div>
-          <div class="term-log" id="termLog"><div class="term-scan"></div></div>
-          <div class="term-footer">
-            <span class="term-bar-wrap"><span class="term-bar" id="termBar"></span></span>
-            <span class="term-status" id="termStatus">INITIALIZING</span>
-          </div>
+        <div>
+          <div class="se-h">有些方向会被标注"暂不建议"</div>
+          <p class="se-p">这正是贷准和贷款广告页最本质的区别——不是帮你申请所有产品，而是<strong>帮你判断哪些值得申请、哪些暂时不该碰</strong>。</p>
         </div>
-
-        <!-- Result -->
-        <div id="matchResult" style="display:none">
-          <!-- 顶部总结区 -->
-          <div class="conv-top" id="convTop" style="display:none">
-            <!-- 英雄区差异化内容由 _renderHero() 注入 -->
-            <div id="heroContent"></div>
-          </div>
-
-          <!-- 问题拆解区 -->
-          <div class="conv-sec" id="convProb" style="display:none">
-            <div class="conv-sec-hd"><span class="conv-sec-title">当前核心问题</span></div>
-            <div id="convProbList"></div>
-          </div>
-
-          <!-- V2.0 风险诊断 & 通过率 -->
-          <div class="conv-sec" id="v2xaiWrap" style="display:none">
-            <div class="conv-sec-hd"><span class="conv-sec-title">102维风控诊断</span></div>
-            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px">
-              <div id="v2RadarWrap" style="flex-shrink:0"></div>
-              <div id="v2DomainBar" style="flex:1;min-width:180px;display:flex;flex-direction:column;gap:8px"></div>
-            </div>
-            <div id="v2IssueList"></div>
-          </div>
-
-          <!-- 损失对比区 -->
-          <div class="conv-sec" id="convLoss" style="display:none">
-            <div class="conv-sec-hd"><span class="conv-sec-title">现在直接申请，代价是什么</span></div>
-            <div class="loss-cols">
-              <div class="loss-col now">
-                <span class="loss-tag">现在申请</span>
-                <div class="loss-type" id="convLossNowType">消费金融为主</div>
-                <div class="loss-rate" id="convLossNowRate">年利率：15%–24%</div>
-                <div class="loss-interest" id="convIntNow">--</div>
-              </div>
-              <div class="loss-col opt">
-                <span class="loss-tag">优化后申请</span>
-                <div class="loss-type">银行信用贷</div>
-                <div class="loss-rate">年利率：3.6%–6%</div>
-                <div class="loss-interest" id="convIntOpt">--</div>
-              </div>
-            </div>
-            <div class="loss-diff">
-              <div class="loss-diff-lbl">同样借10万，一年多付利息</div>
-              <div class="loss-diff-val" id="convIntDiff">约 1万+</div>
-            </div>
-          </div>
-
-          <!-- 提升空间区 -->
-          <div class="lift-sec" id="convLift" style="display:none">
-            <div class="conv-sec-hd"><span class="conv-sec-title">你的提升空间</span></div>
-            <div id="convLiftActions"></div>
-            <div class="lift-compare">
-              <div class="lift-col">
-                <div class="lift-col-lbl">优化前</div>
-                <div class="lift-col-val" id="convLiftProdB">-- 款</div>
-                <div class="lift-col-sub" id="convLiftAmtB">额度 -- 万</div>
-              </div>
-              <div class="lift-col">
-                <div class="lift-col-lbl">优化后</div>
-                <div class="lift-col-val green" id="convLiftProdA">-- 款</div>
-                <div class="lift-col-sub" id="convLiftAmtA">额度 -- 万</div>
-              </div>
-            </div>
-            <div class="lift-gap" id="convLiftGap"></div>
-          </div>
-
-          <!-- D级恢复路线图 -->
-          <div class="rehab-sec" id="convRehab" style="display:none">
-            <div class="conv-sec-hd"><span class="conv-sec-title">征信恢复路线图</span></div>
-            <div id="rehabContent"></div>
-          </div>
-
-          <!-- 客户标签区 -->
-          <div class="ct-sec" id="convClient" style="display:none">
-            <div class="ct-scan"></div>
-            <div class="ct-row">
-              <div class="ct-badge"><div class="ct-badge-icon" id="convClientIcon"></div><div class="ct-badge-type" id="convClientType">--</div></div>
-              <div><div class="ct-title" id="convClientTitle"></div><div class="ct-desc" id="convClientDesc"></div></div>
-            </div>
-          </div>
-
-          <!-- 白名单职业提醒 -->
-          <div class="wl-tip" id="wlTip" style="display:none">
-            <div class="wl-hd"><span style="display:flex;align-items:center;color:var(--gold)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="wl-title">专属优惠提醒</span></div>
-            <div class="wl-body">您的职业背景符合多家银行白名单条件，部分银行针对<strong>公务员 / 事业单位 / 国企</strong>提供专属利率通道、更高额度和简化审批，这类产品不公开，需要人工对接。</div>
-            <button class="wl-btn" onclick="window.location.href='tel:'+(window._agentPhone||CONTACT_PHONE)">联系专属顾问，了解专属方案</button>
-          </div>
-
-          <!-- 紧迫提醒区 -->
-          <div class="urgent-sec" id="convUrgent" style="display:none">
-            <div class="urgent-title">重要提醒</div>
-            <div class="urgent-body" id="convUrgentBody"></div>
-            <div class="urgent-result" id="convUrgentResult"></div>
-          </div>
-
-          <!-- 预计可申请额度 -->
-          <div id="mrEstimate" style="display:none;width:100%;box-sizing:border-box;background:rgba(59,123,246,0.08);border:1px solid rgba(59,123,246,0.3);padding:12px 16px;margin-bottom:10px;font-size:15px;font-weight:700;color:var(--accentB);text-align:center;letter-spacing:.3px;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace"></div>
-
-          <!-- 可申请产品列表 -->
-          <div id="productsWrap" class="pcard" style="margin-bottom:10px">
-            <div class="card-bar">
-              <span class="step-tag">MATCH</span>
-              <span class="card-title">匹配产品列表</span>
-              <span id="matchLockHint" style="margin-left:auto;font-family:'SF Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.04em">付费解锁后显示</span>
-              <span id="matchCountWrap" style="display:none;margin-left:auto;font-size:11px;color:var(--silver)"><span id="matchCount">0</span> 款可申请</span>
-            </div>
-            <div class="products-grid" id="productsGrid"></div>
-
-            <!-- 信用卡分期补充渠道 -->
-            <div id="ccInstallTips" class="cc-tips-wrap" style="display:none">
-              <div class="cc-tips-hd">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                持有以下银行信用卡？可能有额外申请通道
-              </div>
-              <div class="cc-tips-list">
-                <span class="cc-tip-item">建行</span>
-                <span class="cc-tip-item">农行</span>
-                <span class="cc-tip-item">招行</span>
-                <span class="cc-tip-item">浦发</span>
-                <span class="cc-tip-item">平安</span>
-              </div>
-              <div class="cc-tips-sub" style="cursor:pointer" onclick="showQrModal()">持卡人可能有专属信贷额度，<span style="color:var(--accentB);text-decoration:underline">联系顾问确认是否适用 →</span></div>
-            </div>
-
-            <!-- 差距可视化 -->
-            <div id="gapSection" class="gap-section" style="display:none"></div>
-
-            <!-- PDF 下载区域 -->
-            <div id="pdfDlWrap" style="display:none"></div>
-          </div>
-
-          <!-- 征信全面分析报告 -->
-          <div id="analysisReport" style="display:none;margin-top:20px">
-
-            <!-- AI分析状态条（DeepSeek完成后显示） -->
-            <div id="aiStatusBar" style="display:none;background:rgba(59,123,246,.12);border:1px solid rgba(59,123,246,.35);padding:10px 14px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:8px;cursor:pointer" onclick="document.getElementById('optimizationSection').scrollIntoView({behavior:'smooth',block:'start'})">
-              <div style="display:flex;align-items:center;gap:8px">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accentB)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                <span style="font-size:12px;color:var(--accentB);font-weight:600;letter-spacing:.04em">AI分析已完成 · 征信优化方案已生成</span>
-              </div>
-              <span style="font-size:11px;color:var(--silver)">点击查看 ↓</span>
-            </div>
-
-            <!-- 风险等级 -->
-            <div id="riskLevelBanner" class="risk-banner"></div>
-
-            <!-- 征信优化方案（提前，AI专属内容优先展示） -->
-            <div class="analysis-section" id="optimizationSection" style="display:none">
-              <div class="as-header"><span class="as-title">征信优化方案（可落地）</span></div>
-              <div class="as-body" id="optimizationBody"></div>
-            </div>
-
-            <!-- 专属优化建议 -->
-            <div class="analysis-section" id="adviceSection" style="display:none;margin-bottom:12px">
-              <div class="as-header"><span class="as-title">专属优化建议</span></div>
-              <div style="padding:0">
-                <div class="adv-sub">
-                  <div class="adv-sub-header adv-green">客户核心优点（银行风控高评分项）</div>
-                  <div class="adv-sub-body" id="adviceStrengthsBody"></div>
-                </div>
-                <div class="adv-sub" id="adviceIssuesSub">
-                  <div class="adv-sub-header adv-red">客户当前具体问题/缺点（银行风控核心扣分项）</div>
-                  <div class="adv-sub-body" id="adviceIssuesBody"></div>
-                </div>
-                <div class="adv-sub">
-                  <div class="adv-sub-header adv-gold">专业改善建议</div>
-                  <div class="adv-sub-body" id="adviceSuggestionsBody"></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 不可申请产品 -->
-            <div class="analysis-section" id="rejectedSection" style="display:none">
-              <div class="as-header"><span class="as-title">不可申请的产品类型</span></div>
-              <div class="as-body" id="rejectedBody"></div>
-            </div>
-
-            <!-- 优化后可匹配产品 -->
-            <div class="analysis-section" id="postOptSection" style="display:none">
-              <div class="as-header"><span class="as-title">优化后可匹配的产品</span></div>
-              <div class="as-body"><div class="as-post-opt" id="postOptBody"></div></div>
-            </div>
-
-          </div>
-
-          <!-- 定制申请顺序提示（内容由 JS 按 A/B/C/D 级注入） -->
-          <div id="convPath" style="display:none;margin-top:16px"></div>
-
-          <!-- 转化按钮区 -->
-          <div class="conv-cta" id="convCta">
-            <div class="conv-cta-sub" id="convCtaSub" style="font-size:15px;font-weight:700;color:var(--white);line-height:1.6">这些因素可能影响你的最终额度和通过率<br>联系顾问获取针对你的定制方案</div>
-            <div class="conv-cta-badge">定制方案已准备好</div>
-            <div class="conv-btns">
-              <button class="conv-btn-p" onclick="window.location.href='tel:'+(window._agentPhone||CONTACT_PHONE)">联系专属顾问</button>
-              <button class="conv-btn-s" onclick="showQrModal()">添加微信咨询</button>
-            </div>
-            <div class="conv-proof">今日已有多位客户完成咨询</div>
-          </div>
-
-          <div style="text-align:center;font-size:11px;color:var(--silver);margin-bottom:10px;line-height:1.6;">本网站不会保留您任何信息数据，退出网站即销毁，如需保存匹配信息请自行截图。</div>
-          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px">
-            <button class="restart-btn" style="margin:0" onclick="rematch()">修改信息重新匹配</button>
-            <button class="restart-btn" style="margin:0" onclick="restartAll()">← 重新上传分析</button>
-          </div>
+        <div>
+          <div class="se-h">优化路径是可落地的</div>
+          <p class="se-p">30 / 90 / 180 天建议基于你的<strong>真实账户数据</strong>，每一条有具体操作对象：还哪张卡、等多久、先申请哪家。</p>
+        </div>
+        <div class="se-callout">
+          <strong>样例说明：</strong>以上数据为演示目的生成，不对应任何真实用户。你的实际报告基于上传的征信文件实时生成。
         </div>
       </div>
     </div>
-
-  </div><!-- /resultArea -->
-
-</div><!-- /container -->
-</main>
-
-<footer>
-  <div class="footer-logo"><em>贷</em>准 · 智能信贷分析平台</div>
-  <div class="footer-disc">
-    以上产品信息及利率仅供参考，实际以银行审批为准。贷准仅提供贷款咨询匹配服务，不承担金融责任。<br>
-    © 2026 贷准 dzhun.com.cn · 厦门贷准科技有限公司 &nbsp;|&nbsp; <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">闽ICP备2026009746号</a> &nbsp;|&nbsp; <a href="https://beian.mps.gov.cn/#/query/webSearch?code=35020502001019" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:3px"><img src="beian.png" style="height:14px;vertical-align:middle">闽公网安备35020502001019号</a>
   </div>
+  <div class="inner" style="padding-bottom:72px;">
+    <div class="mid-cta reveal">
+      <div class="mid-cta-text">看完样例，想生成你自己的体检报告？<strong>3 分钟出结果，不推销贷款</strong></div>
+      <a href="#cta" class="mid-cta-btn">上传报告，生成我的体检结果</a>
+    </div>
+  </div>
+</section>
+
+<!-- ⑧ WHO -->
+<section id="who">
+  <div class="inner">
+    <div class="label grey reveal">适合人群</div>
+    <h2 class="sec-h reveal">贷准适合哪些人</h2>
+    <p class="sec-sub reveal">这些是中国借款人申请贷款前最真实的困惑场景。</p>
+    <div class="who-grid">
+      <div class="who-card featured reveal d1">
+        <div class="who-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="1"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="9" y1="14" x2="15" y2="14"/></svg></div>
+        <div class="who-name">工薪族想申请消费贷</div>
+        <p class="who-desc">有固定工资，想借 5–20 万用于装修、购车或资金周转，但不确定现在征信适不适合申请、该选哪家银行。</p>
+        <span class="who-fit">最核心场景</span>
+      </div>
+      <div class="who-card reveal d2">
+        <div class="who-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>
+        <div class="who-name">申请过被拒，不知道为什么</div>
+        <p class="who-desc">提交过一两家被拒，银行说"综合评分不足"，但不清楚是哪项指标拖了后腿，想搞清楚再出击。</p>
+        <span class="who-fit">被拒复盘</span>
+      </div>
+      <div class="who-card reveal d3">
+        <div class="who-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+        <div class="who-name">有多张信用卡 + 贷款在身</div>
+        <p class="who-desc">信用卡和贷款数量较多，不清楚当前综合负债率在银行看来是否超标，想申请前先摸清底线。</p>
+        <span class="who-fit">负债评估</span>
+      </div>
+      <div class="who-card reveal d1">
+        <div class="who-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>
+        <div class="who-name">近期试了几家，查询次数多了</div>
+        <p class="who-desc">已经申请过 2–3 家，想知道查询记录是否已影响资质，是否需要等待冷却再申请。</p>
+        <span class="who-fit">查询风险评估</span>
+      </div>
+      <div class="who-card reveal d2">
+        <div class="who-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div class="who-name">担心乱点网贷，不知道哪个安全</div>
+        <p class="who-desc">看到各种网贷 App 广告，担心申请太多会把征信"点花"，想先弄清楚哪些值得申请。</p>
+        <span class="who-fit">保护征信</span>
+      </div>
+      <div class="who-card reveal d3">
+        <div class="who-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div>
+        <div class="who-name">看不懂自己的征信报告</div>
+        <p class="who-desc">从银行 App 下载了简版征信，密密麻麻的字段和数字，完全不知道哪些重要、哪些在拖累自己。</p>
+        <span class="who-fit">报告解读</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑨ FAQ -->
+<section id="faq">
+  <div class="inner" style="padding-top:72px;">
+    <div class="label grey reveal">常见问题</div>
+    <h2 class="sec-h reveal">上传前，你可能想知道</h2>
+    <p class="sec-sub reveal" style="margin-bottom:28px">安全、隐私、是否影响征信——这些最重要的问题优先回答。</p>
+    <div class="faq-list reveal">
+
+      <div class="faq-item open">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span class="faq-q-text">上传征信报告会不会泄露我的个人信息？</span>
+          <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">上传过程全程 TLS 加密，无法被截取。<strong>识别完成后，原始图片或 PDF 立即自动删除</strong>，不留存、不备份。贷准只保留结构化分析字段（如账户数量、使用率等数据），不保留任何原始报告文件或你的个人证件信息。</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span class="faq-q-text">使用贷准会影响我的征信分吗？</span>
+          <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a"><strong>完全不会。</strong>贷准不会向人民银行或任何金融机构发起查询。分析完全基于你主动上传的征信报告文件，属于"你自己查征信"性质，不产生任何新的审批查询记录，不影响征信评分。</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span class="faq-q-text">贷准会帮我直接提交贷款申请吗？</span>
+          <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a"><strong>不会。</strong>贷准是申请前的征信体检工具，不是贷款超市。我们不会替你直接提交贷款申请，不会向任何银行或消费金融机构发起申请。贷准提供的是分析建议和方向参考，<strong>最终申请决策完全由你自己做出</strong>。</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span class="faq-q-text">报告说"建议暂缓申请"，是什么意思？我现在完全不能贷款了吗？</span>
+          <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">"建议暂缓申请"不代表你完全无法贷款，而是当前征信状态存在特定风险因素（如查询次数偏多、使用率偏高），<strong>如果现在贸然申请，被拒概率较高，且会进一步损耗征信</strong>。贷准会同时给出具体的优化路径——通常是 30–90 天内可完成的操作，优化后再申请，成功率会大幅提升。</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span class="faq-q-text">我可以删除上传的报告和数据吗？</span>
+          <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">原始征信文件在识别完成后<strong>已立即自动删除</strong>，无需手动操作。如有其他数据删除需求（如分析结果的结构化字段），可联系客服，我们会在 24 小时内处理。</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span class="faq-q-text">为什么要使用贷准，而不是直接去银行申请？</span>
+          <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">
+          <p>核心原因只有一个：<strong>保护你的征信不被无谓消耗。</strong></p>
+          <div class="faq-sub">每次申请都会留下审批查询记录</div>
+          <p>你正式向银行提交贷款申请后，银行调取征信属于<strong>审批查询</strong>，会在报告上留下明确记录。短期内多次出现，会被后续银行视为高风险信号。</p>
+          <div class="faq-sub">"海投"会触发恶性循环</div>
+          <p>很多人不知道自己符合哪家银行的条件，于是"多试几家"。但密集的审批查询会让每一家后续银行的审批意愿大幅下降，形成越申请越难批的恶性循环。</p>
+          <div class="faq-sub">贷准让你精准出击</div>
+          <p>先通过你主动上传的征信报告做无损诊断，分析真实资质边界，再告诉你哪类产品当前通过率最高。<strong>只需一次审批查询的代价，就能拿到最匹配的结果。</strong></p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span class="faq-q-text">报告里有已结清的账户，会影响分析结果吗？</span>
+          <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">不会。贷准会<strong>自动过滤所有已结清、已注销的贷款和信用卡账户</strong>，以及贷后管理类查询记录。分析结果只呈现对你当前资质真正有影响的有效数据，避免已结清账户干扰判断。</div>
+      </div>
+
+    </div>
+  </div>
+  <div class="inner" style="padding-bottom:72px;">
+    <div class="mid-cta reveal">
+      <div class="mid-cta-text">问题都了解了？<strong>开始体检，3 分钟看清自己的征信资质</strong></div>
+      <a href="#cta" class="mid-cta-btn">开始征信体检</a>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section id="cta">
+  <div class="cta-inner">
+    <div class="cta-tag reveal">不推销贷款 · 无需注册 · 3分钟出报告</div>
+    <h2 class="cta-h reveal">先看清楚，<br><em>再决定下一步</em></h2>
+    <p class="cta-sub reveal">贷准不是帮你乱申请贷款，<br>而是帮你先判断该不该申请、怎么申请、适合申请什么。</p>
+    <div class="cta-card reveal">
+      <div class="cta-card-lbl">上传人行简版征信报告</div>
+      <div class="cta-upload" onclick="window.location.href='/checkup.html'">
+        <div class="cta-upload-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/></svg></div>
+        <div class="cta-upload-text">拖拽或点击上传征信报告</div>
+        <div class="cta-upload-hint">支持 PDF · JPG · PNG · 简版征信</div>
+      </div>
+      <button class="cta-btn" onclick="window.location.href='/checkup.html'">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        上传征信报告，开始体检
+      </button>
+      <!-- Safety promises as clear checkboxes -->
+      <div class="cta-safety-promises">
+        <div class="cta-sp-row">
+          <div class="cta-sp-check">✓</div>
+          不主动向银行发起查询，不影响你的征信
+        </div>
+        <div class="cta-sp-row">
+          <div class="cta-sp-check">✓</div>
+          不替你提交贷款申请，决策权完全在你
+        </div>
+        <div class="cta-sp-row">
+          <div class="cta-sp-check">✓</div>
+          识别后即刻销毁，不留存原始报告
+        </div>
+      </div>
+    </div>
+    <div class="cta-chips reveal">
+      <span class="cta-chip">不推销贷款</span>
+      <span class="cta-chip">无需注册</span>
+      <span class="cta-chip">3分钟出报告</span>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">
+    <div class="footer-icon"><svg width="10" height="10" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" stroke="white" stroke-width="1"/><rect x="8" y="1" width="5" height="5" fill="white" opacity=".5"/><rect x="1" y="8" width="5" height="5" fill="white" opacity=".25"/><rect x="8" y="8" width="5" height="5" stroke="white" stroke-width="1" stroke-dasharray="1.5 1"/></svg></div>
+    <div class="footer-name"><em>贷</em>准 · 征信体检</div>
+  </div>
+  <div class="footer-disc">
+    分析结果仅供参考，不构成金融建议，实际审批以银行为准。贷准不承担金融责任。<br>
+    © 2026 贷准 dzhun.com.cn · 厦门贷准科技有限公司 &nbsp;|&nbsp;
+    <a href="https://beian.miit.gov.cn/" target="_blank">闽ICP备2026009746号</a>
+  </div>
+  <div class="footer-r">dzhun.com.cn</div>
 </footer>
 
-<script src="config.js?v=1776671957"></script>
-<script src="app.js?v=1776671958"></script>
-
-<!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
-<div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">
-  <div class="qr-modal">
-    <div class="qr-modal-title">添加客服微信</div>
-    <div class="qr-modal-sub">扫码添加，人工协助申请</div>
-    <img id="qrCodeImg" src="" alt="客服微信二维码" style="display:none">
-    <div id="qrFallback" style="display:none;padding:20px;text-align:center;color:var(--silver);font-size:13px">二维码加载失败，请拨打电话<br><strong id="qrPhoneNum" style="font-size:16px;color:var(--white)"></strong></div>
-    <button class="qr-modal-close" onclick="hideQrModal()">关闭</button>
-  </div>
-</div>
-
-<!-- PAYMENT MODAL -->
-<div class="pay-overlay" id="payOverlay">
-  <div class="pay-modal">
-    <button class="pay-close" onclick="closePayModal()">×</button>
-
-    <!-- Step 1: 选择支付方式 -->
-    <div id="payStep1">
-      <div style="margin-bottom:10px">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#3B7BF6" stroke-width="1.5" stroke-linecap="square" style="display:inline-block">
-          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-        </svg>
-      </div>
-      <div style="font-size:16px;font-weight:700;color:var(--white);margin-bottom:4px">查看AI智能解析结果</div>
-      <div style="font-size:12px;color:var(--silver);line-height:1.8;margin-bottom:6px">
-        征信识别结果免费查看<br>匹配产品 · 通过率分析 · 优化建议 · 单次付费
-      </div>
-      <div class="pay-price">¥<span style="font-size:44px">9.9</span></div>
-      <div class="pay-btn-row">
-        <button id="payBtnWechat" class="pay-btn pay-btn-wechat" onclick="choosePay('wechat')">微信支付</button>
-        <button id="payBtnAlipay" class="pay-btn pay-btn-alipay" onclick="choosePay('alipay')">支付宝</button>
-      </div>
-      <div style="font-size:11px;color:var(--silver);line-height:1.7;">
-        付费后1小时内可重新匹配
-      </div>
-    </div>
-
-    <!-- Step 2: 等待支付 -->
-    <div id="payStep2" style="display:none">
-      <div style="font-size:14px;font-weight:700;color:var(--white);margin-bottom:4px" id="payStep2Title">等待支付确认</div>
-      <div style="font-size:12px;color:var(--silver);margin-bottom:12px;line-height:1.8">
-        已为您打开支付页面<br>完成支付后此页面将自动跳转
-      </div>
-      <div class="pay-spinner"></div>
-      <div id="payLinkWrap" style="display:none;margin-bottom:12px">
-        <a id="payLinkBtn" href="#" target="_blank" style="font-size:13px;color:var(--accentB);text-decoration:underline">重新打开支付页面</a>
-      </div>
-      <button onclick="cancelPay()" style="background:none;border:1px solid var(--border2);padding:8px 20px;font-size:12px;color:var(--silver);cursor:pointer;font-family:inherit">取消</button>
-    </div>
-
-    <!-- Step 3: 支付成功 -->
-    <div id="payStep3" style="display:none">
-      <div style="margin-bottom:12px">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0CB87A" stroke-width="1.5" stroke-linecap="square" style="display:inline-block">
-          <circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>
-        </svg>
-      </div>
-      <div style="font-size:17px;font-weight:700;color:var(--success);margin-bottom:6px">支付成功</div>
-      <div style="font-size:13px;color:var(--silver)">正在生成匹配结果…</div>
-    </div>
-  </div>
-</div>
-
 <script>
-// 根据环境只显示对应支付方式
-(function(){
-  var isWx = /micromessenger/i.test(navigator.userAgent);
-  if (isWx) {
-    document.getElementById('payBtnAlipay').style.display = 'none';
-  } else {
-    document.getElementById('payBtnWechat').style.display = 'none';
-  }
-})();
+// FAQ
+function toggleFaq(btn){ btn.closest('.faq-item').classList.toggle('open'); }
+
+// Scroll reveal
+const io = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }});
+},{threshold:.08});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+// Bar animations
+function animateBars(parent){
+  parent.querySelectorAll('[data-w]').forEach((el,i)=>{
+    setTimeout(()=>{ el.style.width = el.getAttribute('data-w'); }, i*130);
+  });
+}
+const barIO = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      if(e.target.hasAttribute('data-w')) e.target.style.width = e.target.getAttribute('data-w');
+      else animateBars(e.target);
+      barIO.unobserve(e.target);
+    }
+  });
+},{threshold:.2});
+[document.getElementById('qbars'), document.getElementById('ubars'), document.getElementById('rcBarFill')].forEach(el=>{
+  if(el) barIO.observe(el);
+});
 </script>
 </body>
 </html>
