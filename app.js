@@ -2718,103 +2718,63 @@ function renderMatchResult(r) {
     const _cpEl = document.getElementById('convProb'); if (_cpEl) _cpEl.style.display = 'none';
     const _asEl = document.getElementById('adviceSection'); if (_asEl) _asEl.style.display = 'none';
   } else {
-    const _parseRate = p => parseFloat((p.rate || '').replace('%','').replace('起','')) || 99;
-    let _gridHtml = '';
-    if (v2Level === 'A') {
-      // A级：全部产品按利率升序，用对比标签替代通过率条
-      const _sorted = [...products].sort((a, b) => _parseRate(a) - _parseRate(b));
-      _gridHtml = _tierHd('全部产品', '已按利率从低到高排序，点击查看为什么适合你') + _sorted.map(_mkCardA).join('');
-    } else if (v2Level === 'D') {
-      // D级：只展示消费金融保底产品，不显示大量被拒产品
-      const _fallback = products.filter(p => p.type !== 'bank');
-      if (_fallback.length > 0) {
-        _gridHtml = _tierHd('当前可申请', '银行产品暂不可申请，以下为保底方案') + _fallback.map(_mkCard).join('');
-      } else {
-        _gridHtml = `<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">当前暂无可直接申请的产品<br>请参考下方恢复路线图</div>`;
-      }
-    } else if (v2Level === 'B') {
-      // B级：策略性分层——前10名"优先推荐"，剩余"顾问协助"
-      // 排序：银行类优先 > 利率低 > 标签命中多 > 本地银行优先
-      const _userTagHits = p => {
-        let hits = 0;
-        if (provident >= 2000 && (p.tags||[]).includes('公积金加分')) hits += 3;
-        if (['gov','institution','state'].includes(wt) && (p.bonus||'').includes('国企')) hits += 3;
-        if (['xmyh','xmns'].includes(p.id)) hits += 2;
-        if (hasSocial && p.social) hits += 1;
-        return hits;
-      };
-      const _bSorted = [...products].sort((a, b) => {
-        if (a.type === 'bank' && b.type !== 'bank') return -1;
-        if (a.type !== 'bank' && b.type === 'bank') return 1;
-        const tagDiff = _userTagHits(b) - _userTagHits(a);
-        if (tagDiff !== 0) return tagDiff;
-        return _parseRate(a) - _parseRate(b);
-      });
-      const _B_LAYER1_MAX = 10;
-      const _priProds  = _bSorted.slice(0, _B_LAYER1_MAX);
-      const _restProds = _bSorted.slice(_B_LAYER1_MAX);
-      // 第一层：优先推荐，按类型分组
-      const _bigPri = _priProds.filter(p=>p.type==='bank'&&(p.tags||[]).includes('国有大行'));
-      const _othPri = _priProds.filter(p=>p.type==='bank'&&!(p.tags||[]).includes('国有大行'));
-      const _finPri = _priProds.filter(p=>p.type!=='bank');
-      if(_bigPri.length) _gridHtml += _tierHd('国有大行','优先申请，利率最低') + _bigPri.map(_mkCard).join('');
-      if(_othPri.length) _gridHtml += _tierHd('股份制 / 城商行','') + _othPri.map(_mkCard).join('');
-      if(_finPri.length) _gridHtml += _tierHd('消费金融','备选，最后申请') + _finPri.map(_mkCard).join('');
-      // 第二层：展示信息，底部统一一个 CTA
-      if(_restProds.length) {
-        _gridHtml += _tierHd('更多可申渠道', `另有 ${_restProds.length} 款`);
-        _gridHtml += _restProds.map(_mkCardEdge).join('');
-        _gridHtml += `<div style="grid-column:1/-1;margin-top:4px;padding:12px 14px;background:var(--glow);border:1px solid rgba(59,123,246,.25);display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-size:12px;color:var(--silver);line-height:1.5">顾问协助申请<br><span style="color:var(--plat)">额度和利率更有保障</span></span><button onclick="showQrModal()" style="flex-shrink:0;background:var(--accentB);color:#fff;border:none;padding:9px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:.04em">联系顾问 →</button></div>`;
-      }
-    } else {
-      // C级：保持原有三层分组
-      const _bigBank  = products.filter(p=>p.type==='bank'&&(p.tags||[]).includes('国有大行'));
-      const _othBank  = products.filter(p=>p.type==='bank'&&!(p.tags||[]).includes('国有大行'));
-      const _finProds = products.filter(p=>p.type!=='bank');
-      if(_bigBank.length)  _gridHtml += _tierHd('国有大行','优先申请，利率最低') + _bigBank.map(_mkCard).join('');
-      if(_othBank.length)  _gridHtml += _tierHd('股份制 / 城商行','') + _othBank.map(_mkCard).join('');
-      if(_finProds.length) _gridHtml += _tierHd('消费金融','备选，最后申请') + _finProds.map(_mkCard).join('');
-    }
+    // 付费后：方向级建议面板（不再展示具体产品/银行/利率%）
+    // _mkCard / _mkCardA / _tierHd / _gapItems 等具体产品渲染逻辑保留但不调用，
+    // 等数据样本起来后做精准匹配可恢复
+    const _dirAccess = {
+      A: { big:'当前可尝试',     joint:'当前可尝试', city:'当前可尝试', cf:'不推荐 · 自损资质' },
+      B: { big:'优化后可申请',   joint:'当前可尝试', city:'当前可尝试', cf:'谨慎选择'         },
+      C: { big:'6 个月后',        joint:'3 个月后',    city:'当前可尝试', cf:'当前可尝试'       },
+      D: { big:'9 个月后',        joint:'6 个月后',    city:'3 个月后',    cf:'当前保底方案'     },
+    }[v2Level] || { big:'--', joint:'--', city:'--', cf:'--' };
+
+    const _stateColor = s => {
+      if (s.indexOf('当前可尝试') >= 0 || s.indexOf('保底方案') >= 0) return { bg:'rgba(12,184,122,.12)',  bd:'rgba(12,184,122,.4)',  tx:'#0CB87A', accent:'#0CB87A' };
+      if (s.indexOf('谨慎') >= 0)                                      return { bg:'rgba(217,128,0,.12)',   bd:'rgba(217,128,0,.4)',   tx:'#D98000', accent:'#D98000' };
+      if (s.indexOf('不推荐') >= 0 || s.indexOf('暂不') >= 0)           return { bg:'rgba(217,48,48,.12)',   bd:'rgba(217,48,48,.4)',   tx:'#D93030', accent:'#D93030' };
+      return                                                              { bg:'rgba(251,191,36,.12)',   bd:'rgba(251,191,36,.4)',   tx:'#fbbf24', accent:'#fbbf24' };
+    };
+    const _dirCard = (icon, name, hint, state) => {
+      const c = _stateColor(state);
+      return `<div style="grid-column:1/-1;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-left:3px solid ${c.accent};display:flex;align-items:center;gap:12px;margin-bottom:8px;box-sizing:border-box">
+        <div style="font-size:22px;line-height:1;flex-shrink:0">${icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:700;color:var(--white);margin-bottom:3px">${esc(name)}</div>
+          <div style="font-size:11px;color:var(--silver);line-height:1.5">${esc(hint)}</div>
+        </div>
+        <div style="flex-shrink:0;font-size:12px;font-weight:600;padding:5px 12px;background:${c.bg};border:1px solid ${c.bd};color:${c.tx};white-space:nowrap">${esc(state)}</div>
+      </div>`;
+    };
+
+    const _advisorCopy = {
+      A: ['选白名单银行准入通道，避免普通通道审批受阻', '协助谈判最低利率档位，避免走普通通道多付利息', '协调多家银行的申请先后顺序'],
+      B: ['制定精准的申请顺序（避免错误顺序浪费查询次数）', '在主流银行中选择最易过的产品组合', '协助谈判利率档位'],
+      C: ['选过渡方向的具体产品和申请顺序', '制定 3 个月修复路径，争取尽快进入股份制银行区间', '把握每个时间窗口的最优选择'],
+      D: ['制定 9 个月修复计划，每月进度同步', '当前保底方向的安全选择', '避免错过关键修复节点'],
+    }[v2Level] || ['请联系顾问获取专属建议'];
+
+    const _gridHtml = `
+      <div style="grid-column:1/-1;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">DIRECTIONS · 申请方向</div>
+      ${_dirCard('🏛', '国有大行 / 优质银行', '最低利率档 · 通过率最高 · 流程严谨', _dirAccess.big)}
+      ${_dirCard('🏦', '股份制银行信用贷',     '主流利率档 · 议价空间最大',         _dirAccess.joint)}
+      ${_dirCard('🏢', '城商行 / 区域银行',     '本地资质优惠 · 申请门槛灵活',       _dirAccess.city)}
+      ${_dirCard('💼', '消费金融产品',          '门槛最低 · 利率最高 · 仅作过渡或保底', _dirAccess.cf)}
+      <div style="grid-column:1/-1;margin-top:16px;padding:14px 16px;background:var(--raised);border:1px solid var(--border);box-sizing:border-box">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">ADVISOR VALUE · 顾问介入价值</div>
+        ${_advisorCopy.map(t => `<div style="display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--plat);line-height:1.6;margin-bottom:6px"><span style="color:var(--accentB);flex-shrink:0">→</span><span>${esc(t)}</span></div>`).join('')}
+        <button onclick="showQrModal()" style="width:100%;background:var(--accentB);color:#fff;border:none;padding:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:.04em;margin-top:12px">联系专属顾问，获取定制申请方案 →</button>
+        <div style="font-size:11px;color:var(--silver);opacity:.65;margin-top:10px;line-height:1.6;text-align:center">顾问仅提供咨询与申请协助，最终申请决策完全由你做出</div>
+      </div>
+    `;
     document.getElementById('productsGrid').innerHTML = _gridHtml;
 
-    // ── 差距可视化：近似产品 ──
-    const _matchedIds = new Set(products.map(p => p.id));
-    const _gapItems = getProducts()
-      .filter(p => !_matchedIds.has(p.id) && p.type === 'bank')
-      .map(p => {
-        const gaps = [];
-        if (v2Score > 0 && v2Score < p.hurdle)
-          gaps.push({ label:`评分差${p.hurdle - v2Score}分`, months: Math.ceil((p.hurdle-v2Score)/15) });
-        if (p.maxQ3 && q3 > p.maxQ3)
-          gaps.push({ label:`查询多${q3-p.maxQ3}次`, months: Math.min(3, q3-p.maxQ3+1) });
-        if (p.maxQ1 && q1m > p.maxQ1)
-          gaps.push({ label:`近1月查询${q1m}次超限`, months: 1 });
-        if (p.maxDebt && income > 0 && dr > p.maxDebt)
-          gaps.push({ label:`负债率${dr}%超${p.maxDebt}%`, months: 6 });
-        if (!gaps.length) return null;
-        const minMonths = Math.min(...gaps.map(g => g.months));
-        const fd = new Date(); fd.setMonth(fd.getMonth() + minMonths);
-        return { p, gaps: gaps.slice(0,2), minMonths, fixDateStr: `${fd.getFullYear()}年${fd.getMonth()+1}月` };
-      })
-      .filter(Boolean)
-      .filter(g => g.gaps.length <= 2 && g.minMonths <= 6)
-      .sort((a,b) => a.gaps.length - b.gaps.length || a.minMonths - b.minMonths)
-      .slice(0, 3);
+    // 差距可视化（基于具体银行/产品名）整体隐藏，新定位下不再展示
     const _gapEl = document.getElementById('gapSection');
-    if (_gapEl) {
-      if (_gapItems.length > 0 && v2Level !== 'D') {
-        _gapEl.style.display = 'block';
-        _gapEl.innerHTML = `<div class="gap-hd">再努力一点可解锁</div>${_gapItems.map(g=>`<div class="gap-item"><div class="gap-top"><span class="gap-bank">${esc(g.p.bank)} · ${esc(g.p.product)}</span><span class="gap-rate">${esc(g.p.rate)}</span></div><div class="gap-issues">${g.gaps.map(x=>`<span class="gap-tag">▲ ${esc(x.label)}</span>`).join('')}</div><div class="gap-fix"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accentB)" stroke-width="2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>预计 <strong style="color:var(--white)">${esc(g.fixDateStr)}</strong> 可达标</div></div>`).join('')}`;
-      } else {
-        _gapEl.style.display = 'none';
-      }
-    }
+    if (_gapEl) _gapEl.style.display = 'none';
 
-    // 信用卡分期补充提示
+    // 信用卡分期补充：按需保留（其文案不依赖 BANK_PRODUCTS，先维持显示）
     const _ccTips = document.getElementById('ccInstallTips');
-    if (_ccTips) {
-      _ccTips.style.display = 'block';
-    }
+    if (_ccTips) _ccTips.style.display = 'block';
   }
 
   // 旧版分析报告兼容渲染

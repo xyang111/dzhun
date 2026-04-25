@@ -531,10 +531,10 @@ function parseReportByRules(md) {
   const overdue_current         = loans.filter(l => l.status === '逾期').length;
 
   // ── 8. 置信度计算 ─────────────────────────────────────────────
-  // 基础字段 0.70
+  // 注：身份证号在征信报告中永远被遮蔽，不作为置信度信号
+  // 基础字段 0.70 → 调整为 0.45（姓名）+ 0.20（日期，可选）
   let conf = 0;
-  if (person_name) conf += 0.25;
-  if (/^\d{17}[\dX]$/i.test(id_number))          conf += 0.25;
+  if (person_name) conf += 0.45;
   if (/^\d{4}-\d{2}-\d{2}$/.test(report_date))   conf += 0.20;
   // 贷款数校验 0.18
   if (summaryActiveLoans >= 0) {
@@ -598,43 +598,48 @@ function buildMatchPrompt(payload) {
     : '（四域评分未传入）';
 
   const levelInstruction = {
-    A: `客户是 A 级（${score}分，PREMIUM ACCESS）。你的核心任务：
-① key_risk：写"利率损失提示"而非风险——如果走错渠道或顺序，利率差约1%-2%，换算成真实金额损失（参考月收入/可能借款额估算，格式："走错渠道，同等资质多付约X元利息"）。
-② optimization：1-2步。第一步必须体现"先对接白名单通道"${whitelistWork ? `（该客户${workVal}，属白名单职业，明确指出）` : '（根据资质判断是否适用）'}；第二步给利率谈判或提额路径。unlock字段写具体利率目标区间如"锁定3.0%-3.5%档"。
-③ advice.strengths：列出让他进入A级的2个具体指标，精确到数字。advice.issues：写"如果不做白名单对接/渠道优化，可能少拿的利率差或额度上限"。advice.suggestions：按申请顺序给1-2步框架，强调顺序和渠道需要人工协助。`,
-    B: `客户是 B 级（${score}分，OPTIMIZATION GAP）。该客户已可直接申请多款银行产品，不需要任何"过渡"方案。
+    A: `客户是 A 级（${score}分，PREMIUM ACCESS）。客户已进入银行优质准入区间。你的核心任务：
+① key_risk：写"利率档损失提示"——如果不通过白名单通道、不优化申请顺序，可能落入次优利率档，格式如"走错通道，利率档可能下调 1-2 级，长期成本被放大"。不写具体百分比。
+② optimization：1-2步。第一步必须体现"先对接白名单通道"${whitelistWork ? `（该客户${workVal}，属白名单职业，明确指出）` : '（根据资质判断是否适用）'}；第二步给"利率档锁定"或"提额方向"。unlock 字段写"锁定最低利率档"或"额度上限上调"等定性描述，不出现具体百分比/万元。
+③ advice.strengths：列出让他进入A级的2个具体征信指标，精确到数字（查询次数、负债率等）。advice.issues：写"如果不做白名单对接/通道优化，可能少拿的利率档差或额度上限"。advice.suggestions：按申请顺序给1-2步框架，强调顺序和通道需要顾问协助。`,
+    B: `客户是 B 级（${score}分，OPTIMIZATION GAP）。客户已可直接进入银行信用贷区间，不需要任何"过渡"方案。
 ⚠️ 严格禁止以下 C/D 级建议混入 B 级输出：
-  - 禁止建议申请消费金融/网贷作为过渡（客户已有银行产品可申）
+  - 禁止建议申请消费金融/网贷作为过渡（客户已可进入银行区间）
   - 禁止建议"暂停所有申请"或"停止点击链接"
-  - 禁止出现"先用高利率过渡"或任何18%年化相关建议
+  - 禁止出现"先用高利率过渡"或任何具体百分比相关建议
   - 禁止建议"等待征信修复后再申请"——B级客户现在就可以申请
 
-你的核心任务是"损失量化"：让客户感受到不找顾问、不优化申请顺序的代价。
-① key_risk：用"现在最高X万，优化申请顺序后可达Y万，差Z万额度"这个句式，Z必须是具体数字（从candidateSummary最高额度估算，优化后+30%-50%）。
-② optimization：聚焦在"申请顺序"和"利率谈判"，不是等待。1-3步，time字段用相对时间（"立即""1个月后"），禁止绝对年月。重点：哪家银行先申通过率最高、顺序错了会浪费多少查询次数、顾问协助谈判可以节省多少利息。unlock字段必须含金额或利率数字。
-③ advice.issues：必须写"申请顺序不对"的具体代价（多消耗X次查询、多付X元利息）。advice.suggestions：给出精确申请顺序建议，强调"顾问协助谈判最低利率"。`,
-    C: `客户是 C 级（${score}分，RECOVERY PATH）。你的核心任务是"利率时间轴"，让客户感受到高利率的真实成本：
-① key_risk：用"现在只能用18%年化产品，3个月后可降到X%，每借10万一年多付Y元利息"这个句式（Y = (0.18 - 目标利率) × 100000）。
-② optimization：2-3步时间轴，time字段必须用相对时间（"立即""3个月后""6个月后"），禁止绝对年月。当前可用的过渡产品是第一步（写产品类型和利率）；第二步写3个月后解锁什么（从xai issues里找修复时间最短的）；第三步写6个月后的目标。unlock字段写利率变化如"利率从18%降至8%"。
-③ advice.strengths：从candidateSummary中找现在能申请的产品，给客户建立信心。advice.issues：用利息成本量化（"用高利率过渡比等3个月直接上银行多付X元"），但语气给希望不给绝望。advice.suggestions：给具体过渡路径，强调"申请顺序影响3个月后的资格"。`,
+你的核心任务是"申请顺序优化"：让客户感受到不找顾问、不优化申请顺序的代价。
+① key_risk：用"现在直接申请，可能因申请顺序错误浪费查询次数；优化顺序后，资质可进入更优利率档"句式，不写具体万元/百分比。
+② optimization：聚焦在"申请顺序"和"利率档优化"，不是等待。1-3步，time 字段用相对时间（"立即""1个月后"），禁止绝对年月。重点：哪类银行（用方向描述，如"国有大行""股份制银行"，禁止具体银行名）先申通过率最高、顺序错了会浪费多少查询次数、顾问协助可争取更优利率档。unlock 字段定性，不含具体百分比/万元。
+③ advice.issues：必须写"申请顺序不对"的代价（多消耗 X 次查询、利率档下调）。advice.suggestions：给精确申请顺序框架（用"国有大行 → 股份制银行 → 城商行"这类方向描述，禁止出现具体银行名），强调"顾问协助锁定最低利率档"。`,
+    C: `客户是 C 级（${score}分，RECOVERY PATH）。客户当前处于城商行 / 消金过渡区间。你的核心任务是"恢复时间轴"：
+① key_risk：用"当前只能走消金过渡方向，3 个月后可进入股份制银行区间，6 个月后可进入国有大行区间"句式，不写具体年化利率。
+② optimization：2-3步时间轴，time 字段必须用相对时间（"立即""3个月后""6个月后"），禁止绝对年月。当前可用方向是第一步（写方向类型，禁止具体产品/银行名）；第二步写3个月后解锁的方向（从xai issues里找修复时间最短的）；第三步写6个月后的目标方向。unlock 字段写方向变化如"进入股份制银行区间"。
+③ advice.strengths：从征信指标里找让他进入C级而非D级的具体优势（无逾期、社保稳定、有公积金等），给客户建立信心。advice.issues：用利率档成本量化（"走过渡方向比等3个月直接进入主流银行区间多承担 1-2 档利率"，不写具体百分比）。advice.suggestions：给具体方向路径，强调"申请顺序影响3个月后的资格"。`,
     D: `客户是 D 级（${score}分，REHABILITATION PLAN）。银行通道暂时关闭。禁止做损失量化，客户已经知道情况不好，不需要再强化焦虑。你的核心任务是给控制感和路线图：
 ① key_risk：直接说明导致D级的主因（从xai issues第一条，精确描述），一句话，语气是解释不是判决。
-② optimization：严格按时间轴三步，time字段用相对时间（"立即""3个月后""6个月后"），禁止绝对年月——第一步"立即执行"（具体做什么），第二步"3个月后"（第一个里程碑，解锁什么），第三步"6个月后"（回到C级/B级的节点）。每步的unlock写"解锁城商行+X款产品"或"进入股份制银行区间"这类具体里程碑。
+② optimization：严格按时间轴三步，time 字段用相对时间（"立即""3个月后""6个月后"），禁止绝对年月——第一步"立即执行"（具体做什么），第二步"3个月后"（第一个里程碑，解锁什么方向），第三步"6个月后"（回到C级/B级的节点）。每步的 unlock 写"进入城商行区间"或"进入股份制银行区间"这类方向里程碑，禁止具体银行/产品名。
 ③ advice.strengths：找任何可以建立信心的点（哪怕是"无历史逾期"或"公积金在缴"）。advice.issues：解释原因，不指责。advice.suggestions：第一步最重要的单一行动，给足执行细节，让客户知道"做这件事就是在向前走"。`,
   }[level] || '';
 
   const todayStr = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Shanghai' });
 
-  return `你是贷准AI信贷顾问。以下是一位真实客户的完整征信分析数据，请根据客户等级生成个性化分析报告。
+  return `你是贷准AI信贷顾问。以下是一位真实客户的完整征信分析数据，请根据客户等级生成方向级建议。
 
 【今日日期】${todayStr}（所有时间节点必须从今天起算，严禁输出历史日期或征信报告日期）
 
-【写作规则】
-- 口语化，数字精确（不说"偏高"，说"高了2次"）
-- 禁止出现"建议直接去银行柜台申请"或"自行前往XX银行"等绕过客服的表述
-- 本地规则引擎已完成产品筛选和通过率计算，你不需要重新做这件事
-- 只输出前端实际渲染的3个字段：key_risk、optimization、advice
-- time字段必须用相对时间（"立即""1个月后""3个月后""6个月后"），严禁输出"XXXX年X月"等绝对日期
+【写作规则 — 强制执行】
+1. 口语化，关键判断量化（不说"偏高"，说"高了 2 次"）
+2. 严禁出现以下内容（违反任何一条都视为生成失败）：
+   ① 任何具体银行名称（如招商/建设/工商/平安/浦发/中信/厦门银行等，全部禁止）
+   ② 任何具体产品名称（如闪电贷/E秒贷/信秒贷/借呗/微粒贷等，全部禁止）
+   ③ 任何具体年化利率百分比数字（如 3.6% / 18% / 24% / APR X%）—— 利率必须用定性描述（"低""主流""偏高""高"或"利率档：第 N 档"）
+   ④ "建议直接去银行柜台申请""自行前往XX银行"等绕过顾问的表述
+3. 谈方向时只用以下五个方向类型：国有大行 / 股份制银行 / 城商行 / 消费金融 / 网贷
+4. 本地规则引擎已完成方向判断，你不需要重新做这件事；你只需要根据客户等级写"key_risk + optimization + advice"
+5. 只输出前端实际渲染的 3 个字段：key_risk、optimization、advice
+6. time 字段必须用相对时间（"立即""1个月后""3个月后""6个月后"），严禁输出"XXXX年X月"等绝对日期
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 【V2.0评分】${score}分 · ${level}级（A=800+优质准入 | B=650-799优化空间 | C=500-649恢复路径 | D=500以下修复计划）
@@ -653,14 +658,10 @@ ${xaiText}
 当前逾期：${creditData.overdueCurrent || 0}笔 | 历史逾期：${creditData.overdueHistoryNotes || '无'}
 查询（申请类合计）：近1月${q1m}次 | 近3月${q3m}次 | 近6月${q6m}次 | 近1年${q12m}次
 
-【贷款明细】
+【贷款明细（仅供分析征信结构，不得在输出中引用具体机构名）】
 ${loanDesc}
-【信用卡明细】
+【信用卡明细（仅供分析使用率/账龄，不得在输出中引用具体银行名）】
 ${cardDesc}
-
-【引擎匹配结果（已完成，勿重复计算）】
-可申请产品：${candidateSummary}
-排除摘要：${rejectedSummary}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 【当前客户等级专属写作指令】
 ${levelInstruction}
@@ -907,7 +908,7 @@ async function handleOCR(request, env) {
         try {
           const { result: ruleResult, confidence } = parseReportByRules(combinedMarkdown);
           console.log(`[OCR] rule engine conf:${confidence.toFixed(2)} loans:${ruleResult.loans.length} cards:${ruleResult.cards.length} name:"${ruleResult.person_name}" id:${ruleResult.id_number?'ok':'FAIL'} date:${ruleResult.report_date||'FAIL'}`);
-          if (confidence >= 0.8) {
+          if (confidence >= 0.5) {
             const raw = JSON.stringify(ruleResult);
             await writeCache(raw);
             const _rem1 = await deductAgent();
@@ -922,31 +923,38 @@ async function handleOCR(request, env) {
         const cleaned = cleanMarkdown(combinedMarkdown);
         console.log('[OCR] markdown cleaned:', combinedMarkdown.length, '→', cleaned.length, '→ Haiku');
 
-        const prompt = `以下是征信报告的文字内容：\n\n${cleaned}\n\n${PROMPT_OCR_TEXT}`;
+        try {
+          const prompt = `以下是征信报告的文字内容：\n\n${cleaned}\n\n${PROMPT_OCR_TEXT}`;
 
-        const cr = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json', 'anthropic-version':'2023-06-01', 'x-api-key': claudeKey },
-          body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 16384,
-            temperature: 0,
-            messages: [{ role: 'user', content: prompt }],
-          }),
-        });
-        const cd = await cr.json();
-        if (cd.error) throw new Error(cd.error.message);
-        if (cd.stop_reason === 'max_tokens') {
-          // 输出被截断 → 抛出异常触发降级到 Sonnet Vision，避免返回残缺JSON
-          console.error('[Haiku] truncated even at 16384 tokens, cleaned len:', cleaned.length, '→ fallback to Sonnet');
-          throw new Error('haiku_truncated');
+          const cr = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json', 'anthropic-version':'2023-06-01', 'x-api-key': claudeKey },
+            body: JSON.stringify({
+              model: 'claude-sonnet-4-20250514',
+              max_tokens: 16384,
+              temperature: 0,
+              messages: [{ role: 'user', content: prompt }],
+            }),
+          });
+          const cd = await cr.json();
+          if (cd.error) {
+            console.error('[Haiku] API error type:', cd.error.type, 'message:', cd.error.message, '→ fallback to Sonnet');
+            throw new Error('haiku_api_error');
+          }
+          if (cd.stop_reason === 'max_tokens') {
+            console.error('[Haiku] truncated even at 16384 tokens, cleaned len:', cleaned.length, '→ fallback to Sonnet');
+            throw new Error('haiku_truncated');
+          }
+          console.log('[Haiku] stop_reason:', cd.stop_reason, 'tokens:', cd.usage?.output_tokens);
+
+          const raw = extractRaw((cd.content||[]).map(b=>b.text||'').join(''));
+          await writeCache(raw);
+          const _rem2 = await deductAgent();
+          return jsonResp({ raw, _engine: 'textin+haiku', agentRemaining: _rem2 }, 200, request);
+        } catch (he) {
+          // Haiku 失败不影响 Textin 路径计数，直接进入 Sonnet Vision
+          console.error('[Haiku] exception:', he.message, '→ fallback to Sonnet Vision');
         }
-        console.log('[Haiku] stop_reason:', cd.stop_reason, 'tokens:', cd.usage?.output_tokens);
-
-        const raw = extractRaw((cd.content||[]).map(b=>b.text||'').join(''));
-        await writeCache(raw);
-        const _rem2 = await deductAgent();
-        return jsonResp({ raw, _engine: 'textin+haiku', agentRemaining: _rem2 }, 200, request);
       }
 
       if (!textinFailed) console.warn('[Textin] empty markdown → fallback');
