@@ -2237,22 +2237,14 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt, products) {
     `</div>`;
 
   if (level === 'A') {
-    const _parseMinRate = arr => {
-      if (!arr || !arr.length) return null;
-      const rates = arr.map(p => parseFloat((p.rate || '').split('%')[0]) || 99).filter(v => v < 99);
-      return rates.length ? Math.min(...rates) : null;
-    };
-    const minRateVal = _parseMinRate(products);
-    const minRateDisp = minRateVal != null ? minRateVal.toFixed(2).replace(/\.?0+$/, '') + '%起' : '--';
-
     el.innerHTML = `<div class="hero-wrap hero-a">
       <div class="hero-eyebrow">A级 · PREMIUM ACCESS</div>
       <div class="hero-title">您已进入银行优质准入区间</div>
-      <div class="hero-sub">征信状态优质 · ${cp}款产品可直接申请 · 利率可谈至最低档</div>
+      <div class="hero-sub">征信状态优质 · 可尝试银行信用贷主流产品 · 利率可谈至最低档</div>
       <div class="hero-metrics cols-3">
-        ${_metricBox('可申请最低利率', minRateDisp, '')}
-        ${_metricBox('综合评分', scoreDisp, '')}
-        ${_metricBox('符合产品数', cp + '款', '')}
+        ${_metricBox('综合评分', scoreDisp + ' / 1000', '')}
+        ${_metricBox('资质等级', 'A 级优质', '')}
+        ${_metricBox('利率档位', '最低档可谈', '')}
       </div>
       <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></span><span><strong style="color:#fff">专属白名单通道：</strong>您的资质符合银行优先审批条件，最低利率需人工对接谈判</span></div>
     </div>`;
@@ -2261,46 +2253,28 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt, products) {
 
   if (level === 'B') {
     const nOpt = Array.isArray(r.optimization) ? r.optimization.length : 3;
-    const gainText = gapW > 0
-      ? `多拿 <span style="color:#4ade80">${gapW}万</span> 额度`
-      : op > cp
-        ? `多申请 <span style="color:#4ade80">${op - cp}款</span> 产品`
-        : `提升整体<span style="color:#4ade80">通过率</span>`;
-    const subLine = op > cp
-      ? `当前资质符合${cp}款产品 · 优化后可达${op}款 · 最快3个月见效`
-      : `当前资质符合${cp}款产品 · 按推荐顺序申请可提升通过率`;
-    // 三档显示：① 有额度提升 → 额度对比；② 无额度提升但可多解锁产品 → 产品数对比；③ 都没有 → 不显示格子
-    const _metricsHtml = gapW > 0
-      ? `<div class="hero-metrics cols-2">
-          ${_metricBox('当前可贷额度', _isAmtNum(curAmt) ? curAmt + '万' : curAmt, '')}
-          ${_metricBox('优化后可达', _isAmtNum(optAmt) ? optAmt + '万 <span style="font-size:11px">↑多' + gapW + '万</span>' : optAmt, 'gain')}
-        </div>`
-      : op > cp
-        ? `<div class="hero-metrics cols-2">
-            ${_metricBox('当前符合产品', cp + '款', '')}
-            ${_metricBox('优化后可达', op + '款', 'gain')}
-          </div>`
-        : '';
     el.innerHTML = `<div class="hero-wrap hero-b">
       <div class="hero-eyebrow">B级 · OPTIMIZATION GAP</div>
-      <div class="hero-title">做${nOpt}个优化，可以${gainText}</div>
-      <div class="hero-sub">${subLine}</div>
-      ${_metricsHtml}
-      <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span><span>申请顺序搞错会多等3个月 · 客服给你精准执行计划</span></div>
+      <div class="hero-title">差 <span style="color:#4ade80">${nOpt} 步</span> 可以进入优质准入区间</div>
+      <div class="hero-sub">按顺序完成 ${nOpt} 个优化后，资质可进入银行优质准入区间 · 最快 3 个月见效</div>
+      <div class="hero-metrics cols-2">
+        ${_metricBox('当前评分', scoreDisp + ' / 1000', '')}
+        ${_metricBox('目标区间', 'A 级优质准入', 'gain')}
+      </div>
+      <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span><span>申请顺序搞错会多等 3 个月 · 顾问可提供精准执行计划</span></div>
     </div>`;
     return;
   }
 
   if (level === 'C') {
-    // +9款/+6款 是设计文案（代表各层次的典型解锁数量），非实时产品数
     el.innerHTML = `<div class="hero-wrap hero-c">
       <div class="hero-eyebrow">C级 · RECOVERY PATH</div>
-      <div class="hero-title">当前有 <span style="color:#fbbf24">${cp}款</span> 产品可立即申请</div>
-      <div class="hero-sub">3–6个月优化后，可进入主流股份制银行区间</div>
+      <div class="hero-title">当前处于 <span style="color:#fbbf24">城商行 / 消金过渡区间</span></div>
+      <div class="hero-sub">3–6 个月优化后，可进入主流股份制银行区间</div>
       <div class="hero-metrics cols-3">
-        ${_metricBox('现在可申请', cp + '款', '', '城商行 + 消金')}
-        ${_metricBox('3个月后解锁', '+9款 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px;vertical-align:middle;opacity:.7"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>', 'locked', '股份制银行')}
-        ${_metricBox('6个月后解锁', '+6款 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px;vertical-align:middle;opacity:.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>', 'locked', '国有大行')}
+        ${_metricBox('当前区间', '城商行 · 消金', '', '可尝试申请')}
+        ${_metricBox('3 个月后', '股份制银行', 'locked', '主流产品区间')}
+        ${_metricBox('6 个月后', '国有大行', 'locked', '优质准入区间')}
       </div>
       <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span><span>过渡方案可用，但申请顺序很关键 · 顺序错了影响后续恢复</span></div>
     </div>`;
@@ -2311,11 +2285,11 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt, products) {
   el.innerHTML = `<div class="hero-wrap hero-d">
     <div class="hero-eyebrow">D级 · REHABILITATION PLAN</div>
     <div class="hero-title">银行通道暂时关闭</div>
-    <div class="hero-sub">专属征信修复路线图已生成 · 预计 <strong style="color:#fff">9个月</strong> 后重新达到银行准入</div>
+    <div class="hero-sub">专属征信修复路线图已生成 · 预计 <strong style="color:#fff">9 个月</strong> 后重新达到银行准入</div>
     <div class="hero-metrics cols-3">
-      ${_metricBox('当前保底方案', '2款消金', '')}
-      ${_metricBox('第一里程碑', '第3个月', 'milestone')}
-      ${_metricBox('恢复银行准入', '第9个月', 'recovery')}
+      ${_metricBox('当前方向', '消金保底', '')}
+      ${_metricBox('第一里程碑', '第 3 个月', 'milestone')}
+      ${_metricBox('恢复银行准入', '第 9 个月', 'recovery')}
     </div>
     <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span><span>恢复期全程陪伴 · 每月进度同步 · 不是一次性报告</span></div>
   </div>`;
@@ -2332,31 +2306,31 @@ function _renderRehabRoadmap(r) {
       dotCls: 'now',
       month: '当前 · 立即执行',
       task: '停止所有贷款申请，避免查询次数增加',
-      unlock: '保底可申请：消费金融保底方案（2款）',
+      unlock: '保底方向：消费金融产品可尝试',
       unlockCls: 'active',
       hasLine: true,
     },
     {
       dotCls: 'm3',
-      month: '第3个月',
-      task: '查询冷却完成 + 完成1笔按时还款记录',
-      unlock: '解锁：城商行产品（+4款）',
+      month: '第 3 个月',
+      task: '查询冷却完成 + 完成 1 笔按时还款记录',
+      unlock: '可进入：城商行信用贷区间',
       unlockCls: '',
       hasLine: true,
     },
     {
       dotCls: 'm6',
-      month: '第6个月',
+      month: '第 6 个月',
       task: '持续良好还款记录，网贷机构降至安全线',
-      unlock: '解锁：股份制银行产品（+9款）',
+      unlock: '可进入：股份制银行主流产品区间',
       unlockCls: '',
       hasLine: true,
     },
     {
       dotCls: 'm9',
-      month: '第9个月 · 目标节点',
-      task: '征信状态恢复至C级，可申请主流银行',
-      unlock: '解锁：国有大行产品，利率可达5%-7%',
+      month: '第 9 个月 · 目标节点',
+      task: '征信状态恢复至 C 级，可申请主流银行',
+      unlock: '可进入：国有大行 / 优质银行区间',
       unlockCls: 'active',
       hasLine: false,
     },
@@ -2530,20 +2504,22 @@ function renderMatchResult(r) {
       if (_liftTitle) _liftTitle.textContent = '做这几步，可以多拿这些';
     }
     document.getElementById('convLiftActions').innerHTML=da.map(a=>`<div class="lift-action"><div class="lift-check"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div><div class="lift-txt">${esc(a.action)}（${esc(a.impact)}）</div></div>`).join('');
-    const cp=r.current_products||products.length;
-    const op=Math.max(cp, r.optimized_products || (cp + 2));
     // B级的对比数据已在 hero 区展示，convLift 只保留行动清单和 gap 文字
     const _liftCompare=liftEl.querySelector('.lift-compare');
     if(_liftCompare) _liftCompare.style.display = v2Level === 'B' ? 'none' : '';
     if(v2Level !== 'B'){
-      const pb=document.getElementById('convLiftProdB');if(pb)pb.textContent=cp+' 款';
-      const pa=document.getElementById('convLiftProdA');if(pa)pa.textContent=op+' 款';
-      const ab=document.getElementById('convLiftAmtB');if(ab)ab.textContent=_isAmtNum(curAmt)?'额度 '+curAmt+' 万':curAmt;
-      const aa=document.getElementById('convLiftAmtA');if(aa)aa.textContent=_isAmtNum(optAmt)?'额度 '+optAmt+' 万':optAmt;
+      const scoreNow = (window._v2Result && window._v2Result.score) || r.cs_score || 0;
+      const _levelMap = {
+        A: { cur: 'A 级优质准入', next: '最低利率档',     gain: '利率档位可下调' },
+        C: { cur: 'C 级恢复期',   next: 'B 级优化空间',   gain: '资质分可进入优化区间' },
+      }[v2Level] || { cur: '当前区间', next: '目标区间', gain: '整体提升' };
+      const pb=document.getElementById('convLiftProdB');if(pb)pb.textContent=scoreNow>0?scoreNow+' / 1000':'-- / 1000';
+      const pa=document.getElementById('convLiftProdA');if(pa)pa.textContent=_levelMap.next;
+      const ab=document.getElementById('convLiftAmtB');if(ab)ab.textContent=_levelMap.cur;
+      const aa=document.getElementById('convLiftAmtA');if(aa)aa.textContent=_levelMap.gain;
     }
     const lg=document.getElementById('convLiftGap');
-    const _liftDiff=op-cp;
-    if(lg)lg.textContent=gapW>0?'优化后可多拿约 '+gapW+' 万额度':_liftDiff>0?'优化后可多申请 '+_liftDiff+' 款产品':'优化后通过率大幅提升';
+    if(lg)lg.textContent='按顺序完成以上优化，资质区间与通过率都会提升';
   }
 
   // ⑤ 定制申请顺序提示（替代旧版3步路径，4类话术）
@@ -2551,15 +2527,16 @@ function renderMatchResult(r) {
   if(pathEl && getPayToken()){
     pathEl.style.display='block';
     const _pathCopy = {
-      A: { line1: '你的资质已进入优质准入区间', line2: '顾问可协助对接白名单通道、锁定最低利率档位，避免走普通通道多付利息。' },
-      B: { line1: '你的具体申请顺序已根据征信定制', line2: '申请顺序错误会多消耗查询次数、影响后续通过率，建议联系顾问协助执行。' },
-      C: { line1: '你的征信修复与申请路径已定制', line2: '过渡方案的选择直接影响3个月后的恢复速度，建议顾问全程跟进，避免走弯路。' },
-      D: { line1: '你的征信修复计划已制定', line2: '每个时间节点的动作需要精准执行，顾问全程陪伴，每月同步进度。' },
-    }[v2Level] || { line1: '你的申请方案已根据征信定制', line2: '如需人工解读，请联系下方顾问。' };
+      A: { line1: '你的资质已进入优质准入区间', line2: '顾问可协助对接白名单通道、锁定最低利率档位，避免走普通通道多付利息。', cta: '联系顾问锁定白名单通道 →' },
+      B: { line1: '你的具体申请顺序已根据征信定制', line2: '申请顺序错误会多消耗查询次数、影响后续通过率，建议联系顾问协助执行。',     cta: '获取定制申请顺序 →' },
+      C: { line1: '你的征信修复与申请路径已定制', line2: '过渡方案的选择直接影响 3 个月后的恢复速度，建议顾问全程跟进，避免走弯路。', cta: '让顾问制定过渡方案 →' },
+      D: { line1: '你的征信修复计划已制定',     line2: '每个时间节点的动作需要精准执行，顾问全程陪伴，每月同步进度。',           cta: '启动 9 个月修复陪伴 →' },
+    }[v2Level] || { line1: '你的申请方案已根据征信定制', line2: '如需人工解读，请联系下方顾问。', cta: '联系顾问 →' };
     pathEl.innerHTML = `<div style="padding:14px 16px;background:var(--raised);border:1px solid var(--border)">
       <div style="font-size:13px;font-weight:700;color:var(--white);margin-bottom:4px">${esc(_pathCopy.line1)}</div>
       <div style="font-size:12px;color:var(--silver);line-height:1.6;margin-bottom:12px">${esc(_pathCopy.line2)}</div>
-      <button onclick="showQrModal()" style="width:100%;background:var(--accentB);color:#fff;border:none;padding:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:.04em">如需人工解读，联系顾问 →</button>
+      <button onclick="showQrModal()" style="width:100%;background:var(--accentB);color:#fff;border:none;padding:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:.04em">${esc(_pathCopy.cta)}</button>
+      <div style="font-size:11px;color:var(--silver);opacity:.65;margin-top:10px;line-height:1.6;text-align:center">顾问仅提供咨询与申请协助，最终申请决策完全由你做出</div>
     </div>`;
   }
 

@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>贷准 · AI信用数据分析与方案建议</title>
+<title>贷准 · 申请前的征信体检 · 工具</title>
 <!-- Open Graph / WeChat Share -->
-<meta property="og:title" content="给征信做一次体检 — 贷准 AI" />
-<meta property="og:description" content="102项检测维度，3分钟出报告，AI精准诊断你的信贷资质，首次免费。" />
+<meta property="og:title" content="申请贷款前，先做一次征信体检 — 贷准 AI" />
+<meta property="og:description" content="AI 读懂你的简版征信：负债结构 / 查询风险 / 优化建议。不替你申请贷款，不擅自发起查询。" />
 <meta property="og:image" content="https://dzhun.com.cn/share-cover.png" />
-<meta property="og:url" content="https://dzhun.com.cn/" />
+<meta property="og:url" content="https://dzhun.com.cn/checkup.html" />
 <meta property="og:type" content="website" />
-<meta name="description" content="102项检测维度，3分钟出报告，AI精准诊断你的信贷资质，首次免费。" />
-<link rel="stylesheet" href="style.css?v=1776671957">
+<meta name="description" content="AI 读懂你的简版征信报告，给出资质区间评估和方向级建议。不发起任何查询，不替你提交申请。" />
+<link rel="stylesheet" href="style.css?v=1777080269">
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 </head>
 <body>
@@ -60,9 +60,9 @@
 <main>
 <div class="container">
 
-  <div class="pg-eyebrow">智能征信分析平台</div>
+  <div class="pg-eyebrow">申请前的征信体检</div>
   <div class="pg-h1">个人征信智能解析</div>
-  <div class="pg-sub">上传简版征信报告，梳理负债结构 · 诊断信用健康，精准匹配产品与优化方案</div>
+  <div class="pg-sub">上传简版征信报告，梳理负债结构 · 诊断信用健康，给出资质区间与申请方向</div>
 
   <!-- STEP 1: UPLOAD -->
   <div class="pcard" id="uploadCard">
@@ -106,7 +106,7 @@
         <div id="creditGuidePanel" class="uz-guide-panel" style="display:none">
           <div class="uz-guide-tip">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0CB87A" stroke-width="2" style="flex-shrink:0;margin-top:2px"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            个人主动查询征信属于「软查询」，不会影响你的征信评分
+            个人主动查询征信属于「本人查询」，不会影响你的征信评分
           </div>
           <div class="uz-guide-steps">
             <div class="uz-guide-step">
@@ -720,14 +720,14 @@
             <div id="convLiftActions"></div>
             <div class="lift-compare">
               <div class="lift-col">
-                <div class="lift-col-lbl">优化前</div>
-                <div class="lift-col-val" id="convLiftProdB">-- 款</div>
-                <div class="lift-col-sub" id="convLiftAmtB">额度 -- 万</div>
+                <div class="lift-col-lbl">当前评分</div>
+                <div class="lift-col-val" id="convLiftProdB">-- / 1000</div>
+                <div class="lift-col-sub" id="convLiftAmtB">当前区间</div>
               </div>
               <div class="lift-col">
                 <div class="lift-col-lbl">优化后</div>
-                <div class="lift-col-val green" id="convLiftProdA">-- 款</div>
-                <div class="lift-col-sub" id="convLiftAmtA">额度 -- 万</div>
+                <div class="lift-col-val green" id="convLiftProdA">-- / 1000</div>
+                <div class="lift-col-sub" id="convLiftAmtA">目标区间</div>
               </div>
             </div>
             <div class="lift-gap" id="convLiftGap"></div>
@@ -888,8 +888,8 @@
   </div>
 </footer>
 
-<script src="config.js?v=1776671957"></script>
-<script src="app.js?v=1776671958"></script>
+<script src="config.js?v=1777080269"></script>
+<script src="app.js?v=1777080269"></script>
 
 <!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
 <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">
