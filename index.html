@@ -11,10 +11,31 @@
 <meta property="og:url" content="https://dzhun.com.cn/" />
 <meta property="og:type" content="website" />
 <script>
-  /* 代理商链接（?agent=XY001）自动转发到工具页，无需通知代理商换链接 */
-  if (/[?&]agent=/.test(location.search)) {
-    location.replace('/checkup.html' + location.search + location.hash);
-  }
+  /* 代理商链接（?agent=XY001）自动转发到工具页，无需通知代理商换链接
+     例外：从工具页 logo 点回主页时（sessionStorage 标记），不跳转，展示 Landing */
+  (function () {
+    var hasAgent = /[?&]agent=/.test(location.search);
+    var fromTool = sessionStorage.getItem('dzhun_came_from_tool') === '1';
+    if (fromTool) sessionStorage.removeItem('dzhun_came_from_tool');
+    if (hasAgent && !fromTool) {
+      location.replace('/checkup.html' + location.search + location.hash);
+    }
+  })();
+
+  /* 主页带 agent 时，把 agent 注入所有 CTA 链接，保证再次进工具页保留代理商上下文 */
+  document.addEventListener('DOMContentLoaded', function () {
+    var agent = new URLSearchParams(location.search).get('agent');
+    if (!agent) return;
+    document.querySelectorAll('a[href="/checkup.html"]').forEach(function (el) {
+      el.href = '/checkup.html?agent=' + encodeURIComponent(agent);
+    });
+    document.querySelectorAll('button[onclick]').forEach(function (el) {
+      var oc = el.getAttribute('onclick') || '';
+      if (oc.indexOf("/checkup.html") >= 0) {
+        el.setAttribute('onclick', oc.replace("/checkup.html'", "/checkup.html?agent=" + encodeURIComponent(agent) + "'"));
+      }
+    });
+  });
 </script>
 <style>
 :root {
