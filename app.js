@@ -2466,27 +2466,25 @@ function renderMatchResult(r) {
     document.getElementById('convProbList').innerHTML=dp.map((p,i)=>`<div class="prob-item"><div class="prob-n">${i+1}</div><div><div class="prob-name"><strong>${esc(p.name)}：${esc(p.value)}</strong></div><div class="prob-desc">→ ${esc(p.threshold)}${p.severity==='high'?' · 影响较大':''}</div></div></div>`).join('');
   }
 
-  // ③ 损失对比
+  // ③ 损失对比（去具体利率，改为利率档定性叙事）
   const lossEl=document.getElementById('convLoss');
   if(lossEl && v2Level !== 'A' && v2Level !== 'D' && !(v2Level === 'B' && _tier === 'bank')){
     lossEl.style.display='block';
-    // 银行tier客户已能申请银行产品，改为"顺序"对比；否则保持"消费金融vs银行"
     const nt=document.getElementById('convLossNowType');
     const nr=document.getElementById('convLossNowRate');
     const lossTitle=lossEl.querySelector('.conv-sec-title');
     if(_tier==='bank'){
       if(lossTitle) lossTitle.textContent='申请顺序的影响有多大';
       if(nt) nt.textContent='顺序错误：同时多家';
-      if(nr) nr.textContent='查询暴增→全部被拒→被迫转消费金融';
+      if(nr) nr.textContent='查询暴增 → 全部被拒 → 资质被迫降档';
     } else {
       if(lossTitle) lossTitle.textContent='现在直接申请，代价是什么';
-      if(nt) nt.textContent=_tier==='mixed'?'银行+消金混合':'消费金融为主';
-      if(nr) nr.textContent=_tier==='mixed'?'年利率：6%–18%（银行低，消金高）':'年利率：15%–24%';
+      if(nt) nt.textContent=_tier==='mixed'?'银行 + 消金混合区间':'消金为主区间';
+      if(nr) nr.textContent='利率档：偏高 · 议价空间小';
     }
-    const la=income>0?Math.max(1,Math.round(Math.min(estHi>0?estHi:3e4,1e5)/1e4)):10;
-    const n=document.getElementById('convIntNow');if(n)n.textContent=la+'万/年利息：约'+(la*0.15).toFixed(1)+'–'+(la*0.24).toFixed(1)+'万（年化利率APR 15%–24%）';
-    const o=document.getElementById('convIntOpt');if(o)o.textContent=la+'万/年利息：约'+(la*0.036).toFixed(1)+'–'+(la*0.06).toFixed(1)+'万（年化利率APR 3.6%–6.0%）';
-    const dEl=document.getElementById('convIntDiff');if(dEl)dEl.textContent='约 '+(la*0.09).toFixed(1)+'–'+(la*0.204).toFixed(1)+' 万';
+    const n=document.getElementById('convIntNow');if(n)n.textContent='长期利息成本被放大';
+    const o=document.getElementById('convIntOpt');if(o)o.textContent='长期利息成本最低';
+    const dEl=document.getElementById('convIntDiff');if(dEl)dEl.textContent='利率档差约 1–2 级';
   }
 
   // ④ 提升空间
@@ -2558,14 +2556,14 @@ function renderMatchResult(r) {
     if(ur)ur.textContent='查询次数再增加，直接降级为「银行无法通过」。恢复周期：1–3个月。现在的行动决定3个月后的结果。';
   }
 
-  // 预估额度
+  // 可承担额度估算（基于月供/收入比，非产品匹配结果）
   const mrEl=document.getElementById('mrEstimate');
   if(mrEl&&income>0&&estHi>0&&v2Level!=='B'){
     mrEl.style.display='block';
     if (products.length === 0) {
-      mrEl.textContent='恢复后预计可申请：'+fw(estLo)+'–'+fw(estHi)+' 万（当前无匹配产品，此为征信修复后的参考额度）';
+      mrEl.textContent='征信修复后，按月供/收入比估算可承担额度区间：'+fw(estLo)+'–'+fw(estHi)+' 万 · 实际审批以银行为准';
     } else {
-      mrEl.textContent='根据现有资质，预计可申请：'+fw(estLo)+'–'+fw(estHi)+' 万';
+      mrEl.textContent='按月供/收入比估算，可承担额度区间：'+fw(estLo)+'–'+fw(estHi)+' 万 · 实际审批以银行为准';
     }
   }
 
@@ -2601,11 +2599,15 @@ function renderMatchResult(r) {
   }
   if (!isPaid) {
     const _ghostCard = () => `<div class="pw-ghost"><div class="pw-ghost-l"><div class="pw-ghost-name"></div><div class="pw-ghost-sub"></div></div><div class="pw-ghost-r"><div class="pw-ghost-pct"></div><div class="pw-ghost-rate"></div></div></div>`;
-    const _lockOverlay = `<div class="pw-lock-overlay"><div class="pw-lock-ring"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="pw-lock-lbl">专属方案已生成，待解锁</div></div>`;
-    const _countHint = products.length > 0
-      ? `检测到 <span style="color:var(--accentB);font-size:17px;font-weight:700">${products.length}</span> 家机构符合您的资质`
-      : '征信分析已完成';
-    document.getElementById('productsGrid').innerHTML = `<div class="pw-wrap"><div class="pw-preview">${_ghostCard()}${_ghostCard()}${_ghostCard()}${_lockOverlay}<div class="pw-fade"></div></div><div class="pw-hint">${_countHint}</div><button class="pw-btn" onclick="showPayModal(()=>startMatching())">解锁方案 · 顾问一对一跟进 &nbsp; ¥9.9</button></div>`;
+    const _lockOverlay = `<div class="pw-lock-overlay"><div class="pw-lock-ring"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="pw-lock-lbl">完整方案已生成，待解锁</div></div>`;
+    const _hintByLevel = {
+      A: '你的资质适合 <span style="color:var(--accentB);font-size:17px;font-weight:700">3</span> 个主流申请方向',
+      B: '你的资质差几步可进入 <span style="color:var(--accentB);font-size:17px;font-weight:700">3</span> 个主流申请方向',
+      C: '你的资质适合 <span style="color:var(--accentB);font-size:17px;font-weight:700">2</span> 个过渡申请方向',
+      D: '你的资质有 <span style="color:var(--accentB);font-size:17px;font-weight:700">1</span> 个保底方向 + 9 个月修复路径',
+    };
+    const _countHint = _hintByLevel[v2Level] || '征信分析已完成';
+    document.getElementById('productsGrid').innerHTML = `<div class="pw-wrap"><div class="pw-preview">${_ghostCard()}${_ghostCard()}${_ghostCard()}${_lockOverlay}<div class="pw-fade"></div></div><div class="pw-hint">${_countHint}</div><button class="pw-btn" onclick="showPayModal(()=>startMatching())">解锁完整方案 · 顾问一对一跟进 &nbsp; ¥9.9</button></div>`;
     document.getElementById('matchResult').style.display='block';
     document.getElementById('matchResult').scrollIntoView({behavior:'smooth',block:'start'});
     window._isMatching = false;
@@ -2679,20 +2681,20 @@ function renderMatchResult(r) {
   };
   // ── 代理商模式：只展示征信诊断，不展示具体产品 ──
   if (_currentAgent) {
-    // 替换hero区：只显示评分等级，不提及产品数量
-    const _agHeroEl = document.getElementById('heroContent');
-    if (_agHeroEl) {
-      const _lvLabel = {A:'优质资质',B:'良好资质',C:'中等资质',D:'资质偏弱'}[v2Level] || v2Level+'级';
-      const _lvColor = {A:'var(--success)',B:'var(--accentB)',C:'#fbbf24',D:'var(--danger)'}[v2Level] || 'var(--accentB)';
-      const _lvEye   = {A:'A级 · PREMIUM',B:'B级 · GOOD',C:'C级 · MODERATE',D:'D级 · RECOVERY'}[v2Level] || v2Level+'级';
-      _agHeroEl.innerHTML = `<div class="hero-wrap"><div class="hero-eyebrow">${_lvEye}</div><div class="hero-title">征信综合评分 <span style="color:${_lvColor}">${v2Score > 0 ? v2Score : '--'}</span> 分</div><div class="hero-sub">资质等级 ${_lvLabel} · 详细征信问题和改善建议见下方报告</div></div>`;
-    }
-    // 隐藏产品对比和策略类模块
-    ['convLoss','convPath','convClient','wlTip','convUrgent','convLift'].forEach(id => {
+    // 代理商也用统一 _renderHero（4 级新话术），保持品牌一致
+    // 注：_renderHero 已经在前面统一调用过（renderMatchResult 流程内 line ~2478），此处不再二次渲染
+    // 隐藏会泄露具体产品/额度的模块；convPath 在代理商侧用本分支自渲染（因为 convPath 本身依赖 payToken 不会显示）
+    ['convLoss','convClient','wlTip','convUrgent','convLift'].forEach(id => {
       const el = document.getElementById(id); if (el) el.style.display = 'none';
     });
     const _agPhone = _currentAgent.phone || CONTACT_PHONE;
-    document.getElementById('productsGrid').innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);padding:20px;margin-bottom:8px"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">ADVISOR CONSULTATION</div><div style="font-size:14px;font-weight:600;color:var(--white);margin-bottom:6px">征信分析已完成</div><div style="font-size:12px;color:var(--silver);line-height:1.7;margin-bottom:18px">根据您的征信情况，已完成资质评估。<br>请联系专属顾问，获取针对性产品方案和申请策略。</div><a href="tel:${esc(_agPhone)}" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;text-align:center;background:var(--accentB);color:#fff;padding:14px;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:inherit;letter-spacing:.06em;text-decoration:none;margin-bottom:10px;box-sizing:border-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 15z"/></svg>立即电话咨询专属顾问</a><button onclick="showQrModal()" style="display:block;width:100%;text-align:center;background:transparent;color:var(--accentB);padding:12px;font-size:13px;font-weight:600;border:1px solid rgba(59,123,246,.45);cursor:pointer;font-family:inherit;letter-spacing:.06em">微信扫码 · 免费获取完整方案</button></div>`;
+    const _agPathCopy = {
+      A: { line1: '你的资质已进入优质准入区间', line2: '顾问可协助对接白名单通道、锁定最低利率档位，避免走普通通道多付利息。' },
+      B: { line1: '你的具体申请顺序已根据征信定制', line2: '申请顺序错误会多消耗查询次数、影响后续通过率，建议联系顾问协助执行。' },
+      C: { line1: '你的征信修复与申请路径已定制', line2: '过渡方案的选择直接影响 3 个月后的恢复速度，建议顾问全程跟进，避免走弯路。' },
+      D: { line1: '你的征信修复计划已制定',     line2: '每个时间节点的动作需要精准执行，顾问全程陪伴，每月同步进度。' },
+    }[v2Level] || { line1: '你的申请方案已根据征信定制', line2: '请联系专属顾问获取针对性申请策略。' };
+    document.getElementById('productsGrid').innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);padding:20px;margin-bottom:8px"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">ADVISOR CONSULTATION</div><div style="font-size:14px;font-weight:700;color:var(--white);margin-bottom:6px">${esc(_agPathCopy.line1)}</div><div style="font-size:12px;color:var(--silver);line-height:1.7;margin-bottom:18px">${esc(_agPathCopy.line2)}</div><a href="tel:${esc(_agPhone)}" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;text-align:center;background:var(--accentB);color:#fff;padding:14px;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:inherit;letter-spacing:.06em;text-decoration:none;margin-bottom:10px;box-sizing:border-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 15z"/></svg>立即电话咨询专属顾问</a><button onclick="showQrModal()" style="display:block;width:100%;text-align:center;background:transparent;color:var(--accentB);padding:12px;font-size:13px;font-weight:600;border:1px solid rgba(59,123,246,.45);cursor:pointer;font-family:inherit;letter-spacing:.06em">微信扫码 · 免费获取完整方案</button><div style="font-size:11px;color:var(--silver);opacity:.65;margin-top:14px;line-height:1.6;text-align:center">顾问仅提供咨询与申请协助，最终申请决策完全由你做出</div></div>`;
     // adviceSection（征信问题 + 改善建议）由下方代码正常渲染，无需跳过
   } else if(products.length===0){
     // 根据实际数据生成具体的问题诊断和修复步骤

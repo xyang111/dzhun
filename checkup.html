@@ -11,7 +11,7 @@
 <meta property="og:url" content="https://dzhun.com.cn/checkup.html" />
 <meta property="og:type" content="website" />
 <meta name="description" content="AI 读懂你的简版征信报告，给出资质区间评估和方向级建议。不发起任何查询，不替你提交申请。" />
-<link rel="stylesheet" href="style.css?v=1777080269">
+<link rel="stylesheet" href="style.css?v=1777161122">
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 </head>
 <body>
@@ -697,20 +697,20 @@
             <div class="loss-cols">
               <div class="loss-col now">
                 <span class="loss-tag">现在申请</span>
-                <div class="loss-type" id="convLossNowType">消费金融为主</div>
-                <div class="loss-rate" id="convLossNowRate">年利率：15%–24%</div>
+                <div class="loss-type" id="convLossNowType">消金为主区间</div>
+                <div class="loss-rate" id="convLossNowRate">利率档：偏高 · 议价空间小</div>
                 <div class="loss-interest" id="convIntNow">--</div>
               </div>
               <div class="loss-col opt">
                 <span class="loss-tag">优化后申请</span>
-                <div class="loss-type">银行信用贷</div>
-                <div class="loss-rate">年利率：3.6%–6%</div>
+                <div class="loss-type">银行信用贷区间</div>
+                <div class="loss-rate">利率档：主流 · 议价空间最大</div>
                 <div class="loss-interest" id="convIntOpt">--</div>
               </div>
             </div>
             <div class="loss-diff">
-              <div class="loss-diff-lbl">同样借10万，一年多付利息</div>
-              <div class="loss-diff-val" id="convIntDiff">约 1万+</div>
+              <div class="loss-diff-lbl">完成优化前后的利率档差距</div>
+              <div class="loss-diff-val" id="convIntDiff">--</div>
             </div>
           </div>
 
@@ -765,13 +765,13 @@
           <!-- 预计可申请额度 -->
           <div id="mrEstimate" style="display:none;width:100%;box-sizing:border-box;background:rgba(59,123,246,0.08);border:1px solid rgba(59,123,246,0.3);padding:12px 16px;margin-bottom:10px;font-size:15px;font-weight:700;color:var(--accentB);text-align:center;letter-spacing:.3px;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace"></div>
 
-          <!-- 可申请产品列表 -->
+          <!-- 申请方向 / 体检方案 -->
           <div id="productsWrap" class="pcard" style="margin-bottom:10px">
             <div class="card-bar">
-              <span class="step-tag">MATCH</span>
-              <span class="card-title">匹配产品列表</span>
+              <span class="step-tag">REPORT</span>
+              <span class="card-title">申请方向 / 体检方案</span>
               <span id="matchLockHint" style="margin-left:auto;font-family:'SF Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.04em">付费解锁后显示</span>
-              <span id="matchCountWrap" style="display:none;margin-left:auto;font-size:11px;color:var(--silver)"><span id="matchCount">0</span> 款可申请</span>
+              <span id="matchCountWrap" style="display:none;margin-left:auto;font-size:11px;color:var(--silver)"><span id="matchCount">0</span> 个方向</span>
             </div>
             <div class="products-grid" id="productsGrid"></div>
 
@@ -888,8 +888,8 @@
   </div>
 </footer>
 
-<script src="config.js?v=1777080269"></script>
-<script src="app.js?v=1777080269"></script>
+<script src="config.js?v=1777161122"></script>
+<script src="app.js?v=1777161122"></script>
 
 <!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
 <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">
