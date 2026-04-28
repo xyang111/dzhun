@@ -10,7 +10,7 @@ const DEFAULT_QR    = '/qr.jpg';  // 默认二维码图片路径（直客）
 // qr: 代理商微信二维码图片URL（建议上传到CDN或同目录）
 // notify: 企业微信群机器人 Webhook（没有可留空 ''）
 const AGENTS = {
-  'XY001': {
+  'AHX': {
     name:   '安惠信',
     phone:  '18359711859',
     qr: '/qr_agent_1.jpg',
