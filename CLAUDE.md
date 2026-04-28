@@ -35,7 +35,7 @@
 | `worker.js` | API 代理、OCR、Match、支付、D1写入 | Cloudflare Worker（`api.dzhun.com.cn`） 
 | `wrangler.toml` | Worker 部署配置，KV×2 + D1 绑定 | 本地配置文件 | 绑定变量名不能随意改，与 Worker 代码耦合 |
 | `qr.jpg` | 默认客服微信二维码 | 阿里云 ECS | 禁止内嵌 base64 |
-| `qr_agent_1.jpg` | 代理商 XY001 二维码 | 阿里云 ECS | 禁止内嵌 base64 |
+| `qr_agent_1.jpg` | 代理商 AHX（安惠信）二维码 | 阿里云 ECS | 禁止内嵌 base64 |
 
 **API 路由（Cloudflare Worker）**
 
@@ -65,7 +65,7 @@
 - `config.js`   — 配置层：PROXY_URL / AGENTS / BANK_PRODUCTS（须在 app.js 之前加载）
 - `app.js`      — 全部业务逻辑（含 ScoreEngine V2.0）
 - `qr.jpg`      — 默认客服微信二维码（直客渠道）
-- `qr_agent_1.jpg` — 代理商 XY001 微信二维码
+- `qr_agent_1.jpg` — 代理商 AHX（安惠信）微信二维码
 - `worker.js`   — Cloudflare Worker后端（API代理+支付+报告推送+D1写入）
 - `wrangler.toml` — Worker部署配置（含 KV × 2 + D1 绑定）
 
@@ -173,7 +173,7 @@ scp index.html style.css config.js app.js qr.jpg qr_agent_1.jpg root@8.136.1.233
 - 修改：改 config.js 的 BANK_PRODUCTS，重新 deploy 即生效（最高频改动文件）
 
 ## 代理商系统
-- URL参数：?agent=XY001
+- URL参数：?agent=AHX
 - 配置位置：`config.js` 顶部 AGENTS 对象
 - 二维码：每个代理商对应独立图片文件（如 qr_agent_1.jpg），不内嵌 base64
 - 效果：替换页面电话和微信二维码，报告推送给代理商企业微信群

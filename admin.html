@@ -604,13 +604,74 @@
     <div class="section-sub">复制下方内容，粘贴到 HTML 文件中 <code style="color:var(--gold)">【银行产品准入标准</code> 部分替换即可</div>
     <div style="background:rgba(200,169,110,0.12);border:1px solid rgba(200,169,110,0.4);border-radius:8px;padding:10px 14px;font-size:12px;color:#c8a96e;margin-bottom:12px;line-height:1.6">
       ✅ <strong>产品库已自动同步</strong>——主站 AI 分析将使用最新产品数据（需同域名访问）。<br>
-      保存产品后，dzhun.com.cn 的三个分析模块（征信诊断/PDF分析/简版填表）会自动读取 <code>localStorage('dazhun_products')</code> 中的最新数据，无需手动复制。
+      保存产品后，主站会自动从服务端读取最新产品库，无需手动操作。
     </div>
     <div class="preview-box" id="exportPreview"></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="document.getElementById('exportModal').classList.remove('open')">关闭</button>
       <button class="btn btn-gold" onclick="copyExport()">📋 复制全部</button>
     </div>
+  </div>
+</div>
+
+<!-- ══ 贷款结果录入 ══ -->
+<div id="outcomeSection" style="display:none;max-width:860px;margin:32px auto 0;padding:0 24px">
+  <div style="font-size:18px;font-weight:700;color:var(--gold);margin-bottom:6px">贷款结果录入</div>
+  <div style="font-size:12px;color:var(--text2);margin-bottom:20px">代理反馈结果后在此录入，用于模型校准</div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div style="grid-column:1/-1">
+      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">Session ID <span style="color:#ef4444">*</span></label>
+      <input id="oc_session" type="text" placeholder="从评分记录中复制，或代理提供" style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;outline:none">
+    </div>
+    <div>
+      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">申请产品</label>
+      <input id="oc_product" type="text" placeholder="如：招行闪电贷" style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;outline:none">
+    </div>
+    <div>
+      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">结果 <span style="color:#ef4444">*</span></label>
+      <select id="oc_result" style="width:100%;background:rgba(20,30,50,.9);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;outline:none">
+        <option value="">请选择</option>
+        <option value="approved">✅ 批准</option>
+        <option value="rejected">❌ 拒绝</option>
+        <option value="abandoned">⚪ 用户放弃</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">实际批款金额（元，仅批准时填）</label>
+      <input id="oc_amount" type="number" placeholder="如：150000" style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;outline:none">
+    </div>
+    <div>
+      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">拒绝原因（仅拒绝时填）</label>
+      <select id="oc_reason" style="width:100%;background:rgba(20,30,50,.9);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;outline:none">
+        <option value="">不适用</option>
+        <option value="查询次数过多">查询次数过多</option>
+        <option value="负债率过高">负债率过高</option>
+        <option value="收入不足">收入不足</option>
+        <option value="征信逾期记录">征信逾期记录</option>
+        <option value="网贷机构过多">网贷机构过多</option>
+        <option value="工作稳定性不足">工作稳定性不足</option>
+        <option value="户籍不符">户籍不符</option>
+        <option value="其他">其他</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">代理ID（选填）</label>
+      <input id="oc_agent" type="text" placeholder="如：AHX" style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;outline:none">
+    </div>
+    <div style="grid-column:1/-1;display:flex;gap:12px;align-items:center">
+      <button onclick="submitOutcome()" style="background:var(--gold);color:#0a1628;border:none;border-radius:8px;padding:10px 28px;font-size:14px;font-weight:700;cursor:pointer">提交结果</button>
+      <span id="oc_msg" style="font-size:13px"></span>
+    </div>
+  </div>
+
+  <!-- 近期录入记录 -->
+  <div style="margin-top:20px">
+    <div style="font-size:13px;color:var(--text2);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+      <span>最近录入记录</span>
+      <button onclick="loadOutcomes()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 12px;color:var(--text2);font-size:12px;cursor:pointer">刷新</button>
+    </div>
+    <div id="outcomesTable" style="font-size:12px;color:var(--text2)">点击刷新加载</div>
   </div>
 </div>
 
@@ -622,363 +683,69 @@
 const ADMIN_PASSWORD = 'dazhun2024'; // 修改这里改密码
 const STORAGE_KEY = 'dazhun_products';
 
-// ══ 默认产品库 ══
+// ══ 默认产品库（与 config.js BANK_PRODUCTS 完全同步）══
 const DEFAULT_PRODUCTS = [
-  {
-    "id": 1001,
-    "bank": "工商银行",
-    "product": "融e借",
-    "rate": "3.0%-4.35%",
-    "amount": "最高100万",
-    "minIncome": 5000,
-    "maxQuery": 8,
-    "maxDebt": 70,
-    "overdue": "zero",
-    "cities": "厦门,全国",
-    "conditions": "工行代发工资客户优先，或公积金缴纳≥12个月。工作单位要求严格，优先国企/事业单位/上市公司/500强/外企/白名单单位。无当前逾期，2年内无连三累六。线上APP直接申请。",
-    "bonus": "国企/事业单位通过率极高；工行代发工资额度更高；白名单单位可拉高额度",
-    "emoji": "🏦",
-    "status": "active"
-  },
-  {
-    "id": 1002,
-    "bank": "农业银行",
-    "product": "网捷贷",
-    "rate": "2.85%-4.5%",
-    "amount": "线上最高30万",
-    "minIncome": 3000,
-    "maxQuery": 10,
-    "maxDebt": 75,
-    "overdue": "zero",
-    "cities": "厦门,全国",
-    "conditions": "农行账户持有者，满足以下任一：①农行房贷 ②公积金缴纳≥2年 ③社保缴纳≥2年 ④农行代发工资 ⑤有农行储蓄卡。2年内无连三累六，3月内机构查询≤10次。支持随借随还，按日计息。",
-    "bonus": "公务员/国企优先审批；有农行房贷额度翻倍；公积金2年以上利率更优",
-    "emoji": "🌾",
-    "status": "active"
-  },
-  {
-    "id": 1003,
-    "bank": "中国银行",
-    "product": "随心智贷/中银E贷",
-    "rate": "3.1%-5.22%",
-    "amount": "最高50万",
-    "minIncome": 6000,
-    "maxQuery": 8,
-    "maxDebt": 65,
-    "overdue": "zero",
-    "cities": "厦门,全国",
-    "conditions": "无当前逾期，负债率≤65%，月收入≥6000元。中行代发工资或持有中行信用卡优先，厦门线下进件对查询和网贷要求相对宽松，可线下沟通申请。适合公积金人员。",
-    "bonus": "名下有全款房产通过率+20%；中行代发工资利率更低；厦门线下进件条件更灵活",
-    "emoji": "🏛",
-    "status": "active"
-  },
-  {
-    "id": 1004,
-    "bank": "建设银行",
-    "product": "建易贷/快贷",
-    "rate": "2.85%-4.8%",
-    "amount": "最高100万",
-    "minIncome": 4000,
-    "maxQuery": 8,
-    "maxDebt": 70,
-    "overdue": "zero",
-    "cities": "厦门,全国",
-    "conditions": "需与建行有业务往来（房贷/理财/公积金），建行账户持有者。无当前逾期，信用历史≥1年，2年内无连三累六，3月内机构查询≤6-8次。建行代发工资或公积金客户优先。",
-    "bonus": "建行代发工资客户额度大幅提升；龙卡信用卡持有者加分；有房贷客户额度最高",
-    "emoji": "🏗",
-    "status": "active"
-  },
-  {
-    "id": 1005,
-    "bank": "交通银行",
-    "product": "惠民贷",
-    "rate": "2.8%-5.88%",
-    "amount": "最高100万",
-    "minIncome": 4000,
-    "maxQuery": 8,
-    "maxDebt": 70,
-    "overdue": "zero",
-    "cities": "厦门,全国",
-    "conditions": "社保或公积金缴纳≥6个月，负债率≤70%，无当前逾期。主要面向交行打卡工资客户，接受个体工商户。期限最长7年，支持先息后本和等额本息。针对新市民/毕业生最高30万利率3.85%起，优质客户最高80万。",
-    "bonus": "个体工商户专属通道；社保年限越长额度越高；厦门本地公积金客户优先",
-    "emoji": "🚗",
-    "status": "active"
-  },
-  {
-    "id": 1006,
-    "bank": "邮储银行",
-    "product": "邮享贷",
-    "rate": "3.0%-7.2%",
-    "amount": "最高100万",
-    "minIncome": 2000,
-    "maxQuery": 10,
-    "maxDebt": 80,
-    "overdue": "zero",
-    "cities": "厦门,全国",
-    "conditions": "社保缴纳≥3个月，无当前逾期。面向国企/事业单位公积金客户重点推广，门槛最低，适合保底备选方案。期限最长5年，支持先息后本。",
-    "bonus": "门槛最低首选；国企/事业单位公积金客户专属优惠利率；农村户籍客户也可申请",
-    "emoji": "📮",
-    "status": "active"
-  },
-  {
-    "id": 1007,
-    "bank": "招商银行",
-    "product": "闪电贷",
-    "rate": "2.68%-18%",
-    "amount": "最高50万",
-    "minIncome": 5000,
-    "maxQuery": 6,
-    "maxDebt": 70,
-    "overdue": "zero",
-    "cities": "厦门,全国",
-    "conditions": "无当前逾期，近3月查询≤6次，负债率≤70%，月收入≥5000元。系统自动评估：公积金基数、社保、征信记录、负债率多维度综合评分。查询次数要求较严格。",
-    "bonus": "国企/事业单位通过率+15%；公积金基数高利率更低；招行代发工资额度翻倍",
-    "emoji": "💳",
-    "status": "active"
-  },
-  {
-    "id": 1008,
-    "bank": "浦发银行",
-    "product": "浦闪贷",
-    "rate": "2.9%-6%",
-    "amount": "最高100万",
-    "minIncome": 8000,
-    "maxQuery": 5,
-    "maxDebt": 70,
-    "overdue": "zero",
-    "cities": "厦门,全国",
-    "conditions": "月收入≥8000元，无当前逾期，近3月查询≤5次，负债率≤70%。T+0放款，主要针对国企/央企/白领人群。期限最长5年，支持先息后本。",
-    "bonus": "国企/央企员工通过率最高；白领优质客群专享；公积金高基数显著提额",
-    "emoji": "🌟",
-    "status": "active"
-  },
-  {
-    "id": 1009,
-    "bank": "兴业银行",
-    "product": "兴闪贷",
-    "rate": "3.0%-7.2%",
-    "amount": "最高100万",
-    "minIncome": 3000,
-    "maxQuery": 8,
-    "maxDebt": 75,
-    "overdue": "mild",
-    "cities": "厦门,全国",
-    "conditions": "满足以下任一：①按揭房还款≥24个月 ②事业单位/公务员 ③兴业银行代发工资≥2年 ④兴业银行VIP/优质客户。历史逾期≤30天且已结清可申请，近6月查询≤8次。征信容忍度高，线下版可沟通，轻视负债和查询。",
-    "bonus": "征信有瑕疵首选；线下版条件更宽松；逾期已结清仍可尝试",
-    "emoji": "💰",
-    "status": "active"
-  },
-  {
-    "id": 1010,
-    "bank": "平安银行",
-    "product": "白领贷/平安贷",
-    "rate": "3.0%-7.99%",
-    "amount": "最高100万",
-    "minIncome": 5000,
-    "maxQuery": 10,
-    "maxDebt": 75,
-    "overdue": "zero",
-    "cities": "厦门,全国",
-    "conditions": "公积金缴纳≥1年且基数≥1000，或在白名单单位。月收入≥5000元，无当前逾期，接受个体工商户。2年内无连三累六，3月内查询≤10次。随借随还。",
-    "bonus": "个体工商户友好；白名单单位直接通过；平安保险/证券客户额度更高",
-    "emoji": "🛡",
-    "status": "active"
-  },
-  {
-    "id": 1011,
-    "bank": "中信银行",
-    "product": "信秒贷",
-    "rate": "3.28%-16.68%",
-    "amount": "最高50万（线上30万）",
-    "minIncome": 4000,
-    "maxQuery": 10,
-    "maxDebt": 75,
-    "overdue": "mild",
-    "cities": "厦门,全国",
-    "conditions": "满足以下任一：①中信代发工资≥6月 ②公积金≥2年（优质单位12月即可） ③他行按揭还满2年 ④中信AUM≥500元 ⑤本科以上学历+资产。当前不能有逾期，近6月查询<10次，单次逾期≤30天，2年内逾期≤3次。",
-    "bonus": "条件多选一，通过率较高；有按揭房客户直接符合；优质单位门槛更低",
-    "emoji": "🏢",
-    "status": "active"
-  },
-  {
-    "id": 1012,
-    "bank": "光大银行",
-    "product": "光速贷",
-    "rate": "2.9%-6%",
-    "amount": "最高30万",
-    "minIncome": 4000,
-    "maxQuery": 7,
-    "maxDebt": 75,
-    "overdue": "zero",
-    "cities": "厦门,全国",
-    "conditions": "社保或公积金证明，负债率≤75%，近3月查询≤7次，无当前逾期。负债率要求比其他银行宽松，期限最长3年，支持先息后本。",
-    "bonus": "负债率要求最宽松（≤75%）；光大信用卡持有者加分；适合负债稍高的客户",
-    "emoji": "☀️",
-    "status": "active"
-  },
-  {
-    "id": 1013,
-    "bank": "民生银行",
-    "product": "民易贷",
-    "rate": "3.0%-7.2%",
-    "amount": "最高100万",
-    "minIncome": 8000,
-    "maxQuery": 8,
-    "maxDebt": 70,
-    "overdue": "zero",
-    "cities": "厦门,全国",
-    "conditions": "白名单单位员工，在职满6个月，年个税≥10万（月收入约8000+）。无当前逾期，2年内无连三累六。白名单单位通过率很高，最长3年，随借随还。",
-    "bonus": "白名单单位几乎秒批；年个税高额度显著提升；国企/大型私企优先",
-    "emoji": "🏙",
-    "status": "active"
-  },
-  {
-    "id": 1014,
-    "bank": "华夏银行",
-    "product": "易达金",
-    "rate": "3.28%-6%",
-    "amount": "最高30-50万",
-    "minIncome": 4000,
-    "maxQuery": 10,
-    "maxDebt": 80,
-    "overdue": "mild",
-    "cities": "厦门,全国",
-    "conditions": "对私企员工、负债稍高、查询多的客户比较友好，属于捡漏产品。三年授信每年过桥，部分5年等额。征信有瑕疵或查询偏多时可优先考虑。",
-    "bonus": "私企员工友好；查询偏多仍可考虑；负债稍高也可尝试；征信捡漏首选",
-    "emoji": "🌈",
-    "status": "active"
-  },
-  {
-    "id": 1015,
-    "bank": "广发银行",
-    "product": "E秒贷",
-    "rate": "3.38%-7.2%",
-    "amount": "最高30万",
-    "minIncome": 4000,
-    "maxQuery": 8,
-    "maxDebt": 70,
-    "overdue": "zero",
-    "cities": "厦门,全国",
-    "conditions": "年利率3.8%起，支持先息后本/等额本息/随借随还，最长3年，无当前逾期。厦门本地有分支机构，线下进件方便。",
-    "bonus": "厦门本地有网点；随借随还灵活；适合有消费场景的工薪客户",
-    "emoji": "🔶",
-    "status": "active"
-  },
-  {
-    "id": 1016,
-    "bank": "厦门银行",
-    "product": "E秒贷",
-    "rate": "5.38%-7.2%",
-    "amount": "最高60万",
-    "minIncome": 4000,
-    "maxQuery": 8,
-    "maxDebt": 70,
-    "overdue": "zero",
-    "cities": "厦门,福州,泉州,漳州",
-    "conditions": "年龄22-60周岁。需满足：①名下有大额信用卡且还款记录良好 ②名下有半年以上按揭房记录 ③社保或公积金基数≥1000且连续≥6月 ④本行代发工资。征信要求：无当前逾期，近1周新增审批查询<3次，近3月查询<8次，未结清贷款机构≤5家，白户禁入。适合征信极干净客户。",
-    "bonus": "优质单位（公务员/事业单位/国企/世界500强/上市公司）可拉白名单提额至60万；普通单位最高30万",
-    "emoji": "🏝",
-    "status": "active"
-  },
-  {
-    "id": 1017,
-    "bank": "厦门农商银行",
-    "product": "信用消费贷",
-    "rate": "4.0%-6.5%",
-    "amount": "最高50万",
-    "minIncome": 3000,
-    "maxQuery": 8,
-    "maxDebt": 75,
-    "overdue": "zero",
-    "cities": "厦门",
-    "conditions": "厦门本地银行，线下进件为主。公积金人员首选，特别是优良单位上班的，无论额度还是利息政策都很好。半年查询≤6次，负债不超过个税5倍或公积金基数60倍（取高值）。适合负债不高、正在养查询的客户。",
-    "bonus": "厦门本地银行通过率高；公积金优质单位额度利率最优；线下沟通空间大",
-    "emoji": "🌺",
-    "status": "active"
-  },
-  {
-    "id": 1018,
-    "bank": "厦门国际银行",
-    "product": "小微E贷（信用版）",
-    "rate": "5.5%-8%",
-    "amount": "最高200万",
-    "minIncome": 5000,
-    "maxQuery": 10,
-    "maxDebt": 75,
-    "overdue": "mild",
-    "cities": "厦门",
-    "conditions": "年龄20-63周岁，营业执照满2年的个体工商户/小微企业主。纯信用无抵押，IPC技术线上审批。有营业执照+经营流水即可申请，无需抵质押物。",
-    "bonus": "个体工商户专属；营业执照2年以上轻松申请；厦门本地专属产品",
-    "emoji": "🌊",
-    "status": "active"
-  },
-  {
-    "id": 1019,
-    "bank": "招联消费金融",
-    "product": "好期贷",
-    "rate": "7.2%-24%",
-    "amount": "最高20万",
-    "minIncome": 2000,
-    "maxQuery": 15,
-    "maxDebt": 85,
-    "overdue": "mild",
-    "cities": "厦门,全国",
-    "conditions": "持牌消费金融机构，门槛较低，纯线上申请，身份证+手机号即可尝试，秒级审批。适合银行产品无法通过的客户保底选择。年化利率偏高，建议银行无法批的客户使用。",
-    "bonus": "银行全拒后保底选择；门槛最低；秒批到账；适合急需资金客户",
-    "emoji": "📱",
-    "status": "active"
-  },
-  {
-    "id": 1020,
-    "bank": "马上消费金融",
-    "product": "安逸花",
-    "rate": "7.2%-24%",
-    "amount": "最高20万",
-    "minIncome": 1500,
-    "maxQuery": 15,
-    "maxDebt": 85,
-    "overdue": "mild",
-    "cities": "厦门,全国",
-    "conditions": "持牌消费金融，服务新市民/蓝领工人/进城务工人员等传统金融难以覆盖群体。纯线上申请，最快秒批，额度循环使用。66%贷款单笔低于3000元，适合小额急需资金客户。",
-    "bonus": "新市民/蓝领专属；白户也可建立信用记录；小额灵活最适合",
-    "emoji": "🎯",
-    "status": "active"
-  },
-  {
-    "id": 1021,
-    "bank": "兴业消费金融",
-    "product": "兴业消费贷",
-    "rate": "7.2%-18%",
-    "amount": "最高20万",
-    "minIncome": 3000,
-    "maxQuery": 12,
-    "maxDebt": 80,
-    "overdue": "mild",
-    "cities": "厦门,全国",
-    "conditions": "持牌消费金融，兴业银行旗下。适合征信有轻微瑕疵但银行产品暂时无法通过的客户，线上纯信用申请，审批较快。",
-    "bonus": "兴业银行客户优先；征信轻微瑕疵可申请；审批快当天到账",
-    "emoji": "💫",
-    "status": "active"
-  }
+  { id:'gsyh', bank:'工商银行', product:'融e借', emoji:'🏦', rate:'3.25%-4.35%', amount:'最高30万（公积金版最高80万）', hurdle:519, k:0.025, maxQ1:null, maxQ3:6, maxQ6:null, maxDebt:65, minIncome:5000, minAge:null, maxAge:null, overdue:'zero', social:true, minSocialMonths:12, minProvident:null, minEdu:'none', workTypes:null, conditions:'工行代发工资或公积金≥12月；无当前逾期；近3月查询≤6次；负债率≤65%', bonus:'国企/事业/央企/白名单单位通过率极高；公积金基数高可申请专属版额度更大', tags:['国有大行','利率低','公积金加分'], type:'bank', cities:'全国', status:'active' },
+  { id:'nyyh', bank:'农业银行', product:'网捷贷', emoji:'🌾', rate:'3.1%-4.5%', amount:'最高100万', hurdle:513, k:0.025, maxQ1:4, maxQ3:6, maxQ6:null, maxDebt:70, minIncome:3000, minAge:null, maxAge:null, overdue:'zero', social:true, minSocialMonths:6, minProvident:null, minEdu:'none', workTypes:null, conditions:'农行账户；社保或公积金在缴；无当前逾期；近1月查询≤4次；近3月查询≤6次；信贷机构≤5家', bonus:'公务员/国企优先；农行代发工资利率更低；有农行按揭额度翻倍', tags:['国有大行','公积金加分','随借随还'], type:'bank', cities:'全国', status:'active' },
+  { id:'zgyh', bank:'中国银行', product:'随心智贷', emoji:'🏛', rate:'3.0%-5.22%', amount:'最高50万', hurdle:524, k:0.025, maxQ1:null, maxQ3:6, maxQ6:null, maxDebt:60, minIncome:6000, minAge:null, maxAge:null, overdue:'zero', social:false, minSocialMonths:null, minProvident:null, minEdu:'none', workTypes:null, conditions:'无当前逾期；近3月查询≤6次；负债率≤60%；月收入≥6000', bonus:'名下有全款房通过率+20%；中行按揭客户优先；公积金在缴利率更低', tags:['国有大行','有房加分','利率低'], type:'bank', cities:'全国', status:'active' },
+  { id:'jsyh', bank:'建设银行', product:'快贷', emoji:'🏗', rate:'3.15%-4.8%', amount:'最高100万', hurdle:513, k:0.025, maxQ1:null, maxQ3:6, maxQ6:null, maxDebt:70, minIncome:4000, minAge:22, maxAge:55, overdue:'zero', social:true, minSocialMonths:6, minProvident:null, minEdu:'none', workTypes:null, conditions:'建行账户；社保或公积金在缴；无当前逾期；近3月查询≤6次', bonus:'建行代发工资额度大幅提升；有房贷客户额度最高；龙卡信用卡加分', tags:['国有大行','额度高','公积金加分'], type:'bank', cities:'全国', status:'active' },
+  { id:'jtyh', bank:'交通银行', product:'惠民贷', emoji:'🚗', rate:'2.8%-5.88%', amount:'最高100万', hurdle:508, k:0.025, maxQ1:null, maxQ3:6, maxQ6:null, maxDebt:70, minIncome:4000, minAge:null, maxAge:null, overdue:'zero', social:true, minSocialMonths:6, minProvident:null, minEdu:'none', workTypes:null, conditions:'社保或公积金≥6月；无当前逾期；近3月查询≤6次', bonus:'个体工商户专属通道；社保年限越长额度越高；厦门本地公积金优先', tags:['个体工商户可做','社保加分','额度高'], type:'bank', cities:'全国', status:'active' },
+  { id:'yzyh', bank:'邮储银行', product:'邮享贷', emoji:'📮', rate:'3.0%-7.2%', amount:'最高100万', hurdle:469, k:0.025, maxQ1:null, maxQ3:8, maxQ6:null, maxDebt:75, minIncome:2000, minAge:18, maxAge:65, overdue:'zero', social:true, minSocialMonths:3, minProvident:null, minEdu:'none', workTypes:null, conditions:'社保≥3月；无当前逾期；近3月查询≤8次；信贷机构≤5家；2年内逾期≤6次', bonus:'门槛最低首选；最长7年期；国企/事业单位公积金客户专属优惠利率', tags:['门槛最低','社保3月','稳妥保底'], type:'bank', cities:'全国', status:'active' },
+  { id:'zsyh', bank:'招商银行', product:'闪电贷', emoji:'💳', rate:'2.58%-18%', amount:'最高30万（经营用途最高100万）', hurdle:530, k:0.025, maxQ1:2, maxQ3:4, maxQ6:null, maxDebt:65, minIncome:5000, minAge:null, maxAge:null, overdue:'zero', social:false, minSocialMonths:null, minProvident:null, minEdu:'none', workTypes:null, conditions:'无当前逾期；近1月查询≤2次；近3月查询≤4次；负债率≤65%', bonus:'招行代发/AUM≥2万利率更低；公积金高基数显著提额', tags:['秒级审批','全线上','利率低'], type:'bank', cities:'全国', status:'active' },
+  { id:'pfyh', bank:'浦发银行', product:'浦闪贷', emoji:'🌟', rate:'2.9%-6%', amount:'最高100万', hurdle:513, k:0.025, maxQ1:null, maxQ3:4, maxQ6:null, maxDebt:65, minIncome:8000, minAge:null, maxAge:null, overdue:'zero', social:false, minSocialMonths:null, minProvident:null, minEdu:'none', workTypes:null, conditions:'无当前逾期；近3月查询≤4次；负债率≤65%；月收入≥8000', bonus:'国企/央企员工通过率最高；公积金高基数显著提额', tags:['高收入优先','国企专属','审批快'], type:'bank', cities:'全国', status:'active' },
+  { id:'xyyh', bank:'兴业银行', product:'兴闪贷', emoji:'💰', rate:'3.0%-7.2%', amount:'最高100万', hurdle:486, k:0.025, maxQ1:null, maxQ3:5, maxQ6:8, maxDebt:70, minIncome:3000, minAge:null, maxAge:null, overdue:'mild', social:false, minSocialMonths:null, minProvident:null, minEdu:'none', workTypes:null, conditions:'无当前逾期（历史≤30天已结清可接受）；近3月查询≤5次；近6月查询≤8次', bonus:'征信轻微瑕疵首选；线下版条件更宽松；兴业代发/按揭客户优先', tags:['征信瑕疵可接受','查询宽松','线下可谈'], type:'bank', cities:'全国', status:'active' },
+  { id:'payh', bank:'平安银行', product:'白领贷', emoji:'🛡', rate:'2.88%-7.99%', amount:'最高100万', hurdle:491, k:0.025, maxQ1:null, maxQ3:6, maxQ6:null, maxDebt:70, minIncome:5000, minAge:25, maxAge:55, overdue:'zero', social:true, minSocialMonths:null, minProvident:800, minEdu:'none', workTypes:null, conditions:'公积金≥1年；无当前逾期；近3月查询≤6次', bonus:'个体工商户友好；平安保险/证券客户额度更高；白名单单位直接通过', tags:['个体工商户可做','公积金加分','随借随还'], type:'bank', cities:'全国', status:'active' },
+  { id:'zxyh', bank:'中信银行', product:'信秒贷', emoji:'🏢', rate:'3.0%-16.68%', amount:'最高50万', hurdle:480, k:0.025, maxQ1:null, maxQ3:6, maxQ6:10, maxDebt:70, minIncome:4000, minAge:null, maxAge:null, overdue:'mild', social:false, minSocialMonths:null, minProvident:null, minEdu:'none', workTypes:null, conditions:'无当前逾期（历史单次≤30天可接受）；近3月查询≤6次；近6月查询≤10次；满足之一：中信代发/AUM/信用卡/按揭/公积金≥2年', bonus:'条件多选一通过率高；有按揭房直接符合；优质单位门槛更低', tags:['条件多选一','征信轻微瑕疵可做','审批快'], type:'bank', cities:'全国', status:'active' },
+  { id:'gdyh', bank:'光大银行', product:'光速贷', emoji:'☀️', rate:'2.9%-6%', amount:'最高30万', hurdle:491, k:0.025, maxQ1:null, maxQ3:5, maxQ6:null, maxDebt:70, minIncome:4000, minAge:null, maxAge:null, overdue:'zero', social:true, minSocialMonths:6, minProvident:null, minEdu:'none', workTypes:null, conditions:'社保或公积金；无当前逾期；近3月查询≤5次；负债率≤70%', bonus:'光大信用卡持有者加分；负债稍高也可接受', tags:['负债宽松','社保加分','利率低'], type:'bank', cities:'全国', status:'active' },
+  { id:'hxyh', bank:'华夏银行', product:'易达金', emoji:'🌈', rate:'3.28%-6%', amount:'最高50万', hurdle:469, k:0.025, maxQ1:null, maxQ3:8, maxQ6:null, maxDebt:75, minIncome:4000, minAge:null, maxAge:null, overdue:'zero', social:false, minSocialMonths:null, minProvident:null, minEdu:'none', workTypes:null, conditions:'无当前逾期；近3月查询≤8次；负债率≤75%', bonus:'私企员工友好；查询偏多时的次优选择；负债稍高也可尝试', tags:['私企友好','查询宽松','负债宽松'], type:'bank', cities:'全国', status:'active' },
+  { id:'xmyh', bank:'厦门银行', product:'E秒贷', emoji:'🏝', rate:'5.88%-7.2%', amount:'最高30万', hurdle:480, k:0.025, maxQ1:null, maxQ3:8, maxQ6:null, maxDebt:65, minIncome:4000, minAge:null, maxAge:null, overdue:'zero', social:true, minSocialMonths:6, minProvident:null, minEdu:'none', workTypes:null, conditions:'无当前逾期；近1周查询≤3次；近3月查询≤8次；未结清贷款≤5家；社保或公积金≥6月', bonus:'厦门本地银行优先；公积金优质单位可申请白名单通道；有按揭房优先', tags:['厦门本地','公积金优先','额度高'], type:'bank', cities:'厦门', status:'active' },
+  { id:'xmns', bank:'厦门农商银行', product:'信用消费贷', emoji:'🌺', rate:'4.0%-6.5%', amount:'最高50万', hurdle:486, k:0.025, maxQ1:null, maxQ3:4, maxQ6:6, maxDebt:70, minIncome:3000, minAge:null, maxAge:null, overdue:'zero', social:true, minSocialMonths:6, minProvident:null, minEdu:'none', workTypes:null, conditions:'厦门本地居民；无当前逾期；近3月查询≤4次；近6月查询≤6次；社保或公积金在缴', bonus:'公积金优质单位额度利率最优；线下沟通空间大；本地居民首选', tags:['厦门本地','公积金首选','线下可谈'], type:'bank', cities:'厦门', status:'active' },
+  { id:'nbyh', bank:'南银法巴银行', product:'诚易贷', emoji:'🏦', rate:'10.8%-19.8%', amount:'最高40万（夫妻最高80万）', hurdle:436, k:0.025, maxQ1:5, maxQ3:9, maxQ6:15, maxDebt:null, minIncome:null, minAge:22, maxAge:60, overdue:'mild', social:true, minSocialMonths:6, minProvident:null, minEdu:'none', workTypes:null, conditions:'年龄22-60周岁；本地户籍：个税/公积金/社保≥6个月；外地户籍：≥12个月；近1月查询≤5次，近3月≤9次，半年≤15次；1.5年内无连续逾期，历史总逾期≤12次，历史无M2', bonus:'单人最高40万夫妻最高80万；外地户籍可做；查询要求较宽松', tags:['查询宽松','外地户籍可做','学历利率优惠'], type:'bank', cities:'全国', status:'active' },
+  { id:'gfyh', bank:'广发银行', product:'E秒贷', emoji:'💡', rate:'3.38%-7%', amount:'最高30万循环额度', hurdle:480, k:0.025, maxQ1:null, maxQ3:5, maxQ6:12, maxDebt:80, minIncome:4000, minAge:25, maxAge:55, overdue:'zero', social:true, minSocialMonths:3, minProvident:null, minEdu:'none', workTypes:null, conditions:'年龄25-55；公积金/社保/个税/广发代发工资其一满3月；无当前逾期，近半年无3次以上逾期；近3月查询≤5次；近6月查询≤12次', bonus:'循环额度5年内随借随还；先息后本；持广发信用卡或有代发工资通过率更高', tags:['股份制银行','循环额度','先息后本'], type:'bank', cities:'全国', status:'active' },
+  { id:'msyh', bank:'民生银行', product:'民易贷', emoji:'🏙', rate:'3.68%-7.2%', amount:'最高30万（线下最高100万）', hurdle:491, k:0.025, maxQ1:null, maxQ3:6, maxQ6:null, maxDebt:70, minIncome:4000, minAge:null, maxAge:null, overdue:'zero', social:true, minSocialMonths:3, minProvident:null, minEdu:'none', workTypes:null, conditions:'公积金/社保/个税/民生代发其一在缴；无当前逾期；近3月查询≤6次；有房信贷≤3笔，无房≤2笔', bonus:'有房且信贷笔数少通过率高；民生代发工资额度显著提升；线下可申请至100万', tags:['股份制银行','全线上','纯信用'], type:'bank', cities:'全国', status:'active' },
+  { id:'zljr', bank:'招联消费金融', product:'好期贷', emoji:'📱', rate:'7.2%-24%', amount:'最高20万', hurdle:392, k:0.025, maxQ1:null, maxQ3:99, maxQ6:null, maxDebt:85, minIncome:2000, minAge:null, maxAge:null, overdue:'mild', social:false, minSocialMonths:null, minProvident:null, minEdu:'none', workTypes:null, conditions:'有稳定收入；历史逾期已还清可申请；查询次数基本不影响', bonus:'银行全拒后保底首选；秒批到账；持牌消费金融机构', tags:['持牌机构','查询不限','保底首选'], type:'finance', cities:'全国', status:'active' },
+  { id:'hxxd', bank:'海翔小贷', product:'信用贷', emoji:'🦅', rate:'利率面议', amount:'10-100万', hurdle:376, k:0.025, maxQ1:null, maxQ3:99, maxQ6:null, maxDebt:80, minIncome:null, minAge:22, maxAge:55, overdue:'zero', social:true, minSocialMonths:null, minProvident:null, minEdu:'none', workTypes:null, conditions:'上班族；省内户籍或厦门房产；年龄22-55；无当前逾期；2年内展期/公积金提取不准入', bonus:'优质单位/高公积金/可双签均可提额；10-30万可最高40%先息', tags:['本地小贷','厦门户籍优先','大额可做'], type:'finance', cities:'厦门', status:'active' },
+  { id:'zyxf', bank:'中邮消费金融', product:'消费贷', emoji:'📬', rate:'18%-23.76%', amount:'最高20万', hurdle:398, k:0.025, maxQ1:3, maxQ3:9, maxQ6:null, maxDebt:null, minIncome:null, minAge:20, maxAge:55, overdue:'mild', social:true, minSocialMonths:6, minProvident:null, minEdu:'none', workTypes:null, conditions:'年龄20-55；本单位满6个月；负债三选一：公积金/社保/个税基数×50倍≥信贷余额；近3月信贷查询≤9次', bonus:'负债要求三选一非常灵活；公积金/社保/个税任一满足即可', tags:['负债要求灵活','查询宽松','持牌消费金融'], type:'finance', cities:'全国', status:'active' },
+  { id:'zbyh', bank:'中银消费金融', product:'消费贷', emoji:'🏛', rate:'14.98%-22.98%', amount:'最高20万', hurdle:403, k:0.025, maxQ1:null, maxQ3:7, maxQ6:null, maxDebt:null, minIncome:null, minAge:20, maxAge:55, overdue:'mild', social:true, minSocialMonths:6, minProvident:null, minEdu:'college', workTypes:null, conditions:'年龄20-55；上班族；大专及以上学历；3个月机构查询≤7次；无当前逾期；至少有一笔正常还款6个月以上', bonus:'社保基数5000+大专学历利率最低14.98%；夫妻可各自申请合计40万', tags:['双系统','社保基数关键','大专可做'], type:'finance', cities:'全国', status:'active' },
+  { id:'xyjr', bank:'兴业消费金融', product:'消费贷', emoji:'💼', rate:'8.88%-16.8%', amount:'5-20万（夫妻40万）', hurdle:409, k:0.025, maxQ1:null, maxQ3:10, maxQ6:null, maxDebt:null, minIncome:5000, minAge:22, maxAge:60, overdue:'mild', social:true, minSocialMonths:6, minProvident:null, minEdu:'none', workTypes:null, conditions:'年龄22-60；社保6个月以上，月工资5000以上；近3月查询≤10次；无当前逾期；不接受白户', bonus:'A1类irr年化8.88%最低；研究生学历直接最优利率；全款房客户20%认定额度', tags:['学历利率优惠','厦门社保6月','全款房加分'], type:'finance', cities:'全国', status:'active' },
+  { id:'lyh', bank:'陆易花', product:'薪产品', emoji:'🌸', rate:'利率面议', amount:'2-20万循环额度', hurdle:370, k:0.025, maxQ1:4, maxQ3:9, maxQ6:null, maxDebt:100, minIncome:null, minAge:22, maxAge:55, overdue:'loose', social:true, minSocialMonths:6, minProvident:null, minEdu:'none', workTypes:null, conditions:'年龄22-55；上班族（不含企业法人/股东/个体）；企业缴社保≥6个月；无当前逾期200元以下可申请；近3月查询<9次', bonus:'循环额度最灵活；支持12/24/36期；换单位只需保证连续缴纳即可', tags:['循环额度','上班族专属','线上操作'], type:'finance', cities:'全国', status:'active' },
 ];
 
 // ══ 状态 ══
 let products = [];
 let editingId = null;
 
+const API_BASE = 'https://api.dzhun.com.cn/api/v1';
+
 // ══ 初始化 ══
-function init() {
+async function init() {
+  // 先用 localStorage 立即渲染，避免白屏
   const saved = localStorage.getItem(STORAGE_KEY);
-  if(saved) {
-    try { products = JSON.parse(saved); } catch(e) { products = []; }
-  }
-  renderTable();
-  updateStats();
-  updateCityFilter();
+  if (saved) { try { products = JSON.parse(saved); } catch(e) { products = []; } }
+  renderTable(); updateStats(); updateCityFilter();
+
+  // 再从服务端拉取，只有比本地数据多时才覆盖（且不覆盖用户正在操作的状态）
+  try {
+    const r = await fetch(API_BASE + '/products');
+    if (r.ok) {
+      const arr = await r.json();
+      if (Array.isArray(arr) && arr.length > products.length) {
+        products = arr;
+        renderTable(); updateStats(); updateCityFilter();
+      }
+    }
+  } catch(e) {}
 }
 
-function saveToStorage() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+async function saveToStorage() {
+  try {
+    await fetch(API_BASE + '/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ admin_key: ADMIN_PASSWORD, products }),
+    });
+  } catch(e) {}
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(products)); // 本地也存一份
 }
 
 // ══ 登录 ══
@@ -987,6 +754,7 @@ function doLogin() {
   if(pw === ADMIN_PASSWORD) {
     document.getElementById('loginPage').style.display = 'none';
     document.getElementById('adminPage').style.display = 'block';
+    document.getElementById('outcomeSection').style.display = 'block';
     init();
   } else {
     document.getElementById('loginErr').style.display = 'block';
@@ -999,6 +767,69 @@ function doLogout() {
   document.getElementById('adminPage').style.display = 'none';
   document.getElementById('loginPage').style.display = 'flex';
   document.getElementById('pwInput').value = '';
+}
+
+// ══ 贷款结果录入 ══
+const OUTCOME_API = 'https://api.dzhun.com.cn/api/v1/outcome';
+
+async function submitOutcome() {
+  const session_id    = document.getElementById('oc_session').value.trim();
+  const product       = document.getElementById('oc_product').value.trim();
+  const result        = document.getElementById('oc_result').value;
+  const approved_amount = document.getElementById('oc_amount').value;
+  const reject_reason = document.getElementById('oc_reason').value;
+  const agent_id      = document.getElementById('oc_agent').value.trim();
+  const msg           = document.getElementById('oc_msg');
+
+  if (!session_id || !result) { msg.style.color='#ef4444'; msg.textContent='Session ID 和结果为必填'; return; }
+
+  msg.style.color = 'var(--text2)'; msg.textContent = '提交中…';
+  try {
+    const resp = await fetch(OUTCOME_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id, product, result, approved_amount: approved_amount||null, reject_reason: reject_reason||null, agent_id: agent_id||null, admin_key: ADMIN_PASSWORD }),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      msg.style.color = '#22c55e'; msg.textContent = '✅ 已录入';
+      document.getElementById('oc_session').value = '';
+      document.getElementById('oc_product').value = '';
+      document.getElementById('oc_result').value = '';
+      document.getElementById('oc_amount').value = '';
+      document.getElementById('oc_reason').value = '';
+      document.getElementById('oc_agent').value = '';
+      loadOutcomes();
+    } else {
+      msg.style.color = '#ef4444'; msg.textContent = '❌ ' + (data.error || '失败');
+    }
+  } catch (e) {
+    msg.style.color = '#ef4444'; msg.textContent = '❌ 网络错误';
+  }
+}
+
+async function loadOutcomes() {
+  const el = document.getElementById('outcomesTable');
+  el.textContent = '加载中…';
+  try {
+    const resp = await fetch('https://api.dzhun.com.cn/api/v1/score-admin?action=outcomes&admin_key=' + ADMIN_PASSWORD);
+    const data = await resp.json();
+    if (!data.results || data.results.length === 0) { el.textContent = '暂无记录'; return; }
+    const rows = data.results.map(r => {
+      const badge = r.result === 'approved' ? '<span style="color:#22c55e">批准</span>' : r.result === 'rejected' ? '<span style="color:#ef4444">拒绝</span>' : '<span style="color:#94a3b8">放弃</span>';
+      const amt = r.approved_amount ? ` ${(r.approved_amount/10000).toFixed(1)}万` : '';
+      return `<div style="display:grid;grid-template-columns:140px 120px 60px 80px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-family:monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis">${r.session_id||'-'}</span>
+        <span>${r.product||'-'}</span>
+        <span>${badge}</span>
+        <span style="color:var(--gold)">${amt}</span>
+        <span>${r.reject_reason||''}</span>
+      </div>`;
+    }).join('');
+    el.innerHTML = `<div style="display:grid;grid-template-columns:140px 120px 60px 80px 1fr;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);color:var(--text2);font-size:11px"><span>Session ID</span><span>产品</span><span>结果</span><span>金额</span><span>拒绝原因</span></div>${rows}`;
+  } catch (e) {
+    el.textContent = '加载失败，请刷新重试';
+  }
 }
 
 // ══ 渲染表格 ══
@@ -1034,9 +865,9 @@ function renderTable() {
       <div style="font-size:12px;color:var(--text2)">${p.cities||'全国'}</div>
       <div><span class="badge ${p.status==='active'?'badge-active':'badge-inactive'}">${p.status==='active'?'启用':'停用'}</span></div>
       <div class="row-actions col-actions">
-        <button class="icon-btn" onclick="openEdit(${p.id})" title="编辑">✏️</button>
-        <button class="icon-btn" onclick="toggleStatus(${p.id})" title="${p.status==='active'?'停用':'启用'}">${p.status==='active'?'⏸':'▶️'}</button>
-        <button class="icon-btn delete" onclick="deleteProduct(${p.id})" title="删除">🗑</button>
+        <button class="icon-btn" onclick="openEdit('${p.id}')" title="编辑">✏️</button>
+        <button class="icon-btn" onclick="toggleStatus('${p.id}')" title="${p.status==='active'?'停用':'启用'}">${p.status==='active'?'⏸':'▶️'}</button>
+        <button class="icon-btn delete" onclick="deleteProduct('${p.id}')" title="删除">🗑</button>
       </div>
     </div>
   `).join('');
@@ -1163,13 +994,16 @@ function deleteProduct(id) {
 }
 
 function importDefault() {
-  if(products.length > 0 && !confirm('导入默认产品库将覆盖现有数据，确定吗？')) return;
-  products = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
-  saveToStorage();
-  renderTable();
-  updateStats();
-  updateCityFilter();
-  showToast('默认产品库已导入 ✓');
+  try {
+    products = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+    saveToStorage();
+    renderTable();
+    updateStats();
+    updateCityFilter();
+    showToast('默认产品库已导入 ✓');
+  } catch(err) {
+    alert('导入失败: ' + err.message);
+  }
 }
 
 // ══ 导出AI提示词 ══

@@ -1614,7 +1614,7 @@ async function handleScoreAdmin(request, env) {
 
 // 代理商企业微信群机器人 Webhook（key 与 config.js 保持一致）
 const AGENT_WEBHOOKS = {
-  'XY001': 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=eeac39a4-e6f8-487d-8a3c-92f6421829b2',
+  'AHX': 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=eeac39a4-e6f8-487d-8a3c-92f6421829b2',
 };
 
 async function handleReport(request, env, ctx) {
@@ -1640,9 +1640,10 @@ async function handleReport(request, env, ctx) {
     // 代理商渠道：fire-and-forget 推送 PDF 到企业微信群
     const agentId  = body.agent_id;
     const pdfData  = body.pdfData;
+    const refId    = (body.ref_id || '').toString().replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20);
     const webhook  = agentId && AGENT_WEBHOOKS[agentId];
     if (webhook && pdfData?.ocrData && env.PDF_SERVICE_SECRET) {
-      ctx.waitUntil(sendWechatPdf(pdfData, name, time, body['渠道代理'] || agentId, webhook, env).catch(e => {
+      ctx.waitUntil(sendWechatPdf(pdfData, name, time, body['渠道代理'] || agentId, refId, webhook, env).catch(e => {
         console.error('[WeChat] sendWechatPdf 顶层错误:', e.message);
       }));
     }
@@ -1653,7 +1654,7 @@ async function handleReport(request, env, ctx) {
   }
 }
 
-async function sendWechatPdf(pdfData, clientName, submitTime, agentLabel, webhookUrl, env) {
+async function sendWechatPdf(pdfData, clientName, submitTime, agentLabel, refId, webhookUrl, env) {
   const key = new URL(webhookUrl).searchParams.get('key');
   if (!key) { console.error('[WeChat] invalid webhook URL, no key'); return; }
 
@@ -1702,13 +1703,14 @@ async function sendWechatPdf(pdfData, clientName, submitTime, agentLabel, webhoo
 
   // 3. 先发文字摘要，再发 PDF 文件
   const scoreLabel = v2Score?.level ? `${v2Score.level}级（${v2Score.score}分）` : '--';
+  const refLine    = refId ? `> **推荐人**：${refId}\n` : '';
   await fetch(webhookUrl, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({
       msgtype:  'markdown',
       markdown: {
-        content: `## 新客户报告\n> **姓名**：${personName}\n> **评分**：${scoreLabel}\n> **渠道**：${agentLabel}\n> **时间**：${submitTime}`,
+        content: `## 新客户报告\n> **姓名**：${personName}\n> **评分**：${scoreLabel}\n> **渠道**：${agentLabel}\n${refLine}> **时间**：${submitTime}`,
       },
     }),
   });

@@ -7,9 +7,11 @@ npx wrangler@4 deploy
 
 # 更新版本号（强制刷新浏览器缓存）
 TS=$(date +%s)
-sed -i '' "s/style\.css?v=[0-9]*/style.css?v=${TS}/g" index.html
-sed -i '' "s/config\.js?v=[0-9]*/config.js?v=${TS}/g" index.html
-sed -i '' "s/app\.js?v=[0-9]*/app.js?v=${TS}/g" index.html
+for f in index.html checkup.html; do
+  sed -i '' "s/style\.css?v=[0-9]*/style.css?v=${TS}/g" "$f"
+  sed -i '' "s/config\.js?v=[0-9]*/config.js?v=${TS}/g" "$f"
+  sed -i '' "s/app\.js?v=[0-9]*/app.js?v=${TS}/g" "$f"
+done
 
 # 混淆 JS（保护源码）
 javascript-obfuscator app.js \
@@ -40,10 +42,10 @@ javascript-obfuscator config.js \
   --self-defending false
 
 # 同步前端到 ECS（上传混淆版，服务器上覆盖为 app.js / config.js）
-git add index.html style.css config.js app.js qr.jpg qr_agent_1.jpg
+git add index.html checkup.html style.css config.js app.js qr.jpg qr_agent_1.jpg
 git commit -m "deploy $(date '+%Y-%m-%d %H:%M')" || true
 git push origin main
-scp index.html style.css qr.jpg qr_agent_1.jpg root@8.136.1.233:/usr/share/nginx/html/
+scp index.html checkup.html style.css qr.jpg qr_agent_1.jpg root@8.136.1.233:/usr/share/nginx/html/
 scp app.obf.js root@8.136.1.233:/usr/share/nginx/html/app.js
 scp config.obf.js root@8.136.1.233:/usr/share/nginx/html/config.js
 
