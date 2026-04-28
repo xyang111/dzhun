@@ -11,7 +11,7 @@ const DEFAULT_QR    = '/qr.jpg';  // 默认二维码图片路径（直客）
 // notify: 企业微信群机器人 Webhook（没有可留空 ''）
 const AGENTS = {
   'XY001': {
-    name:   '夏阳',
+    name:   '安惠信',
     phone:  '18359711859',
     qr: '/qr_agent_1.jpg',
     notify: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=eeac39a4-e6f8-487d-8a3c-92f6421829b2'

@@ -3143,6 +3143,7 @@ async function autoSendReport() {
         '渠道代理': _currentAgent ? `${_currentAgent.name} / ${_currentAgent.phone} / ID:${_currentAgent.id}` : '直客',
         '完整报告': reportText,
         agent_id:   _currentAgent?.id || null,
+        ref_id:     window._currentRef || null,
         ...(pdfData ? { pdfData } : {}),
       }),
     });
@@ -3218,7 +3219,18 @@ function hideQrModal(e) {
 // 初始化：读取代理商参数，替换电话和二维码
 function initContactPhone() {
   // 读取URL中的agent参数
-  const agentId = new URLSearchParams(location.search).get('agent');
+  const _params = new URLSearchParams(location.search);
+  const agentId = _params.get('agent');
+
+  // 读取推荐人参数 ref（代码形如 R001/R002），存入 localStorage 持久化
+  const _refRaw = (_params.get('ref') || localStorage.getItem('dzhun_ref') || '').trim();
+  const _refId  = _refRaw.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20);
+  if (_refId) {
+    try { localStorage.setItem('dzhun_ref', _refId); } catch(e) {}
+    window._currentRef = _refId;
+    console.log('[贷准] 推荐人:', _refId);
+  }
+
   if (agentId && AGENTS[agentId]) {
     _currentAgent = window._currentAgent = { id: agentId, ...AGENTS[agentId] };
     console.log('[贷准] 代理商渠道:', _currentAgent.name, agentId);
