@@ -2255,7 +2255,7 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt, products) {
     const nOpt = Array.isArray(r.optimization) ? r.optimization.length : 3;
     el.innerHTML = `<div class="hero-wrap hero-b">
       <div class="hero-eyebrow">B级 · OPTIMIZATION GAP</div>
-      <div class="hero-title">差 <span style="color:#4ade80">${nOpt} 步</span> 可以进入优质准入区间</div>
+      <div class="hero-title">差 <span style="color:#15803d">${nOpt} 步</span> 可以进入优质准入区间</div>
       <div class="hero-sub">按顺序完成 ${nOpt} 个优化后，资质可进入银行优质准入区间 · 最快 3 个月见效</div>
       <div class="hero-metrics cols-2">
         ${_metricBox('当前评分', scoreDisp + ' / 1000', '')}
@@ -2269,7 +2269,7 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt, products) {
   if (level === 'C') {
     el.innerHTML = `<div class="hero-wrap hero-c">
       <div class="hero-eyebrow">C级 · RECOVERY PATH</div>
-      <div class="hero-title">当前处于 <span style="color:#fbbf24">城商行 / 消金过渡区间</span></div>
+      <div class="hero-title">当前处于 <span style="color:#B85C00">城商行 / 消金过渡区间</span></div>
       <div class="hero-sub">3–6 个月优化后，可进入主流股份制银行区间</div>
       <div class="hero-metrics cols-3">
         ${_metricBox('当前区间', '城商行 · 消金', '', '可尝试申请')}
@@ -2670,7 +2670,7 @@ function renderMatchResult(r) {
     const isNotRec=p.prob==='不推荐';
     const cardStyle=isNotRec?'opacity:0.55;filter:grayscale(30%)':'';
     const badgeCls=p.prob==='高'?'badge-ok':p.prob==='中'?'badge-warn':'badge-bad';
-    const notRecTag=isNotRec?`<span class="pc-tag" style="color:#f87171;background:rgba(192,57,43,.12)">当前评分偏低</span>`:'';
+    const notRecTag=isNotRec?`<span class="pc-tag" style="color:#C42B2B;background:rgba(196,43,43,.10)">当前评分偏低</span>`:'';
     return `<div class="product-card" style="${cardStyle}"><div class="pc-top"><div class="pc-info"><div class="pc-bank">${esc(p.bank)}</div><div class="pc-product">${esc(p.product)}</div></div><div class="pc-rate">${esc(p.rate)}</div></div><div class="pc-prob"><div class="pc-prob-bar"><div class="pc-prob-fill" style="width:${pct}%;background:${bc}"></div></div><div class="pc-prob-val">${pct}%</div></div><div class="pc-tags"><span class="badge ${badgeCls}">${esc(p.prob)}概率</span>${notRecTag}${(p.tags||[]).map(t=>`<span class="pc-tag">${esc(t)}</span>`).join('')}<span class="pc-tag">${esc(p.amount)}</span></div><div class="pc-reason" onclick="var d=this.nextElementSibling;if(d&&d.classList.contains('pc-reason-detail')){d.classList.toggle('show');this.querySelector('.pc-reason-toggle')?.classList.toggle('open')}"><span class="pc-reason-text">${esc(p.reason || _personalReason(p))||''}</span>${p.reason_detail?'<span class="pc-reason-toggle">▾</span>':''}</div>${p.reason_detail?'<div class="pc-reason-detail">'+esc(p.reason_detail)+'</div>':''}</div>`;
   };
   const _tierHd = (txt,sub)=>`<div style="grid-column:1/-1;margin:12px 0 4px;padding:7px 10px;border-left:3px solid var(--accentB);background:var(--glow)"><span style="font-size:12px;font-weight:700;color:var(--accentB)">${txt}</span>${sub?`<span style="font-size:11px;color:var(--silver);margin-left:6px">${sub}</span>`:''}` + `</div>`;
