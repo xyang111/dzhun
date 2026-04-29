@@ -2152,7 +2152,7 @@ function renderV2XAI(v2) {
     });
     const dataPts = axes.map((_,i) => pt(i, axes[i].val/100*R));
     const dataPath = dataPts.map((p,i) => `${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')+'Z';
-    const axisLines = axes.map((_,i) => { const e=pt(i,R); return `<line x1="${CX}" y1="${CY}" x2="${e.x.toFixed(1)}" y2="${e.y.toFixed(1)}" stroke="rgba(255,255,255,.12)" stroke-width="1"/>`; }).join('');
+    const axisLines = axes.map((_,i) => { const e=pt(i,R); return `<line x1="${CX}" y1="${CY}" x2="${e.x.toFixed(1)}" y2="${e.y.toFixed(1)}" stroke="rgba(27,80,204,0.22)" stroke-width="1"/>`; }).join('');
     const labels = axes.map((a,i) => {
       const lp = pt(i, R+16);
       const anchor = Math.abs(lp.x-CX)<8?'middle':lp.x>CX?'start':'end';
@@ -2161,7 +2161,7 @@ function renderV2XAI(v2) {
     }).join('');
     const dots = dataPts.map(p => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="${col}"/>`).join('');
     radarWrap.innerHTML = `<svg width="200" height="200" viewBox="0 0 200 200" style="overflow:visible">
-      ${gridPaths.map(d=>`<path d="${d}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="0.8"/>`).join('')}
+      ${gridPaths.map(d=>`<path d="${d}" fill="none" stroke="rgba(27,80,204,0.15)" stroke-width="0.8"/>`).join('')}
       ${axisLines}
       <path d="${dataPath}" fill="${col}22" stroke="${col}" stroke-width="1.8" stroke-linejoin="round"/>
       ${dots}
@@ -2246,7 +2246,7 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt, products) {
         ${_metricBox('资质等级', 'A 级优质', '')}
         ${_metricBox('利率档位', '最低档可谈', '')}
       </div>
-      <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></span><span><strong style="color:#fff">专属白名单通道：</strong>您的资质符合银行优先审批条件，最低利率需人工对接谈判</span></div>
+      <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></span><span><strong style="color:#15803d">专属白名单通道：</strong>您的资质符合银行优先审批条件，最低利率需人工对接谈判</span></div>
     </div>`;
     return;
   }
@@ -2285,7 +2285,7 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt, products) {
   el.innerHTML = `<div class="hero-wrap hero-d">
     <div class="hero-eyebrow">D级 · REHABILITATION PLAN</div>
     <div class="hero-title">银行通道暂时关闭</div>
-    <div class="hero-sub">专属征信修复路线图已生成 · 预计 <strong style="color:#fff">9 个月</strong> 后重新达到银行准入</div>
+    <div class="hero-sub">专属征信修复路线图已生成 · 预计 <strong style="color:#C42B2B">9 个月</strong> 后重新达到银行准入</div>
     <div class="hero-metrics cols-3">
       ${_metricBox('当前方向', '消金保底', '')}
       ${_metricBox('第一里程碑', '第 3 个月', 'milestone')}
