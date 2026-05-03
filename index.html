@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="baidu-site-verification" content="codeva-DgegnklHND" />
 <title>贷准 · 申请贷款前，先做一次征信体检</title>
 <meta name="description" content="贷准帮你读懂简版征信报告，识别当前负债、查询和逾期风险，先判断该不该申请、怎么申请、适合申请什么。不替你提交贷款，不擅自发起查询。">
 <meta property="og:title" content="申请贷款前，先做一次征信体检 — 贷准 AI" />
@@ -11,28 +12,21 @@
 <meta property="og:url" content="https://dzhun.com.cn/" />
 <meta property="og:type" content="website" />
 <script>
-  /* 代理商链接（?agent=AHX）自动转发到工具页，无需通知代理商换链接
-     例外：从工具页 logo 点回主页时（sessionStorage 标记），不跳转，展示 Landing */
-  (function () {
-    var hasAgent = /[?&]agent=/.test(location.search);
-    var fromTool = sessionStorage.getItem('dzhun_came_from_tool') === '1';
-    if (fromTool) sessionStorage.removeItem('dzhun_came_from_tool');
-    if (hasAgent && !fromTool) {
-      location.replace('/checkup.html' + location.search + location.hash);
-    }
-  })();
-
-  /* 主页带 agent 时，把 agent 注入所有 CTA 链接，保证再次进工具页保留代理商上下文 */
+  /* Landing 所有 CTA 自动透传当前 URL 的 query string（agent / ref 等），
+     保证主站、代理商、转介绍三种入口在 Landing ↔ 工具页之间 URL 完全一致：
+       主站                       /              ↔ /checkup.html
+       代理商                     /?agent=AHX    ↔ /checkup.html?agent=AHX
+       代理商 + 转介绍            /?agent=AHX&ref=R001 ↔ /checkup.html?agent=AHX&ref=R001 */
   document.addEventListener('DOMContentLoaded', function () {
-    var agent = new URLSearchParams(location.search).get('agent');
-    if (!agent) return;
+    var qs = location.search;
+    if (!qs) return;
     document.querySelectorAll('a[href="/checkup.html"]').forEach(function (el) {
-      el.href = '/checkup.html?agent=' + encodeURIComponent(agent);
+      el.href = '/checkup.html' + qs;
     });
     document.querySelectorAll('button[onclick]').forEach(function (el) {
       var oc = el.getAttribute('onclick') || '';
-      if (oc.indexOf("/checkup.html") >= 0) {
-        el.setAttribute('onclick', oc.replace("/checkup.html'", "/checkup.html?agent=" + encodeURIComponent(agent) + "'"));
+      if (oc.indexOf("/checkup.html'") >= 0) {
+        el.setAttribute('onclick', oc.replace("/checkup.html'", "/checkup.html" + qs + "'"));
       }
     });
   });
