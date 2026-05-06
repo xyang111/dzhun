@@ -11,7 +11,7 @@
 <meta property="og:url" content="https://dzhun.com.cn/checkup.html" />
 <meta property="og:type" content="website" />
 <meta name="description" content="AI 读懂你的简版征信报告，给出资质区间评估和方向级建议。不发起任何查询，不替你提交申请。" />
-<link rel="stylesheet" href="style.css?v=1778052209">
+<link rel="stylesheet" href="style.css?v=1778053302">
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 <script>
 // 工具页 logo 点击：跳回主页，完整透传 query string（agent / ref 等）
@@ -527,9 +527,56 @@ function goHome() {
             <label class="if-label">户籍所在地 <span class="if-req">*</span></label>
             <select id="if-hukou" class="if-select">
               <option value="">请选择</option>
-              <option value="local">本地户籍（厦门）</option>
-              <option value="fujian">福建省内其他城市</option>
-              <option value="other">外省户籍</option>
+              <optgroup label="福建省">
+                <option value="福建省 厦门市">厦门市</option>
+                <option value="福建省 福州市">福州市</option>
+                <option value="福建省 泉州市">泉州市</option>
+                <option value="福建省 漳州市">漳州市</option>
+                <option value="福建省 莆田市">莆田市</option>
+                <option value="福建省 龙岩市">龙岩市</option>
+                <option value="福建省 三明市">三明市</option>
+                <option value="福建省 南平市">南平市</option>
+                <option value="福建省 宁德市">宁德市</option>
+              </optgroup>
+              <optgroup label="直辖市">
+                <option value="北京市">北京市</option>
+                <option value="上海市">上海市</option>
+                <option value="天津市">天津市</option>
+                <option value="重庆市">重庆市</option>
+              </optgroup>
+              <optgroup label="其他省份">
+                <option value="广东省">广东省</option>
+                <option value="浙江省">浙江省</option>
+                <option value="江苏省">江苏省</option>
+                <option value="山东省">山东省</option>
+                <option value="河南省">河南省</option>
+                <option value="河北省">河北省</option>
+                <option value="山西省">山西省</option>
+                <option value="辽宁省">辽宁省</option>
+                <option value="吉林省">吉林省</option>
+                <option value="黑龙江省">黑龙江省</option>
+                <option value="安徽省">安徽省</option>
+                <option value="江西省">江西省</option>
+                <option value="湖北省">湖北省</option>
+                <option value="湖南省">湖南省</option>
+                <option value="四川省">四川省</option>
+                <option value="贵州省">贵州省</option>
+                <option value="云南省">云南省</option>
+                <option value="陕西省">陕西省</option>
+                <option value="甘肃省">甘肃省</option>
+                <option value="青海省">青海省</option>
+                <option value="海南省">海南省</option>
+              </optgroup>
+              <optgroup label="自治区 / 港澳台">
+                <option value="内蒙古自治区">内蒙古自治区</option>
+                <option value="广西壮族自治区">广西壮族自治区</option>
+                <option value="西藏自治区">西藏自治区</option>
+                <option value="宁夏回族自治区">宁夏回族自治区</option>
+                <option value="新疆维吾尔自治区">新疆维吾尔自治区</option>
+                <option value="香港特别行政区">香港特别行政区</option>
+                <option value="澳门特别行政区">澳门特别行政区</option>
+                <option value="台湾省">台湾省</option>
+              </optgroup>
             </select>
           </div>
 
@@ -884,8 +931,8 @@ function goHome() {
   </div>
 </footer>
 
-<script src="config.js?v=1778052209"></script>
-<script src="app.js?v=1778052209"></script>
+<script src="config.js?v=1778053302"></script>
+<script src="app.js?v=1778053302"></script>
 
 <!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
 <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">

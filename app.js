@@ -2075,6 +2075,7 @@ async function startMatching() {
         const raw = (respData.content || []).map(b => b.text || '').join('').replace(/```json[\s\S]*?```|```[\s\S]*?```|```/g, '').trim();
         const aiResult = extractJson(raw);
         if (!aiResult) { _showAiBar('AI内容解析失败 raw=' + raw.slice(0,80), true); return; }
+        window._lastReportAi = { ...(window._lastReportAi || {}), ...aiResult };
         // 只更新 AI 文字字段对应的 DOM，不重渲染产品列表
         const _esc = s => s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '';
         if (aiResult.optimization?.length > 0) {
@@ -2790,6 +2791,14 @@ function renderMatchResult(r) {
     if (_ccTips) _ccTips.style.display = 'block';
   }
 
+  // 把本地 fallback 的 advice/optimization/key_risk/post_optimization 挂到全局，
+  // 供 PDF 下载和报告推送使用。AI 路径完成后会再覆盖这几个字段。
+  window._lastReportAi = {
+    advice:            r.advice            || null,
+    optimization:      r.optimization      || null,
+    key_risk:          r.key_risk          || null,
+    post_optimization: r.post_optimization || null,
+  };
   // 旧版分析报告兼容渲染
   const adv=r.advice;
   if(adv){
@@ -3142,9 +3151,13 @@ async function autoSendReport() {
             debtRatio:        ui?.income > 0 ? Math.round(monthly / ui.income * 100) : null,
             age:              calcAgeFromId(_recognizedData?.id_number),
           },
+          aiResult: window._lastReportAi || null,
         };
       } catch(e) { pdfData = null; }
     }
+
+    const _idLast4 = (_recognizedData?.id_number || '').slice(-4);
+    const _dedupeKey = (name && name !== '未识别' && _idLast4) ? `${name}:${_idLast4}` : '';
 
     await fetch(REPORT_URL, {
       method: 'POST',
@@ -3157,6 +3170,7 @@ async function autoSendReport() {
         '完整报告': reportText,
         agent_id:   _currentAgent?.id || null,
         ref_id:     window._currentRef || null,
+        dedupe_key: _dedupeKey || undefined,
         ...(pdfData ? { pdfData } : {}),
       }),
     });
@@ -3483,6 +3497,7 @@ function restartAll() {
 
   // Reset send state
   window._reportSent = false;
+  window._lastReportAi = null;
   // Reset ID info bar
   document.getElementById('idInfoBar').style.display = 'none';
   document.getElementById('loansTfoot').style.display = 'none';
@@ -3534,6 +3549,7 @@ function rematch() {
   document.getElementById('productsGrid').innerHTML = '';
   document.getElementById('analysisReport').style.display = 'none';
   window._reportSent = false;
+  window._lastReportAi = null;
   document.getElementById('infoCard').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
@@ -3883,6 +3899,7 @@ async function downloadPdfReport() {
           debtRatio:        _pdfIncome > 0 ? Math.round(_pdfMonthly / _pdfIncome * 100) : null,
           age:              calcAgeFromId(_recognizedData?.id_number),
         },
+        aiResult: window._lastReportAi || undefined,
         payToken: payToken || undefined,
         agentId:  agentId  || undefined,
       }),
