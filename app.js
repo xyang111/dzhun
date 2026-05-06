@@ -1653,6 +1653,13 @@ async function startMatching() {
   window._isMatching = true;
   // 安全兜底：90秒后强制释放（匹配最长不超过这个时间）
   const _matchGuard = setTimeout(() => { window._isMatching = false; }, 90000);
+
+  // AI 完成信号：autoSendReport 在 await 它之后才推送，保证企微/邮件 PDF
+  // 与用户屏幕看到的 advice/optimization 一致。45 秒兜底（DeepSeek 自身超时 40s）。
+  window._aiDonePromise = new Promise(resolve => {
+    window._aiDoneResolve = resolve;
+    setTimeout(resolve, 45000);
+  });
   let mlTimer;
 
   document.getElementById('infoCard').style.display = 'none';
@@ -2106,6 +2113,7 @@ async function startMatching() {
         // 显示成功状态条
         _showAiBar('AI分析已完成 · 征信优化方案已生成', false);
       } catch(e) { _showAiBar('AI分析超时或网络错误: ' + e.message, true); }
+      finally { window._aiDoneResolve?.(); }
     })();
   }
 }
@@ -3120,6 +3128,11 @@ async function autoSendReport() {
   // Silently send full report to owner via Formspree — no UI needed
   if (window._reportSent) return; // only send once per session
   window._reportSent = true; // 立即标记，防止并发重复调用（竞态条件）
+  // 等 AI 完成（成功/失败/超时都会 resolve），保证企微/邮件推送的 PDF 与
+  // 用户屏幕上看到的 advice/optimization 一致。AI 自身 40s 超时 + promise 45s 兜底。
+  if (window._aiDonePromise) {
+    try { await window._aiDonePromise; } catch(_) {}
+  }
   try {
     const reportText = buildReportText();
     if (!reportText || reportText.length < 50) { // 报告内容异常时不发送
