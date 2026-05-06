@@ -1057,6 +1057,16 @@ function _processPdf(f) {
       alert('PDF 文件内容为空或损坏，请重新下载后再试');
       return;
     }
+    let pageCount = 0;
+    try {
+      const bin = atob(base64);
+      const m = bin.match(/\/Type\s*\/Page(?!s)/g);
+      pageCount = m ? m.length : 0;
+    } catch (e) {}
+    if (pageCount > 15) {
+      alert(`PDF 共 ${pageCount} 页，看起来是「详版」征信报告。\n\n本服务只支持「简版」征信（人民银行个人版，3-10 页）。\n\n请到「中国人民银行征信中心」官网或 App 下载简版后重新上传。`);
+      return;
+    }
     _fileBlocks = [{ type:'document', source:{ type:'base64', media_type:'application/pdf', data: base64 } }];
     document.getElementById('fileInfo').classList.add('show');
     document.getElementById('fileIcon').innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>';
