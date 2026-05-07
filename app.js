@@ -243,8 +243,11 @@ function localFallbackMatch(data, v2Score = 0) {
   if (userEduRank >= 4)
     advStrengths.push({ point: '本科及以上学历', impact: '符合部分银行学历门槛加分项' });
   const hukouV2 = userInfo.hukou || '';
-  if (hukouV2.includes('厦门'))
-    advStrengths.push({ point: '厦门本地户籍', impact: '本地银行优先审批，降低准入门槛' });
+  const _hkS = _hukouScore(hukouV2);
+  if (_hkS >= 0.85)
+    advStrengths.push({ point: `${hukouV2} 户籍`, impact: '一线/强经济城市户籍，银行风控对地域稳定性有正向加权' });
+  else if (_hkS >= 0.72)
+    advStrengths.push({ point: `${hukouV2} 户籍`, impact: '省会/强地级市户籍，本地及全国性银行均可正常受理' });
   if ((userInfo.assets||'').includes('房产'))
     advStrengths.push({ point: '名下有房产', impact: '证明资产实力，银行判定还款能力更强' });
 
@@ -385,72 +388,48 @@ function _trackEvent(event, props) {
 // 征信评分系统
 // ═══════════════════════════════════════════
 
+// 户籍评分：0.85=一线/强经济城市（含厦门）| 0.72=省会/强地级市 | 0.6=其他已填 | 0.5=未填
+// Why: 前端户籍 UI 已全国化（38 省市选项），原"含厦门=1.0/含福建=0.72/其他=0.42"会让北上广深一线户籍被打 42 分，反逻辑
+function _hukouScore(hukou) {
+  const h = hukou || '';
+  if (!h || h === '未填写') return 0.5;
+  if (/北京|上海|广州|深圳|厦门|杭州|苏州|南京|成都|武汉|天津|重庆/.test(h)) return 0.85;
+  if (/福州|泉州|青岛|宁波|济南|郑州|长沙|合肥|西安|沈阳|大连/.test(h)) return 0.72;
+  return 0.6;
+}
+
 function calcCreditScore(data, ui) {
   if (!data || typeof data !== 'object') data = {};
-  const loans = getActiveLoans(data);
-  const cards = getActiveCards(data);
-  const q     = calcQueryCounts(data.query_records||[]);
-  const q3    = q.q_3m||0;
-  const onlineInst = [...new Set(loans.filter(l=>l.type==='online').map(l=>l.name.split('-')[0]))].length;
-  const cLimit = cards.reduce((s,c)=>s+(c.limit||0),0);
-  const cUsed  = cards.reduce((s,c)=>s+(c.used||0),0);
-  const cUtil  = cLimit>0?Math.round(cUsed/cLimit*100):0;
-  const income = ui&&ui.income?ui.income:0;
-  const monthly = calcTotalMonthly(loans,cards);
-  const dr = income>0?Math.round(monthly/income*100):0;
-  const hasOv     = (data.overdue_current||0)>0;
-  const ovNotes   = (data.overdue_history_notes||'').toLowerCase();
-  const hasLian3  = ovNotes.includes('连三')||ovNotes.includes('连续3')||ovNotes.includes('连续三');
-  const hasLei6   = ovNotes.includes('累六')||ovNotes.includes('累计6');
-  const hasOvHist = data.has_overdue_history||false;
-  const isBasic   = !ui||!ui.income;
+  const isBasic = !ui || !ui.income;
 
-  const dims = [];
-  // 当前逾期 25%
-  let d1 = hasOv?0:100;
-  dims.push({name:'当前逾期',s:d1,w:.25,c:d1>=80?'#4ade80':'#f87171'});
-  // 历史逾期 15%
-  let d2 = hasLian3||hasLei6?0:hasOvHist?45:100;
-  dims.push({name:'历史逾期',s:d2,w:.15,c:d2>=80?'#4ade80':d2>=50?'#fbbf24':'#f87171'});
-  // 查询次数 20%
-  let d3 = q3===0?100:q3<=3?85:q3<=6?62:q3<=9?32:8;
-  dims.push({name:'查询次数',s:d3,w:.20,c:d3>=70?'#4ade80':d3>=45?'#fbbf24':'#f87171'});
-  // 网贷机构 15%
-  let d4 = onlineInst===0?100:onlineInst<=2?78:onlineInst<=4?40:8;
-  dims.push({name:'网贷情况',s:d4,w:.15,c:d4>=70?'#4ade80':d4>=45?'#fbbf24':'#f87171'});
-  // 信用卡使用率 10%
-  let d5 = cUtil<=50?100:cUtil<=70?72:cUtil<=90?40:12;
-  dims.push({name:'信用卡率',s:d5,w:.10,c:d5>=70?'#4ade80':d5>=45?'#fbbf24':'#f87171'});
-  // 负债率 10%（无收入用中性值50）
-  let d6 = income>0?(dr<=30?100:dr<=50?80:dr<=65?58:dr<=80?28:6):50;
-  dims.push({name:'负债率',s:d6,w:.10,c:d6>=70?'#4ade80':d6>=45?'#fbbf24':'#f87171'});
+  // V2.0 千分制 → 百分制线性映射，让圆环数字与下方 V2.0 等级/方向卡完全一致
+  // 旧版独立百分制算法已停用（不看 q6m、无一票否决，会给出"93 良好"但 V2.0 仅 658 B 级的认知错位）
+  const v2    = new ScoreEngine(data, ui).compute(getProducts());
+  const score = Math.max(0, Math.min(100, Math.round((v2.score - 300) / 700 * 100)));
 
-  if (!isBasic&&ui) {
-    const hasSocial = (ui.social||'').includes('有');
-    const pvd = ui.provident||0;
-    let d7 = pvd>=1000?100:pvd>=500?75:hasSocial?60:28;
-    dims.push({name:'社保公积金',s:d7,w:.08,c:d7>=70?'#4ade80':d7>=45?'#fbbf24':'#f87171'});
-    const hk = ui.hukou||'';
-    let d8 = hk.includes('厦门')?100:hk.includes('福建')?72:hk&&hk!=='未填写'?42:50;
-    dims.push({name:'户籍',s:d8,w:.06,c:d8>=70?'#4ade80':d8>=45?'#fbbf24':'#f87171'});
-    const ast = ui.assets||'';
-    let d9 = ast.includes('房产')?100:ast.includes('车辆')?65:28;
-    dims.push({name:'资产情况',s:d9,w:.06,c:d9>=70?'#4ade80':d9>=45?'#fbbf24':'#f87171'});
-    const wtMap={'政府机关/公务员':100,'事业单位':100,'国有企业/央企':85,'上市公司/500强':72,'私营企业':55,'个体工商户':42,'自由职业':38};
-    let d10 = wtMap[ui.work||'']||50;
-    dims.push({name:'单位性质',s:d10,w:.06,c:d10>=70?'#4ade80':d10>=45?'#fbbf24':'#f87171'});
-  }
+  // 等级映射：A→优质 / B→良好 / C→一般 / D→较弱 或 高风险（<40）
+  const lvMap = {
+    A: { level: '优质', cls: 'cs-lv-exc' },
+    B: { level: '良好', cls: 'cs-lv-gd'  },
+    C: { level: '一般', cls: 'cs-lv-ok'  },
+  };
+  const dFallback = score >= 40
+    ? { level: '较弱',   cls: 'cs-lv-wk'  }
+    : { level: '高风险', cls: 'cs-lv-bad' };
+  const { level, cls } = lvMap[v2.level] || dFallback;
 
-  const totalW = dims.reduce((s,d)=>s+d.w,0);
-  const raw    = dims.reduce((s,d)=>s+d.s*d.w,0)/totalW;
-  const score  = Math.round(Math.max(0,Math.min(100,raw)));
-  let level,cls,hint;
-  if(score>=85){level='优质';cls='cs-lv-exc';hint='征信状态优质，银行产品基本无障碍，利率可申请最低档';}
-  else if(score>=70){level='良好';cls='cs-lv-gd';hint='征信状态良好，银行及消费金融均可申请，通过率较高';}
-  else if(score>=55){level='一般';cls='cs-lv-ok';hint='存在扣分项，部分银行受限，消费金融可正常申请';}
-  else if(score>=40){level='较弱';cls='cs-lv-wk';hint='存在明显风控问题，建议优化后再申请，否则通过率低';}
-  else{level='高风险';cls='cs-lv-bad';hint='已触碰银行风控红线，建议先养征信3-6个月再申请';}
-  return {score,level,cls,hint,dims,isBasic};
+  // dims 改用 V2.0 的 4 域分数（信用行为/稳定性/资产偿债/反欺诈），与总分同源避免矛盾
+  const ds = v2.domainScores || {};
+  const _color = s => s >= 75 ? '#4ade80' : s >= 50 ? '#fbbf24' : '#f87171';
+  const _round = v => Math.round(v == null ? 50 : v);
+  const dims = [
+    { name: '信用行为', s: _round(ds.credit),    w: 0.40, c: _color(_round(ds.credit))    },
+    { name: '工作稳定', s: _round(ds.stability), w: 0.30, c: _color(_round(ds.stability)) },
+    { name: '资产偿债', s: _round(ds.asset),     w: 0.25, c: _color(_round(ds.asset))     },
+    { name: '反欺诈',   s: _round(ds.fraud),     w: 0.05, c: _color(_round(ds.fraud))     },
+  ];
+
+  return { score, level, cls, hint: '', dims, isBasic };
 }
 
 function renderCreditScore(data,ui) {
@@ -470,7 +449,7 @@ function renderCreditScore(data,ui) {
   const sv=document.getElementById('csScoreVal');if(sv)sv.textContent=r.score;
   const lv=document.getElementById('csLevel');
   if(lv){lv.className='cs-level '+r.cls;lv.textContent=r.level;}
-  const ht=document.getElementById('csHint');if(ht)ht.textContent=r.hint;
+  const ht=document.getElementById('csHint');if(ht){ht.textContent=r.hint;ht.style.display=r.hint?'':'none';}
   const ul=document.getElementById('csUnlock');if(ul)ul.style.display=r.isBasic?'flex':'none';
   const grid=document.getElementById('csDims');
   if(grid){
@@ -796,7 +775,7 @@ class ScoreEngine {
     })();
     const wkScore  = { gov:1.0, institution:1.0, state:0.85, listed:0.72, private:0.55, self:0.42, freelance:0.38 }[wKey] || 0.5;
     const eduScore = (() => { const e = ui.edu||''; return e.includes('本科')?1.0:e.includes('大专')?0.75:e.includes('函授')?0.6:0.45; })();
-    const hkScore  = (() => { const h = ui.hukou||''; return h.includes('厦门')?1.0:h.includes('福建')?0.72:h&&h!=='未填写'?0.42:0.5; })();
+    const hkScore  = _hukouScore(ui.hukou);
     const ageScore = (() => { if(!age)return 0.5; return(age>=28&&age<=45)?1.0:(age>=25&&age<=50)?0.8:0.65; })();
     const astStr   = ui.assets || '';
     const astScore = astStr.includes('房产')?1.0:astStr.includes('车辆')?0.65:astStr.includes('营业')?0.55:0.2;
@@ -1864,9 +1843,10 @@ async function startMatching() {
   else scoreItems.push('-无社保（银行判定工作稳定性差，大额产品受限）');
 
   const hukouVal = userInfo.hukou || '';
-  if (hukouVal.includes('厦门')) scoreItems.push('+ 户籍加分：厦门本地户籍（本地银行全覆盖）');
-  else if (hukouVal.includes('福建')) scoreItems.push('+户籍中性：福建省内非厦门（多数厦门银行可做）');
-  else if (hukouVal && hukouVal !== '未填写') scoreItems.push('-户籍减分：省外户籍（部分厦门本地银行拒贷，需本地资产佐证）');
+  const _hkScoreItem = _hukouScore(hukouVal);
+  if (_hkScoreItem >= 0.85) scoreItems.push(`+ 户籍加分：${hukouVal}（一线/强经济城市，银行风控正向加权）`);
+  else if (_hkScoreItem >= 0.72) scoreItems.push(`+户籍中性：${hukouVal}（省会/强地级市，全国性银行可正常受理）`);
+  else if (_hkScoreItem >= 0.6) scoreItems.push(`+户籍中性：${hukouVal}（已填户籍，本地银行可受理）`);
 
   const assetsVal = userInfo.assets || '';
   if (assetsVal.includes('房产')) scoreItems.push('+ 资产加分：名下有房产（银行认可最高权重资产）');
