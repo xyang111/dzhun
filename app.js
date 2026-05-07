@@ -3384,7 +3384,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.removeItem('_alipayPendingData');
         _trackEvent('payment_success', { method: 'alipay_recovery' });
         localStorage.setItem('_payToken', gotToken);
-        localStorage.setItem('_payTokenExp', String(Date.now() + 3600000));
+        localStorage.setItem('_payTokenExp', String(Date.now() + 86400000));
         document.getElementById('payOverlay').classList.add('show');
         document.getElementById('payStep1').style.display = 'none';
         document.getElementById('payStep2').style.display = 'none';
@@ -3639,7 +3639,7 @@ async function choosePay(channel) {
         clearInterval(_pollTimer);
         _trackEvent('payment_success', { method: 'wechat' });
         localStorage.setItem('_payToken', token);
-        localStorage.setItem('_payTokenExp', String(Date.now() + 3600000));
+        localStorage.setItem('_payTokenExp', String(Date.now() + 86400000));
         document.getElementById('payStep2').style.display = 'none';
         document.getElementById('payStep3').style.display = 'block';
         setTimeout(() => {
@@ -3765,7 +3765,7 @@ async function pollPayStatus() {
       _pollTimer = null;
       _trackEvent('payment_success', { method: 'poll' });
       localStorage.setItem('_payToken', data.token);
-      localStorage.setItem('_payTokenExp', String(Date.now() + 3600000));
+      localStorage.setItem('_payTokenExp', String(Date.now() + 86400000));
       document.getElementById('payStep2').style.display = 'none';
       document.getElementById('payStep3').style.display = 'block';
       setTimeout(() => {
@@ -3797,7 +3797,7 @@ window.addEventListener('pageshow', (evt) => {
           clearInterval(_pollTimer);
           _trackEvent('payment_success', { method: 'alipay_return' });
           localStorage.setItem('_payToken', d.token);
-          localStorage.setItem('_payTokenExp', String(Date.now() + 3600000));
+          localStorage.setItem('_payTokenExp', String(Date.now() + 86400000));
           localStorage.removeItem('_alipayPendingOrderId');
           localStorage.removeItem('_alipayPendingTs');
           localStorage.removeItem('_alipayPendingData');
