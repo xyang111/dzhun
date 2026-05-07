@@ -480,11 +480,27 @@ function calcBlastRisk(qRecords,baseDate) {
   risk-=Math.max(0,q90-6)*4;
   // 集中度扣分需满足：3个月总量>=3次，否则样本太小无统计意义
   if(conc>60 && q90>=3)risk-=10;
+  // 半年查询触花户红线（与 ScoreEngine + Prompt 三处花户判定对齐，避免"近期收敛但半年累计过高"被误判正常）
+  const q6m_br = filt.filter(q => new Date(q.date) >= monthsAgo(6)).length;
+  risk -= Math.max(0, q6m_br - 12) * 6;
+  if (q6m_br >= 18) risk -= (q6m_br - 18) * 8;
   risk=Math.max(0,Math.min(100,Math.round(risk)));
+  const isHuahu   = q6m_br >= 12;
+  const isSerious = q6m_br >= 18;
   let badge,cls,tip;
   if(risk>=80){badge='正常';cls='br-safe';tip='查询频率正常，可正常申请各类产品。';}
-  else if(risk>=60){badge='偏高';cls='br-warn';tip='近期查询偏多，建议暂停查询2-3周后再申请，当前申请银行类产品通过率下降约20-30%。';}
-  else if(risk>=30){badge='爆查';cls='br-danger';tip='近期查询次数过多！建议停止所有查询1个月，银行类产品当前基本无法通过。';}
+  else if(risk>=60){
+    badge='偏高';cls='br-warn';
+    tip = isHuahu
+      ? `半年累计 ${q6m_br} 次查询已达花户红线，主流银行风控会扣分；建议养征信 3 个月后再申请股份制/国有大行，急用钱请联系顾问筛选对查询不敏感的渠道。`
+      : '近期查询偏多，建议暂停查询2-3周后再申请，当前申请银行类产品通过率下降约20-30%。';
+  }
+  else if(risk>=30){
+    badge=isSerious?'严重花户':'爆查';cls='br-danger';
+    tip = isSerious
+      ? `半年累计 ${q6m_br} 次查询已达严重花户红线，主流银行风控直接拒贷；建议立即停止所有信贷申请，养征信 6 个月后重新评估。`
+      : '近期查询次数过多！建议停止所有查询1个月，银行类产品当前基本无法通过。';
+  }
   else{badge='严重';cls='br-critical';tip='查询严重超标，银行系统会直接判定为"资金紧张"，建议停止查询3个月后再评估。';}
   return{risk,badge,cls,tip,q7,q30,q90,conc};
 }
