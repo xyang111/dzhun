@@ -845,6 +845,10 @@ class ScoreEngine {
     if (f.lian3 || f.lei6)  penalty += 80;
     if (f.ov90d > 0)        penalty += 80;
     penalty += Math.max(0, f.q3m - 3) * 20;
+    // 半年查询花户罚分（银行风控通用花户红线 = 半年>12次，与 q3m 罚分平级）
+    // q6m 12-18 次每次罚 6 分；≥18 次（严重花户）再加每次 10 分
+    penalty += Math.max(0, f.q6m - 12) * 6;
+    if (f.q6m >= 18)        penalty += (f.q6m - 18) * 10;
     penalty += f.ovCount * 50;
     // 网贷机构数递增惩罚：家数越多惩罚越重，14家≠5家
     if (f.onlineI >= 5) penalty += f.onlineI >= 12 ? 95 : f.onlineI >= 9 ? 70 : f.onlineI >= 7 ? 48 : 30;
@@ -922,7 +926,7 @@ class ScoreEngine {
   _cf(baseF, issueKey) {
     const f = JSON.parse(JSON.stringify(baseF));
     switch (issueKey) {
-      case 'queries':  f.q3m=Math.min(f.q3m,3);f.q1m=Math.min(f.q1m,1);f.q30dConc=Math.min(f.q30dConc,0.33);break;
+      case 'queries':  f.q3m=Math.min(f.q3m,3);f.q1m=Math.min(f.q1m,1);f.q6m=Math.min(f.q6m,6);f.q30dConc=Math.min(f.q30dConc,0.33);break;
       case 'overdue':  f.ovCount=0;f.latestOvMths=999;f.lian3=false;f.lei6=false;break;
       case 'online':   f.onlineI=Math.min(f.onlineI,2);f.cfConc=Math.min(f.cfConc,0.5);break;
       case 'cardutil': f.cardUtil=0.49;break;
@@ -963,11 +967,20 @@ class ScoreEngine {
       warn: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
       down: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>`,
     };
-    if (f.q3m > 3) {
+    if (f.q3m > 3 || f.q6m > 12) {
       const gain = _gain('queries');
-      issues.push({ icon:_ico.scan, tag:'查询过多',
-        desc:`近3月查询${f.q3m}次，超安全线${f.q3m-3}次`,
-        cost:`拉低分数约${gain}分`, fix:`今天停止申请，3个月后自然降至安全线`, months:3, gain });
+      const huahu = f.q6m >= 18 ? '严重花户' : f.q6m > 12 ? '花户' : null;
+      const desc = huahu && f.q3m > 3
+        ? `近3月查询${f.q3m}次、近半年${f.q6m}次（达${huahu}红线）`
+        : huahu
+          ? `近半年查询${f.q6m}次，已达${huahu}红线（>12次主流银行风控直接拒）`
+          : `近3月查询${f.q3m}次，超安全线${f.q3m-3}次`;
+      const months = huahu ? 6 : 3;
+      const fix = huahu
+        ? `今天起停止所有信贷申请，${months}个月后查询自然冷却至安全线`
+        : `今天停止申请，3个月后自然降至安全线`;
+      issues.push({ icon:_ico.scan, tag: huahu ? '查询打花' : '查询过多',
+        desc, cost:`拉低分数约${gain}分`, fix, months, gain });
     }
     if (f.onlineI >= 3) {
       const gain = _gain('online');
