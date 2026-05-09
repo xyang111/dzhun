@@ -11,7 +11,7 @@
 <meta property="og:url" content="https://dzhun.com.cn/checkup.html" />
 <meta property="og:type" content="website" />
 <meta name="description" content="AI 读懂你的简版征信报告，给出资质区间评估和方向级建议。不发起任何查询，不替你提交申请。" />
-<link rel="stylesheet" href="style.css?v=1778302740">
+<link rel="stylesheet" href="style.css?v=1778303056">
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 <script>
 // 工具页 logo 点击：跳回主页，完整透传 query string（agent / ref 等）
@@ -881,15 +881,15 @@ function goHome() {
               </div>
             </div>
 
-            <!-- 不可申请产品 -->
+            <!-- 当前不建议尝试的方向 -->
             <div class="analysis-section" id="rejectedSection" style="display:none">
-              <div class="as-header"><span class="as-title">不可申请的产品类型</span></div>
+              <div class="as-header"><span class="as-title">当前不建议尝试的方向</span></div>
               <div class="as-body" id="rejectedBody"></div>
             </div>
 
-            <!-- 优化后可匹配产品 -->
+            <!-- 优化后可申请方向 -->
             <div class="analysis-section" id="postOptSection" style="display:none">
-              <div class="as-header"><span class="as-title">优化后可匹配的产品</span></div>
+              <div class="as-header"><span class="as-title">优化后可申请的方向</span></div>
               <div class="as-body"><div class="as-post-opt" id="postOptBody"></div></div>
             </div>
 
@@ -909,9 +909,9 @@ function goHome() {
             <div class="conv-proof">今日已有多位客户完成咨询</div>
           </div>
 
-          <div style="text-align:center;font-size:11px;color:var(--silver);margin-bottom:10px;line-height:1.6;">本网站不会保留您任何信息数据，退出网站即销毁，如需保存匹配信息请自行截图。</div>
+          <div style="text-align:center;font-size:11px;color:var(--silver);margin-bottom:10px;line-height:1.6;">本网站不会保留您任何信息数据，退出网站即销毁，如需保留体检结果请自行截图。</div>
           <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px">
-            <button class="restart-btn" style="margin:0" onclick="rematch()">修改信息重新匹配</button>
+            <button class="restart-btn" style="margin:0" onclick="rematch()">修改信息重新分析</button>
             <button class="restart-btn" style="margin:0" onclick="restartAll()">← 重新上传分析</button>
           </div>
         </div>
@@ -936,8 +936,8 @@ function goHome() {
   </div>
 </footer>
 
-<script src="config.js?v=1778302740"></script>
-<script src="app.js?v=1778302740"></script>
+<script src="config.js?v=1778303056"></script>
+<script src="app.js?v=1778303056"></script>
 
 <!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
 <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">
@@ -962,9 +962,9 @@ function goHome() {
           <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
         </svg>
       </div>
-      <div style="font-size:16px;font-weight:700;color:var(--white);margin-bottom:4px">查看AI智能解析结果</div>
+      <div style="font-size:16px;font-weight:700;color:var(--white);margin-bottom:4px">解锁完整体检报告</div>
       <div style="font-size:12px;color:var(--silver);line-height:1.8;margin-bottom:6px">
-        征信识别结果免费查看<br>匹配产品 · 通过率分析 · 优化建议 · 单次付费
+        征信识别结果免费查看<br>资质区间 · 申请方向 · 优化建议 · 单次付费
       </div>
       <div class="pay-price">¥<span style="font-size:44px">9.9</span></div>
       <div class="pay-btn-row">
