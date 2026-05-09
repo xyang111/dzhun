@@ -1671,19 +1671,25 @@ main {
 
 /* ── Footer ── */
 footer {
-  background:var(--base);padding:36px 5vw 28px;
+  background:var(--base);padding:32px 5vw 24px;
   border-top:1px solid var(--border);text-align:center;
 }
 .footer-logo {
   font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
-  font-size:18px;font-weight:800;color:var(--white);
-  letter-spacing:4px;margin-bottom:8px;
+  font-size:15px;font-weight:700;color:var(--white);
+  letter-spacing:1.5px;margin-bottom:12px;
 }
 .footer-logo em { color:var(--accentB);font-style:normal; }
 .footer-disc {
   font-size:11px;color:var(--muted);
-  line-height:1.9;max-width:560px;margin:0 auto;
+  line-height:1.65;max-width:520px;margin:0 auto;
 }
+.footer-disc .fd-line { margin:0 0 4px; }
+.footer-disc .fd-fade { color:var(--faint); }
+.footer-disc .fd-meta {
+  margin-top:10px;font-size:10px;color:var(--faint);line-height:1.7;
+}
+.footer-disc .fd-meta a { color:inherit; }
 
 /* ═══════════════════════════════════════════════════════
    新增组件

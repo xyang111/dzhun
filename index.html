@@ -403,8 +403,11 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
 .footer-icon{width:22px;height:22px;background:var(--ink);display:flex;align-items:center;justify-content:center;}
 .footer-name{font-size:14px;font-weight:700;color:var(--ink);}
 .footer-name em{font-style:normal;color:var(--blue);}
-.footer-disc{font-size:11px;color:var(--faint);line-height:1.7;text-align:center;flex:1;min-width:200px;}
+.footer-disc{font-size:11px;color:var(--faint);line-height:1.6;text-align:center;flex:1;min-width:200px;}
 .footer-disc a{color:var(--faint);}
+.footer-disc .fd-line{margin:0 0 3px;}
+.footer-disc .fd-fade{color:var(--muted);}
+.footer-disc .fd-meta{margin-top:6px;font-size:10px;}
 .footer-r{font-size:11px;color:var(--faint);text-align:right;}
 
 </style>
@@ -1048,11 +1051,9 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
     <div class="footer-name"><em>贷</em>准 · 征信体检</div>
   </div>
   <div class="footer-disc">
-    贷准是 AI 征信体检工具，由厦门贷准科技有限公司运营，专注贷前评估与方向性建议。<br>
-    平台不放款、不承诺通过、不代办贷款；贷款申请协助由独立顾问 / 代理商作为助贷服务方提供（独立法律主体）。<br>
-    分析结果仅供参考，实际审批以银行为准。<br>
-    © 2026 贷准 dzhun.com.cn · 厦门贷准科技有限公司 &nbsp;|&nbsp;
-    <a href="https://beian.miit.gov.cn/" target="_blank">闽ICP备2026009746号</a>
+    <div class="fd-line">平台不放款、不承诺通过、不代办贷款；贷款申请协助由独立顾问 / 代理商提供。</div>
+    <div class="fd-line fd-fade">分析结果仅供参考，实际审批以银行为准。</div>
+    <div class="fd-meta">© 2026 贷准 · 厦门贷准科技有限公司 · <a href="https://beian.miit.gov.cn/" target="_blank">闽ICP备2026009746号</a></div>
   </div>
   <div class="footer-r">dzhun.com.cn</div>
 </footer>
