@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>征信数据分析授权协议 — 贷准</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background: #fff; color: #222; font-size: 15px; line-height: 1.7; }
+.header { background: #fff; border-bottom: 1px solid #eee; padding: 12px 16px; display: flex; align-items: center; position: sticky; top: 0; z-index: 10; }
+.back-btn { color: #1a6fd4; font-size: 15px; cursor: pointer; margin-right: 12px; text-decoration: none; }
+.header-title { font-size: 16px; font-weight: 600; color: #111; }
+.container { max-width: 720px; margin: 0 auto; padding: 20px 16px 40px; }
+h1 { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 6px; color: #111; }
+.update-date { text-align: center; color: #888; font-size: 13px; margin-bottom: 24px; }
+h2 { font-size: 16px; font-weight: 700; color: #111; margin: 24px 0 10px; padding-left: 10px; border-left: 3px solid #1a6fd4; }
+p { margin-bottom: 10px; color: #333; }
+ul { padding-left: 20px; margin-bottom: 10px; }
+ul li { margin-bottom: 6px; color: #333; }
+.party-box { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px 16px; margin: 12px 0; }
+.party-box p { margin-bottom: 4px; }
+.highlight-box { background: #f0f7ff; border: 1px solid #c6deff; border-radius: 8px; padding: 14px 16px; margin: 16px 0; }
+.highlight-box p { margin-bottom: 0; color: #1a4a8a; }
+.warn-box { background: #fff8e6; border: 1px solid #f5d87a; border-radius: 8px; padding: 14px 16px; margin: 16px 0; }
+.warn-box p { margin-bottom: 0; color: #7a5a00; }
+.footer { text-align: center; color: #aaa; font-size: 12px; margin-top: 32px; padding-top: 16px; border-top: 1px solid #eee; }
+</style>
+</head>
+<body>
+<div class="header">
+  <a class="back-btn" onclick="history.back()">‹ 返回</a>
+  <span class="header-title">征信数据分析授权协议</span>
+</div>
+
+<div class="container">
+  <h1>征信数据分析授权协议</h1>
+  <p class="update-date">版本：1.0 &nbsp;|&nbsp; 生效日期：2026年04月01日</p>
+
+  <p>本协议由以下双方订立，请您在使用贷准平台AI征信解析服务前仔细阅读并确认。您点击同意或继续使用本服务，即表示您已阅读、理解并接受本协议全部条款。</p>
+
+  <h2>一、协议双方</h2>
+  <div class="party-box">
+    <p><strong>授权方（用户）：</strong>使用贷准平台服务的自然人（以下简称"您"）</p>
+  </div>
+  <div class="party-box">
+    <p><strong>被授权方：</strong>厦门贷准科技有限公司</p>
+    <p><strong>网站：</strong>dzhun.com.cn</p>
+    <p><strong>联系邮箱：</strong>report@dzhun.com.cn</p>
+  </div>
+
+  <h2>二、授权内容</h2>
+  <p>您授权厦门贷准科技有限公司对您主动上传的中国人民银行个人信用报告图片（JPG/PNG 格式）或 PDF 文件进行以下处理：</p>
+  <ul>
+    <li>通过 HTTPS 加密传输至我们的云端处理服务（Cloudflare Worker）和人工智能识别服务商（如 Anthropic Claude），使用 AI 视觉技术进行 OCR 识别，提取其中的账户信息、负债情况、贷款查询记录等关键风控字段；</li>
+    <li>基于提取的数据，结合您自愿填写的补充信息，进行征信体检与资质区间评估；</li>
+    <li>生成个性化征信综合评分及方向性建议参考报告，并在您主动触发付费服务后向您选择的顾问 / 代理商发送该报告。</li>
+  </ul>
+
+  <div class="highlight-box">
+    <p>⚠️ 您的授权范围仅限于上述目的。我们承诺不将您的征信数据用于任何其他商业目的。</p>
+  </div>
+
+  <div class="highlight-box">
+    <p>📋 服务边界说明：贷准平台仅对您的征信报告进行 OCR 识别与方向性建议生成；如您选择联系顾问 / 代理商进行后续贷款申请协助，相关代办行为由独立顾问 / 代理商作为助贷服务方提供（与贷准平台为独立法律主体），贷准不参与具体的银行对接、资料整理或申请提交。</p>
+  </div>
+
+  <h2>三、数据不留存声明</h2>
+  <ul>
+    <li>您上传的征信报告图片/PDF 经加密传输处理后 <strong>不会被持久化存储于我们的服务器或第三方 AI 服务商系统</strong>——OCR 识别完成即移除；</li>
+    <li>OCR 识别后的文字提取结果在 Cloudflare KV 缓存最长 2 小时（用于优化重复请求性能），到期后自动永久删除；</li>
+    <li>我们不建立任何个人征信数据库，不对您的征信信息进行长期留存；</li>
+    <li>分析完成后，征信原始数据不保留于 AI 服务提供方的系统中。</li>
+  </ul>
+
+  <h2>四、数据不外传声明</h2>
+  <ul>
+    <li>我们不向任何银行、金融机构、数据公司或第三方出售、转让或共享您的征信数据；</li>
+    <li>未经您明确授权，我们不会将您的征信信息透露给任何第三方；</li>
+    <li>仅在您主动选择联系顾问 / 代理商并触发报告推送功能时，分析结果报告（不含原始征信图片）将发送至您选择的顾问 / 代理商。</li>
+  </ul>
+
+  <h2>五、您的权利与撤回授权</h2>
+  <ul>
+    <li>本授权完全基于您的自愿，您有权在任何时候停止使用本服务；</li>
+    <li>撤回授权不影响撤回前已完成的数据处理行为的合法性；</li>
+    <li>您可通过关闭页面或不继续操作的方式即时撤回本次授权；</li>
+    <li>如需删除已缓存的解析数据，请发送邮件至 report@dzhun.com.cn，我们将在3个工作日内处理。</li>
+  </ul>
+
+  <h2>六、免责条款</h2>
+  <div class="warn-box">
+    <p>请注意以下重要说明：</p>
+  </div>
+  <ul>
+    <li>贷准平台提供的征信综合评分及贷款产品建议，<strong>仅为参考性分析</strong>，不构成任何法律意义上的征信评估、金融建议或贷款承诺；</li>
+    <li>实际贷款审批结果以各银行及金融机构的官方审核为准，贷准平台不对任何贷款申请结果承担责任；</li>
+    <li>您应自行确保上传的征信报告为本人合法获取的真实材料，因上传虚假材料引发的法律责任由您自行承担；</li>
+    <li>因不可抗力（网络故障、系统维护等）导致服务中断的，厦门贷准科技有限公司不承担责任；</li>
+    <li>本平台不提供征信修复、征信洗白等任何违规服务，如遇相关诱导请谨慎辨别。</li>
+  </ul>
+
+  <h2>七、协议变更</h2>
+  <p>我们可能根据业务调整或法律要求更新本协议。更新后将在本页面发布新版本，继续使用服务视为接受更新后的协议。</p>
+
+  <h2>八、争议解决</h2>
+  <p>因本协议引发的争议，双方应首先协商解决。协商不成的，提交厦门市有管辖权的人民法院诉讼解决，适用中华人民共和国法律。</p>
+
+  <h2>九、联系方式</h2>
+  <div class="party-box">
+    <p><strong>公司名称：</strong>厦门贷准科技有限公司</p>
+    <p><strong>联系邮箱：</strong>report@dzhun.com.cn</p>
+    <p><strong>网站：</strong>dzhun.com.cn</p>
+    <p><strong>ICP 备案：</strong>闽ICP备2026009746号</p>
+    <p><strong>公安备案：</strong>闽公网安备35020502001019号</p>
+  </div>
+
+  <div class="footer">
+    <p>© 2026 厦门贷准科技有限公司 版权所有</p>
+    <p>闽ICP备2026009746号 · 闽公网安备35020502001019号</p>
+  </div>
+</div>
+</body>
+</html>
