@@ -581,8 +581,11 @@ function toggleQueryDetail() {
 
 // ═══════════════════════════════════════════
 // 月供估算（银行风控规则）
-// 规则：房贷×0.0055 / 车贷×0.0304 / 银行信用贷 3.45% 年化（PMT或先息后本）
-//       消金/网贷 18% 年化（PMT） / 信用卡已用×0.02
+// 房贷 / 经营贷 / 信用贷：3.0% 年化（国内主流 2.45-3.2% 中位偏保守）
+// 房贷：PMT 反推剩余期数（优先 due_date，否则 30 年 - elapsed）
+// 经营贷：默认先息后本（主流抵押经营贷模式，余额 × 3% / 12）
+// 信用贷：PMT 反推 / 先息后本 / 循环贷三分支
+// 车贷：系数法 余额×3.04% / 消金/网贷：18% 年化 / 信用卡已用×2%
 // ═══════════════════════════════════════════
 function calcLoanMonthly(loan) {
   const bal = loan.balance || 0;
@@ -592,10 +595,7 @@ function calcLoanMonthly(loan) {
     ? 'finance'
     : loan.loan_category || (loan.type === 'online' ? 'finance' : 'credit');
 
-  // 房贷/车贷保持系数法（期限长，反推意义不大）
-  if (cat === 'mortgage') return Math.round(bal * 0.0055);
-  if (cat === 'car')      return Math.round(bal * 0.0304);
-
+  // 时间参数（多分支共用）
   const baseDate = _recognizedData?.report_date
     ? new Date(_recognizedData.report_date)
     : new Date();
@@ -610,11 +610,25 @@ function calcLoanMonthly(loan) {
   const limit = loan.credit_limit || loan.limit || bal;
   const blRatio = limit > 0 ? bal / limit : 1;
 
-  // ── 消费金融 / 网贷（等额本息）──────────────────────────────
+  // ── 房贷（等额本息，3% 年化，PMT 反推剩余期数）──────────────
+  if (cat === 'mortgage') {
+    const r = 0.03 / 12;
+    const remaining = dueRemaining !== null ? dueRemaining
+                    : elapsed     !== null ? Math.max(360 - elapsed, 12)
+                    : 240; // 无任何日期：默认中段 20 年剩余
+    return Math.round(bal * r / (1 - Math.pow(1 + r, -remaining)));
+  }
+
+  // ── 车贷（系数法，期限 3-5 年）──────────────
+  if (cat === 'car') return Math.round(bal * 0.0304);
+
+  // ── 经营贷（主流先息后本，3% 年化）──────────────
+  if (cat === 'business') return Math.round(bal * (0.03 / 12));
+
+  // ── 消费金融 / 网贷（等额本息，18% 年化）──────────────────
   if (cat === 'finance') {
     const r = 0.015; // 18%年化
     if (dueRemaining !== null) {
-      // 有到期日：精确剩余期数
       return Math.round(bal * r / (1 - Math.pow(1 + r, -dueRemaining)));
     }
     if (elapsed !== null && elapsed >= 1) {
@@ -626,26 +640,23 @@ function calcLoanMonthly(loan) {
     return Math.round(bal * r / (1 - Math.pow(1 + r, -36)));
   }
 
-  // ── 银行信用贷（credit）──────────────────────────────────────
-  // 利率 3.45% 年化（含信用贷/经营贷，国内主流区间 3.2-3.45%）
-  if (loan.is_revolving) return Math.round(bal * (0.0345 / 12));
+  // ── 银行信用贷（credit，3% 年化）──────────────────────────
+  const r = 0.03 / 12;
+  if (loan.is_revolving) return Math.round(bal * r);
 
-  const r = 0.0345 / 12;
   if (elapsed !== null && elapsed >= 2) {
     if (blRatio > 0.97) {
       // 先息后本：2个月以上余额仍未减少，确认只付利息
       // elapsed<2时不能判断（新开贷款首期可能尚未到账）
       return Math.round(bal * r);
     }
-    // 等额本息：通过余额/额度/时间三参数反推实际期限，比 blRatio×36 更精准
-    // 公式：(1+r)^T = (ratio - (1+r)^n) / (ratio - 1)
+    // 等额本息：通过余额/额度/时间三参数反推实际期限
     const k = Math.pow(1 + r, elapsed);
     const A = (blRatio - k) / (blRatio - 1);
     if (A > 1) {
       const T = Math.log(A) / Math.log(1 + r);
       const remaining = Math.max(Math.round(T - elapsed), 1);
-      // Sanity: 大额度+低使用率反推出极短剩余期数 → 实为经营贷/循环授信未跑满，回落先息后本
-      // 否则会算出"57万余额、1个月还完=月供57万"的荒谬值
+      // Sanity: 大额度+低使用率反推出极短剩余期数 → 实为循环授信未跑满，回落先息后本
       if (remaining < 6 && blRatio < 0.5) {
         return Math.round(bal * r);
       }
@@ -1526,7 +1537,7 @@ function renderResult(data) {
       const colMonthly = estMonthly > 0
         ? fmt(estMonthly) + '元<span style="font-size:9px;color:var(--muted);margin-left:3px">估算</span>'
         : '<span style="color:var(--muted)">--</span>';
-      const catMap = { mortgage:'房贷', car:'车贷', credit:'银行信用贷', finance:'网贷' };
+      const catMap = { mortgage:'房贷', car:'车贷', business:'经营贷', credit:'银行信用贷', finance:'网贷' };
       let catLabel, badgeCls;
       if (l.type === 'online') {
         catLabel   = l.online_subtype === 'microloan' ? '小额贷款'
@@ -3044,7 +3055,7 @@ function buildReportText() {
 
   const loanLines = loans.map((l, i) => {
     const isRev = l.is_revolving;
-    const catMap = { mortgage:'房贷', car:'车贷', credit:'银行信用贷', finance:'消费金融' };
+    const catMap = { mortgage:'房贷', car:'车贷', business:'经营贷', credit:'银行信用贷', finance:'消费金融' };
     const typeLabel = l.type === 'online'
       ? (l.online_subtype === 'microloan' ? '小额贷款' : l.online_subtype === 'online_bank' ? '助贷银行' : '消费金融')
       : (catMap[l.loan_category] || '银行贷款');
