@@ -581,8 +581,8 @@ function toggleQueryDetail() {
 
 // ═══════════════════════════════════════════
 // 月供估算（银行风控规则）
-// 规则：房贷×0.0055 / 车贷×0.0304 / 银行信用贷×0.0314（超2年×0.04）
-//       消金/网贷×0.04（超2年×0.05） / 信用卡已用×0.02
+// 规则：房贷×0.0055 / 车贷×0.0304 / 银行信用贷 3.45% 年化（PMT或先息后本）
+//       消金/网贷 18% 年化（PMT） / 信用卡已用×0.02
 // ═══════════════════════════════════════════
 function calcLoanMonthly(loan) {
   const bal = loan.balance || 0;
@@ -627,14 +627,15 @@ function calcLoanMonthly(loan) {
   }
 
   // ── 银行信用贷（credit）──────────────────────────────────────
-  if (loan.is_revolving) return Math.round(bal * (0.045 / 12));
+  // 利率 3.45% 年化（含信用贷/经营贷，国内主流区间 3.2-3.45%）
+  if (loan.is_revolving) return Math.round(bal * (0.0345 / 12));
 
-  const r = 0.045 / 12;
+  const r = 0.0345 / 12;
   if (elapsed !== null && elapsed >= 2) {
     if (blRatio > 0.97) {
       // 先息后本：2个月以上余额仍未减少，确认只付利息
       // elapsed<2时不能判断（新开贷款首期可能尚未到账）
-      return Math.round(bal * (0.045 / 12));
+      return Math.round(bal * r);
     }
     // 等额本息：通过余额/额度/时间三参数反推实际期限，比 blRatio×36 更精准
     // 公式：(1+r)^T = (ratio - (1+r)^n) / (ratio - 1)
@@ -643,6 +644,11 @@ function calcLoanMonthly(loan) {
     if (A > 1) {
       const T = Math.log(A) / Math.log(1 + r);
       const remaining = Math.max(Math.round(T - elapsed), 1);
+      // Sanity: 大额度+低使用率反推出极短剩余期数 → 实为经营贷/循环授信未跑满，回落先息后本
+      // 否则会算出"57万余额、1个月还完=月供57万"的荒谬值
+      if (remaining < 6 && blRatio < 0.5) {
+        return Math.round(bal * r);
+      }
       return Math.round(bal * r / (1 - Math.pow(1 + r, -remaining)));
     }
     // 反推失败（已还大半）：用剩余余额直接估算
