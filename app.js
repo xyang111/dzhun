@@ -2874,6 +2874,7 @@ function renderMatchResult(r) {
   window._isMatching = false; // 释放匹配状态锁
   _trackEvent('match_result_shown', { product_count: (r.products||[]).length, level: r.level || null });
   autoSendReport();
+  setTimeout(showLeadModal, 1500); // 报告渲染完 1.5 秒后弹 opt-in 咨询索要
 }
 
 // ═══════════════════════════════════════════
@@ -3964,5 +3965,86 @@ async function downloadPdfReport() {
       btn.disabled = false;
       btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>下载报告 PDF';
     }
+  }
+}
+
+// ═══════════════════════════════════════════
+// LEAD MODAL — opt-in 咨询索要（顾问 1v1 联系）
+// 触发：renderMatchResult 渲染完成 1.5s 后弹一次
+// 归属：按 _currentAgent + _currentRef 透传后端，无 agent 时仅邮件给创始人
+// ═══════════════════════════════════════════
+function showLeadModal() {
+  try {
+    if (localStorage.getItem('dzhun_lead_done') === '1') return;
+  } catch (e) {}
+  const _ov = document.getElementById('leadOverlay');
+  if (!_ov) return;
+  _ov.classList.add('show');
+  try { _trackEvent('lead_modal_shown', { agent_id: window._currentAgent?.id || null }); } catch (e) {}
+}
+
+function hideLeadModal(e) {
+  if (e && e.target && e.target.id !== 'leadOverlay') return;
+  const _ov = document.getElementById('leadOverlay');
+  if (_ov) _ov.classList.remove('show');
+  try { localStorage.setItem('dzhun_lead_done', '1'); } catch (_) {}
+}
+
+async function submitLead() {
+  const _input = document.getElementById('leadPhoneInput');
+  const _msg   = document.getElementById('leadMsg');
+  const _btn   = document.getElementById('leadSubmitBtn');
+  if (!_input || !_btn || !_msg) return;
+  const phone = (_input.value || '').trim();
+  if (!/^1[3-9]\d{9}$/.test(phone)) {
+    _msg.textContent = '手机号格式不正确';
+    _msg.className = 'lead-msg show error';
+    return;
+  }
+  _btn.disabled = true;
+  _btn.textContent = '提交中…';
+  _msg.className = 'lead-msg';
+
+  const _scoreLevel = (window._v2Result && window._v2Result.level) || '--';
+  const _scoreNum   = (window._v2Result && window._v2Result.score) || '--';
+  const _personName = window._personName || '--';
+
+  try {
+    const resp = await fetch(PROXY_URL + '/api/v1/lead', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone:       phone,
+        agent_id:    window._currentAgent?.id || null,
+        ref_id:      window._currentRef || null,
+        person_name: _personName,
+        score_level: _scoreLevel,
+        score:       _scoreNum,
+      }),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      _msg.textContent = '✓ 已提交，顾问会主动联系你';
+      _msg.className = 'lead-msg show';
+      _btn.textContent = '已提交';
+      try {
+        _trackEvent('lead_submitted', {
+          agent_id: window._currentAgent?.id || null,
+          ref_id:   window._currentRef || null,
+        });
+      } catch (e) {}
+      try { localStorage.setItem('dzhun_lead_done', '1'); } catch (_) {}
+      setTimeout(() => hideLeadModal({ target: { id: 'leadOverlay' } }), 2000);
+    } else {
+      _msg.textContent = data.error || '提交失败，请稍后再试';
+      _msg.className = 'lead-msg show error';
+      _btn.disabled = false;
+      _btn.textContent = '提交，等顾问联系';
+    }
+  } catch (e) {
+    _msg.textContent = '网络异常，请检查后重试';
+    _msg.className = 'lead-msg show error';
+    _btn.disabled = false;
+    _btn.textContent = '提交，等顾问联系';
   }
 }
