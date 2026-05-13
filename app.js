@@ -2913,7 +2913,7 @@ function renderMatchResult(r) {
   window._isMatching = false; // 释放匹配状态锁
   _trackEvent('match_result_shown', { product_count: (r.products||[]).length, level: r.level || null });
   autoSendReport();
-  setTimeout(showLeadModal, 1500); // 报告渲染完 1.5 秒后弹 opt-in 咨询索要
+  scheduleLeadModal(); // opt-in 调度：停留 15s+滚动 40% 触发，30s 兜底
 }
 
 // ═══════════════════════════════════════════
@@ -4009,24 +4009,82 @@ async function downloadPdfReport() {
 
 // ═══════════════════════════════════════════
 // LEAD MODAL — opt-in 咨询索要（顾问 1v1 联系）
-// 触发：renderMatchResult 渲染完成 1.5s 后弹一次
+// 触发：renderMatchResult 完成后启动调度器
+//   - 满足 (停留≥15s AND 滚动≥40%) 任一时机弹出
+//   - 兜底：30s 强制弹出（防客户不滚动）
+// 标记策略：
+//   - 提交成功 → dzhun_lead_done（永久不弹）
+//   - 关闭未提交 → dzhun_lead_dismissed（30 分钟内不弹）
 // 归属：按 _currentAgent + _currentRef 透传后端，无 agent 时仅邮件给创始人
 // ═══════════════════════════════════════════
-function showLeadModal() {
+const _LEAD_DISMISS_TTL_MS = 30 * 60 * 1000; // 30 分钟
+let _leadScheduler = null;
+
+function _leadSuppressed() {
   try {
-    if (localStorage.getItem('dzhun_lead_done') === '1') return;
+    if (localStorage.getItem('dzhun_lead_done') === '1') return true;
+    const dismissedAt = parseInt(localStorage.getItem('dzhun_lead_dismissed_at') || '0', 10);
+    if (dismissedAt && Date.now() - dismissedAt < _LEAD_DISMISS_TTL_MS) return true;
   } catch (e) {}
+  return false;
+}
+
+function scheduleLeadModal() {
+  if (_leadSuppressed()) return;
+  if (_leadScheduler) return; // 已在调度，避免重复
+  const startAt = Date.now();
+  const MIN_STAY_MS = 15000;     // 停留 15s
+  const SCROLL_THRESHOLD = 0.4;  // 滚动 40%
+  const HARD_TIMEOUT_MS = 30000; // 30s 兜底
+
+  const _getScrollPct = () => {
+    const doc = document.documentElement;
+    const denom = Math.max(1, doc.scrollHeight - doc.clientHeight);
+    return (window.scrollY || doc.scrollTop || 0) / denom;
+  };
+
+  const _tryFire = () => {
+    if (_leadSuppressed()) return _cleanup();
+    const elapsed = Date.now() - startAt;
+    const scrolled = _getScrollPct() >= SCROLL_THRESHOLD;
+    if (elapsed >= MIN_STAY_MS && scrolled) {
+      _cleanup();
+      _fireLeadModal();
+    }
+  };
+  const _hardFire = () => { _cleanup(); if (!_leadSuppressed()) _fireLeadModal(); };
+
+  const _cleanup = () => {
+    window.removeEventListener('scroll', _tryFire, { passive: true });
+    if (_leadScheduler) { clearTimeout(_leadScheduler); _leadScheduler = null; }
+    if (_leadCheckTimer) { clearInterval(_leadCheckTimer); _leadCheckTimer = null; }
+  };
+
+  // 15s 到点后周期性检查滚动（防客户在 15s 之前就滚完了不触发）
+  let _leadCheckTimer = null;
+  _leadScheduler = setTimeout(() => {
+    _tryFire();
+    if (_leadScheduler) _leadCheckTimer = setInterval(_tryFire, 1000);
+  }, MIN_STAY_MS);
+  window.addEventListener('scroll', _tryFire, { passive: true });
+  setTimeout(_hardFire, HARD_TIMEOUT_MS);
+}
+
+function _fireLeadModal() {
   const _ov = document.getElementById('leadOverlay');
   if (!_ov) return;
   _ov.classList.add('show');
   try { _trackEvent('lead_modal_shown', { agent_id: window._currentAgent?.id || null }); } catch (e) {}
 }
 
+// 兼容旧调用入口
+function showLeadModal() { _fireLeadModal(); }
+
 function hideLeadModal(e) {
   if (e && e.target && e.target.id !== 'leadOverlay') return;
   const _ov = document.getElementById('leadOverlay');
   if (_ov) _ov.classList.remove('show');
-  try { localStorage.setItem('dzhun_lead_done', '1'); } catch (_) {}
+  try { localStorage.setItem('dzhun_lead_dismissed_at', String(Date.now())); } catch (_) {}
 }
 
 async function submitLead() {
