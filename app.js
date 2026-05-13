@@ -402,10 +402,17 @@ function calcCreditScore(data, ui) {
   if (!data || typeof data !== 'object') data = {};
   const isBasic = !ui || !ui.income;
 
-  // V2.0 千分制 → 百分制线性映射，让圆环数字与下方 V2.0 等级/方向卡完全一致
-  // 旧版独立百分制算法已停用（不看 q6m、无一票否决，会给出"93 良好"但 V2.0 仅 658 B 级的认知错位）
-  const v2    = new ScoreEngine(data, ui).compute(getProducts());
-  const score = Math.max(0, Math.min(100, Math.round((v2.score - 300) / 700 * 100)));
+  // V2.0 千分制 → 百分制分段映射，让圆环数字与下方 V2.0 等级标签认知一致
+  // 历史包袱：旧版独立算法虚高（"93良好"但实际 V2.0=658 B级）；
+  //          线性映射又走另一极端（B 级 650 仅显示 50 分，"良好但才及格"的认知错位）
+  // 分段映射对齐等级常识：A→85-100 / B→70-84 / C→50-69 / D→8-49（地板8防赶客）
+  const v2 = new ScoreEngine(data, ui).compute(getProducts());
+  const score = (v => {
+    if (v >= 800) return Math.round(85 + (v - 800) / 200 * 15);
+    if (v >= 650) return Math.round(70 + (v - 650) / 150 * 14);
+    if (v >= 500) return Math.round(50 + (v - 500) / 150 * 19);
+    return Math.max(8, Math.round(8 + (v - 300) / 200 * 41));
+  })(v2.score);
 
   // 等级映射：A→优质 / B→良好 / C→一般 / D→较弱 或 高风险（<40）
   const lvMap = {
