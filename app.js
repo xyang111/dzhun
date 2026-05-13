@@ -634,7 +634,12 @@ function calcLoanMonthly(loan) {
   // 路径 C: 非循环 + 无到期日（或已过期）—— elapsed 推算 + 6 期下限兜底
   // 路径 D: 完全无信息 —— 24 期兜底
   if (cat === 'finance') {
-    const r = 0.015; // 18%年化
+    // 利率分档（年化）：小贷 20% / 大额消金 13% / 中大额消金 15% / 其他小额循环消金/网贷 18%
+    let r;
+    if (loan.online_subtype === 'microloan') r = 0.20 / 12;
+    else if (limit >= 100000)               r = 0.13 / 12;
+    else if (limit >= 50000)                r = 0.15 / 12;
+    else                                    r = 0.18 / 12;
 
     // 路径 A：循环授信
     if (loan.is_revolving) {
