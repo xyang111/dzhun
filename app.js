@@ -604,8 +604,10 @@ function calcLoanMonthly(loan) {
     ? Math.floor((baseDate - issued) / (1000 * 60 * 60 * 24 * 30.44))
     : null;
   // due_date精确剩余期数（非循环贷才有意义）
+  // 注意：不再 clamp 到 1。到期日已过/即将到期由下游分支按"循环授信兜底"处理，
+  // 避免 PMT 在 n=1 时退化为 余额×(1+r) 导致月供 ≥ 余额的荒谬结果
   const dueRemaining = (!loan.is_revolving && loan.due_date)
-    ? Math.max(Math.round((new Date(loan.due_date) - baseDate) / (1000 * 60 * 60 * 24 * 30.44)), 1)
+    ? Math.round((new Date(loan.due_date) - baseDate) / (1000 * 60 * 60 * 24 * 30.44))
     : null;
   const limit = loan.credit_limit || loan.limit || bal;
   const blRatio = limit > 0 ? bal / limit : 1;
@@ -626,18 +628,43 @@ function calcLoanMonthly(loan) {
   if (cat === 'business') return Math.round(bal * (0.03 / 12));
 
   // ── 消费金融 / 网贷（等额本息，18% 年化）──────────────────
+  // 路径 A: 循环授信([循环]标注)——按 limit 大小动态分档，取 max(余额按分期, limit按分期)
+  //         覆盖两种场景：小额循环借款（按余额）+ 借满后分期还款（按 limit 反推原月供）
+  // 路径 B: 非循环 + 真实到期日 ≥ 2 期 —— 按 dueRemaining 算（最准）
+  // 路径 C: 非循环 + 无到期日（或已过期）—— elapsed 推算 + 6 期下限兜底
+  // 路径 D: 完全无信息 —— 24 期兜底
   if (cat === 'finance') {
     const r = 0.015; // 18%年化
-    if (dueRemaining !== null) {
+
+    // 路径 A：循环授信
+    if (loan.is_revolving) {
+      let stdN;
+      if (limit >= 100000) stdN = 36;       // 大额（兴业消金/捷信大额）
+      else if (limit >= 50000) stdN = 24;   // 中大额
+      else stdN = 12;                       // 中小额（金条/白条/招联好期贷）
+      const balanceBased = bal * r / (1 - Math.pow(1 + r, -stdN));
+      // limit 显著大于 balance：可能是"借满后已还部分"，按原 limit 反推月供
+      if (limit > bal * 1.2) {
+        const limitBased = limit * r / (1 - Math.pow(1 + r, -stdN));
+        return Math.round(Math.max(balanceBased, limitBased));
+      }
+      return Math.round(balanceBased);
+    }
+
+    // 路径 B：有真实到期日
+    if (dueRemaining !== null && dueRemaining >= 2) {
       return Math.round(bal * r / (1 - Math.pow(1 + r, -dueRemaining)));
     }
+
+    // 路径 C：elapsed 推算 + 6 期下限
     if (elapsed !== null && elapsed >= 1) {
-      // 无到期日：网贷默认12期，消费金融默认36期
       const totalPeriods = (loan.type === 'online' && loan.online_subtype !== 'online_bank') ? 12 : 36;
-      const remaining = Math.max(totalPeriods - elapsed, 1);
+      const remaining = Math.max(totalPeriods - elapsed, 6);
       return Math.round(bal * r / (1 - Math.pow(1 + r, -remaining)));
     }
-    return Math.round(bal * r / (1 - Math.pow(1 + r, -36)));
+
+    // 路径 D：兜底
+    return Math.round(bal * r / (1 - Math.pow(1 + r, -24)));
   }
 
   // ── 银行信用贷（credit，3% 年化）──────────────────────────
