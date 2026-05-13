@@ -18,6 +18,7 @@
 2. 前端和后端是否存在冲突的硬编码值？（如 frontend 的 `max_tokens` 覆盖 Worker 设置）
 3. 是环境问题而非代码问题吗？（HTTPS、DNS、设备特定、微信内置浏览器）
 4. Worker 改动后，同时检查前端请求参数和 Worker 处理逻辑，单侧修复不等于全链路修复
+5. **数学公式 clamp 兜底先想退化情况**：PMT 在 n=1 时退化为 `余额×(1+r)`；任何 `Math.max(remaining, 1)` 写法都要警惕，若不允许 1 期就应该 `>= 2`
 
 ## UI/Mobile Guidelines
 - 移动端是主要使用场景，UI 改动后必须在脑中过一遍手机视口
@@ -101,13 +102,24 @@ scp index.html style.css config.js app.js qr.jpg qr_agent_1.jpg root@8.136.1.233
 - **产品匹配主引擎**：`localFallbackMatch(data, v2Score)`（本地规则，Sigmoid 通过率用 V2.0 分数计算）
 - **AI**：只负责文字类字段（分析建议/optimization/advice），失败时直接用本地引擎结果
 
-## 评分系统说明（重要，两套并存）
+## 评分系统说明（重要）
 | 系统 | 范围 | 用途 |
 |------|------|------|
-| `calcCreditScore()` 旧百分制 | 0-100 | OCR完成后即时展示的圆形仪表盘，不影响产品匹配 |
+| `calcCreditScore()` 百分制 | 0-100 | OCR完成后即时展示的圆形仪表盘，**V2.0 千分制的呈现层映射**，不参与产品匹配 |
 | `ScoreEngine` V2.0 | 300-1000（地板300） | 产品匹配通过率（Sigmoid）、XAI诊断、雷达图、D1存储 |
 
-**不要混用两套分数**：产品匹配和通过率计算只用 V2.0；展示层的圆圈只用旧百分制。
+**百分制 = V2.0 千分制的分段映射**（不是独立算法），数字与等级标签必须自洽：
+- A 段（V2.0 ≥ 800）→ 百分制 85-100
+- B 段（V2.0 ≥ 650）→ 百分制 70-84
+- C 段（V2.0 ≥ 500）→ 百分制 50-69
+- D 段（V2.0 < 500）→ 百分制 8-49（**地板 8 防止 0 分劝退客户**）
+
+**历史包袱（不要走回头路）：**
+- 旧版独立百分制算法已废弃 —— 不看 q6m、无一票否决，会出现"百分制 93 良好但 V2.0 仅 658 B 级"的认知错位
+- 简单线性映射 `(v2-300)/700*100` 也走另一极端 —— "V2.0=650 B 级良好但百分制只有 50 分（才及格？）"
+- 分段映射是平衡两端的解，**改动百分制必须保持分段，不能回到线性或独立算法**
+
+**不要混用两套分数**：产品匹配和通过率计算只用 V2.0；展示层的圆圈只用百分制。
 
 ## Worker环境变量（Cloudflare Dashboard配置）
 - ANTHROPIC_API_KEY / RESEND_API_KEY
@@ -143,23 +155,45 @@ scp index.html style.css config.js app.js qr.jpg qr_agent_1.jpg root@8.136.1.233
 - `loadProducts()`            — 已废弃（空函数，保留兼容调用）
 
 ## 月供估算逻辑（calcLoanMonthly）
-简版征信不含利率和还款方式，通过以下规则推算：
+简版征信不含利率、原始期数、还款方式，通过以下规则推算：
 
-| 类型 | 判断依据 | 计算方式 |
+### 房贷 / 车贷 / 经营贷 / 银行信用贷
+| 类型 | 判断 | 计算 |
 |---|---|---|
-| 房贷 | loan_category=mortgage | 余额×0.55% |
-| 车贷 | loan_category=car | 余额×3.04% |
-| 银行循环贷 | is_revolving=true | 先息后本，余额×0.375%（4.5%年化） |
-| 银行非循环贷（先息后本） | elapsed>=**2**月 且 B/L>97% | 余额×0.375% |
-| 银行非循环贷（等额本息） | elapsed>=1月 且 B/L<=97% | PMT(4.5%年化, 剩余期数=B/L×36) |
-| 消费金融/网贷循环贷 | is_revolving=true + finance类 | 等额本息，同下 |
-| 消费金融 | finance类 | PMT(18%年化, 剩余期数=36-elapsed) |
-| 网贷 | online类 | PMT(18%年化, 剩余期数=12-elapsed) |
+| 房贷 | loan_category=mortgage | PMT(3% 年化, 剩余期数=优先 due_date，否则 30年-elapsed) |
+| 车贷 | loan_category=car | 余额×3.04%（系数法） |
+| 经营贷 | loan_category=business | 余额×(3%/12)（先息后本） |
+| 银行循环贷 | cat=credit + is_revolving | 余额×(3%/12)（先息后本） |
+| 银行信用贷（先息后本） | cat=credit + elapsed≥2 + B/L>97% | 余额×(3%/12) |
+| 银行信用贷（等额本息） | cat=credit + elapsed≥2 + B/L≤97% | PMT(3%, 通过 B/L 反推剩余期数) |
 
-**关键逻辑：**
+### 消金 / 网贷 / 小贷（cat='finance'，4 路径）
+| 路径 | 判断 | 计算 |
+|---|---|---|
+| **A. 循环授信**（最常见）| is_revolving=true | 按 limit 大小动态分档 + max(余额按分期, limit按分期) |
+| **B. 真实到期日** | !is_revolving + dueRemaining≥2 | PMT(对应利率, dueRemaining) |
+| **C. elapsed 推算** | !is_revolving + elapsed≥1 | PMT(对应利率, max(totalPeriods-elapsed, 6)) |
+| **D. 兜底** | 完全无信息 | PMT(对应利率, 24 期) |
+
+**循环授信分档（路径 A）：**
+- limit ≥ 10万 → 36 期（兴业消金/捷信大额）
+- 5万 ≤ limit < 10万 → 24 期（中银消金 e 贷/马上安逸花）
+- limit < 5万 → 12 期（金条/白条/招联好期贷）
+- 取 `max(余额按分期, limit按分期)`：兼顾"小额循环借款"和"借满后已还部分"两种场景
+
+**利率分档（finance 类全路径）：**
+- online_subtype=microloan → 20% APR
+- limit ≥ 10万 → 13% APR（大额消金优质客户）
+- limit ≥ 5万 → 15% APR（中大额消金）
+- 其他 → 18% APR（中小额循环消金/网贷）
+
+**关键避坑（曾踩过的坑，不要再犯）：**
+- ⚠️ **PMT 公式在 n=1 时退化为 `余额 × (1+r)`**，导致月供 ≥ 余额的荒谬结果（曾出现：客户余额 28029、月供算出 28449）
+- 因此 `dueRemaining` **不能用 `Math.max(..., 1)` 兜底到 1**；必须 `dueRemaining >= 2` 才进 PMT 路径，否则降级到 elapsed 推算
+- 循环授信账户 issued_date 是"账户开立日期"不是"当前借款日期"，**绝不能用 elapsed 反推剩余期数**
 - 银行循环贷余额下降是主动还款，不代表有固定还款计划，一律按先息后本
 - B/L=余额/授信额度，<97%说明本金已减少，判定为等额本息
-- **先息后本需 elapsed >= 2**：开立后第1个月余额尚未变化，elapsed=1时不能判定类型，会误判
+- **先息后本需 elapsed >= 2**：开立后第1个月余额尚未变化，elapsed=1时不能判定类型
 - 简版征信不体现还款方式，以上为推算逻辑，月供标注"估算"
 
 ## 爆查风险指数逻辑（calcBlastRisk）
