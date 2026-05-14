@@ -287,6 +287,16 @@ function localFallbackMatch(data, v2Score = 0) {
   else if (_advCardUtil > 50)
     advIssues.push({ point: `信用卡使用率${_advCardUtil}%偏高`, impact: '信用卡使用率超过50%，建议降低至50%以下以提升审批通过率' });
 
+  // 无授信但有已用余额的信用卡（可能是大额分期专属额度 / 被取消额度），独立说明，避免使用率与总负债对不上
+  const _cardsNoLimit = getActiveCards(_recognizedData).filter(c => (!c.limit || c.limit === 0) && (c.used || 0) > 0);
+  if (_cardsNoLimit.length > 0) {
+    const _noLimitSum = _cardsNoLimit.reduce((s, c) => s + (c.used || 0), 0);
+    advIssues.push({
+      point: `${_cardsNoLimit.length}张信用卡显示已用${_noLimitSum.toLocaleString()}元但无授信信息`,
+      impact: '可能是大额分期专属额度（不占信用卡循环额度）或已被取消/冻结的额度；余额已纳入总负债，但不参与信用卡使用率计算（避免使用率虚高失真）',
+    });
+  }
+
   // 改善建议
   if (q3 > 5)
     advSuggestions.push({ action: '停止一切网贷/信用卡申请3个月', goal: '让查询记录自然冷却', time: '3个月', effect: '查询降至6次以下后，股份制银行基本可申' });
@@ -663,17 +673,14 @@ function calcLoanMonthly(loan) {
       return Math.round(balanceBased);
     }
 
-    // 路径 N：网贷类（助贷银行/小贷/网贷/小额消金）—— 按授信额度等本等息算月供
+    // 路径 N：网贷类（助贷银行/小贷/小额消金/网贷）—— 按授信额度等本等息算月供
     // Why: 网贷产品月供按授信额度的固定月供算（等本等息），与余额无关；
     //      用余额 PMT 分摊到剩余期数会严重低估（接近还完时尤其明显，如余额 642 估出 113 元）
-    // 适用：助贷银行 / 小贷 / type=online / 小额消金（limit<5万）
-    const isNetLoan = (
-      loan.online_subtype === 'online_bank' ||
-      loan.online_subtype === 'microloan' ||
-      loan.type === 'online' ||
-      limit < 50000
+    // 排除：大额消金（consumer_finance + limit≥5万，如兴业消金150K）走原余额 PMT 逻辑
+    const isLargeConsumerFinance = (
+      loan.online_subtype === 'consumer_finance' && limit >= 50000
     );
-    if (isNetLoan) {
+    if (!isLargeConsumerFinance) {
       // 余额已接近还完（< 10% 授信）→ 按余额估（最后一两期）
       if (bal < limit * 0.1) return Math.round(bal);
       // 按授信额度的 12 期等本等息 PMT
@@ -2311,7 +2318,7 @@ function renderV2XAI(v2) {
             <span style="font-size:11px;color:var(--danger);margin-left:auto">${esc(iss.cost)}</span>
           </div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:4px">${esc(iss.desc)}</div>
-          <div style="font-size:12px;color:var(--accent)"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin-right:6px">FIX</span>${esc(iss.fix)}${iss.months>0?' （约'+iss.months+'个月）':''}</div>
+          <div style="font-size:12px;color:var(--accent)"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin-right:6px">FIX</span>${esc(iss.fix)}${(iss.months>0 && !/月|周|当月/.test(iss.fix)) ? ' （约'+iss.months+'个月）':''}</div>
         </div>`).join('');
     }
   }
