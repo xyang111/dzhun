@@ -663,14 +663,31 @@ function calcLoanMonthly(loan) {
       return Math.round(balanceBased);
     }
 
-    // 路径 B：有真实到期日
+    // 路径 N：网贷类（助贷银行/小贷/网贷/小额消金）—— 按授信额度等本等息算月供
+    // Why: 网贷产品月供按授信额度的固定月供算（等本等息），与余额无关；
+    //      用余额 PMT 分摊到剩余期数会严重低估（接近还完时尤其明显，如余额 642 估出 113 元）
+    // 适用：助贷银行 / 小贷 / type=online / 小额消金（limit<5万）
+    const isNetLoan = (
+      loan.online_subtype === 'online_bank' ||
+      loan.online_subtype === 'microloan' ||
+      loan.type === 'online' ||
+      limit < 50000
+    );
+    if (isNetLoan) {
+      // 余额已接近还完（< 10% 授信）→ 按余额估（最后一两期）
+      if (bal < limit * 0.1) return Math.round(bal);
+      // 按授信额度的 12 期等本等息 PMT
+      return Math.round(limit * r / (1 - Math.pow(1 + r, -12)));
+    }
+
+    // 路径 B：大额消金/银行系 + 有真实到期日
     if (dueRemaining !== null && dueRemaining >= 2) {
       return Math.round(bal * r / (1 - Math.pow(1 + r, -dueRemaining)));
     }
 
-    // 路径 C：elapsed 推算 + 6 期下限
+    // 路径 C：elapsed 推算 + 6 期下限（仅大额消金/银行系，默认 36 期）
     if (elapsed !== null && elapsed >= 1) {
-      const totalPeriods = (loan.type === 'online' && loan.online_subtype !== 'online_bank') ? 12 : 36;
+      const totalPeriods = 36;
       const remaining = Math.max(totalPeriods - elapsed, 6);
       return Math.round(bal * r / (1 - Math.pow(1 + r, -remaining)));
     }
@@ -789,8 +806,11 @@ class ScoreEngine {
     const fixedExp   = ui.fixed_expense != null ? ui.fixed_expense : Math.round((income || 0) * 0.3);
     const disposable = Math.max(0, effIncome - fixedExp - monthly);
 
-    const cLimit  = cards.reduce((s, c) => s + (c.limit || 0), 0);
-    const cUsed   = cards.reduce((s, c) => s + (c.used  || 0), 0);
+    // 信用卡使用率：只对有授信数据的卡计算（避免 OCR 未识别授信的卡 used 计入分子但无对应 limit，
+    // 导致 cardUtil > 100% 的伪问题，如 5 张卡仅 1 张有授信时算出 139%）
+    const _cardsWithLimit = cards.filter(c => (c.limit || 0) > 0);
+    const cLimit  = _cardsWithLimit.reduce((s, c) => s + c.limit, 0);
+    const cUsed   = _cardsWithLimit.reduce((s, c) => s + (c.used || 0), 0);
     const cardUtil = cLimit > 0 ? cUsed / cLimit : 0;
 
     const curOv   = (ocr.overdue_current || 0) > 0;
@@ -2456,8 +2476,10 @@ function renderMatchResult(r) {
   const q3      = q.q_3m||0;
   const onlineL = loans2.filter(l=>l.type==='online');
   const onlineI = [...new Set(onlineL.map(l=>l.name.split('-')[0]))].length;
-  const cLimit  = cards2.reduce((s,c)=>s+(c.limit||0),0);
-  const cUsed   = cards2.reduce((s,c)=>s+(c.used||0),0);
+  // 信用卡使用率：只对有授信数据的卡计算（与上方 calcTotalMonthly 内逻辑一致）
+  const _cardsWithLimit2 = cards2.filter(c => (c.limit || 0) > 0);
+  const cLimit  = _cardsWithLimit2.reduce((s,c)=>s+c.limit,0);
+  const cUsed   = _cardsWithLimit2.reduce((s,c)=>s+(c.used||0),0);
   const cUtil   = cLimit>0?Math.round(cUsed/cLimit*100):0;
   // 职业信贷倍数（月收入×N倍 = 银行实际可授信上限参考）
   // 稳定职业（事业单位/国企）单行30-80万，私营企业/个体户明显偏低
