@@ -39,6 +39,10 @@ const DEFAULT_PRICE = 990;
 function getPrice(agentId) {
   return (agentId && AGENT_PRICES[agentId]) || DEFAULT_PRICE;
 }
+// 是否「付费代理商」—— 客户必须先付费才能看完整方案/下PDF（默认代理商免费豁免）
+function isPaidAgent(agentId) {
+  return !!(agentId && AGENT_PRICES[agentId]);
+}
 
 // 当前会话的代理商信息（页面加载时自动读取URL参数）
 let _currentAgent = null;

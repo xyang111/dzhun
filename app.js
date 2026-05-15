@@ -2109,7 +2109,9 @@ async function startMatching() {
   // ── AI 在后台补充文字建议（不阻塞结果展示）──
   const aiPayToken = getPayToken() || '';
   const _isAgentMode = !!window._currentAgent;
-  if (aiPayToken || _isAgentMode) {
+  const _isPaidAgentMode = _isAgentMode && isPaidAgent(window._currentAgent.id);
+  // 付费代理商：必须有 token；普通代理商：免费豁免
+  if (aiPayToken || (_isAgentMode && !_isPaidAgentMode)) {
     const _matchPayload = {
       creditData: {
         loanCount:           loans.length,
@@ -2697,7 +2699,8 @@ function renderMatchResult(r) {
   // 产品卡片渲染（分三层：国有大行 / 股份制+城商行 / 消费金融）
   // 付费守卫：未付费只展示摘要，产品列表不渲染
   const _tok = getPayToken();
-  const isPaid = !!_tok || !!window._currentAgent;
+  // 普通代理商（如AHX）免费豁免；付费代理商（如XRT）必须付费 token 才算
+  const isPaid = !!_tok || (!!window._currentAgent && !isPaidAgent(window._currentAgent.id));
   // 已付费：在额度徽章旁显示剩余有效时间
   if (isPaid) {
     const expMs = parseInt(localStorage.getItem('_payTokenExp') || '0');
@@ -2931,9 +2934,9 @@ function renderMatchResult(r) {
   // ── D级：显示恢复路线图 ──
   if (v2Level === 'D') _renderRehabRoadmap(r);
 
-  // PDF 下载按钮（付费用户或代理商都可下载）
+  // PDF 下载按钮（付费用户或免费代理商客户可下载；付费代理商客户需先付费）
   const _pdfWrap = document.getElementById('pdfDlWrap');
-  if (_pdfWrap && (isPaid || window._currentAgent)) {
+  if (_pdfWrap && isPaid) {
     _pdfWrap.style.display = 'block';
     _pdfWrap.innerHTML = `<button class="pdf-dl-btn" id="pdfDlBtn" onclick="downloadPdfReport()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>下载报告 PDF</button>`;
   }
