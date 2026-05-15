@@ -11,6 +11,34 @@
 <meta property="og:image" content="https://dzhun.com.cn/share-cover.png" />
 <meta property="og:url" content="https://dzhun.com.cn/" />
 <meta property="og:type" content="website" />
+<script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+<script>
+  /* 微信 JS-SDK 分享配置 — 让微信内分享给朋友/朋友圈时出卡片，link 带 agent/ref */
+  (async function () {
+    if (typeof wx === 'undefined') return;
+    try {
+      var pageUrl = location.href.split('#')[0];
+      var resp = await fetch('https://api.dzhun.com.cn/api/v1/wechat/sign?url=' + encodeURIComponent(pageUrl));
+      if (!resp.ok) return;
+      var sig = await resp.json();
+      wx.config({
+        debug: false,
+        appId: sig.appId, timestamp: sig.timestamp, nonceStr: sig.nonceStr, signature: sig.signature,
+        jsApiList: ['updateAppMessageShareData', 'updateTimelineShareData']
+      });
+      wx.ready(function () {
+        var shareData = {
+          title:  '申请贷款前，先做一次征信体检 — 贷准 AI',
+          desc:   'AI 读懂你的简版征信：负债结构 / 查询风险 / 优化建议。不替你申请贷款，不擅自发起查询。',
+          link:   pageUrl,
+          imgUrl: 'https://dzhun.com.cn/share-cover.png'
+        };
+        wx.updateAppMessageShareData(shareData);
+        wx.updateTimelineShareData(shareData);
+      });
+    } catch (e) { /* 静默失败，OG 标签兜底 */ }
+  })();
+</script>
 <script>
   /* Landing 所有 CTA 自动透传当前 URL 的 query string（agent / ref 等），
      保证主站、代理商、转介绍三种入口在 Landing ↔ 工具页之间 URL 完全一致：
