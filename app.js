@@ -2720,7 +2720,8 @@ function renderMatchResult(r) {
       D: '你的资质有 <span style="color:var(--accentB);font-size:17px;font-weight:700">1</span> 个保底方向 + 9 个月修复路径',
     };
     const _countHint = _hintByLevel[v2Level] || '征信分析已完成';
-    document.getElementById('productsGrid').innerHTML = `<div class="pw-wrap"><div class="pw-preview">${_ghostCard()}${_ghostCard()}${_ghostCard()}${_lockOverlay}<div class="pw-fade"></div></div><div class="pw-hint">${_countHint}</div><button class="pw-btn" onclick="showPayModal(()=>startMatching())">解锁完整方案 · 顾问一对一跟进 &nbsp; ¥9.9</button></div>`;
+    const _payYuan = (getPrice(window._currentAgent?.id) / 100).toString().replace(/\.0$/, '');
+    document.getElementById('productsGrid').innerHTML = `<div class="pw-wrap"><div class="pw-preview">${_ghostCard()}${_ghostCard()}${_ghostCard()}${_lockOverlay}<div class="pw-fade"></div></div><div class="pw-hint">${_countHint}</div><button class="pw-btn" onclick="showPayModal(()=>startMatching())">解锁完整方案 · 顾问一对一跟进 &nbsp; ¥${_payYuan}</button></div>`;
     document.getElementById('matchResult').style.display='block';
     document.getElementById('matchResult').scrollIntoView({behavior:'smooth',block:'start'});
     window._isMatching = false;
@@ -3679,6 +3680,9 @@ function showPayModal(callback) {
   document.getElementById('payStep1').style.display = 'block';
   document.getElementById('payStep2').style.display = 'none';
   document.getElementById('payStep3').style.display = 'none';
+  // 价格按代理商动态切换
+  const priceEl = document.getElementById('payPriceVal');
+  if (priceEl) priceEl.textContent = (getPrice(window._currentAgent?.id) / 100).toString().replace(/\.0$/, '');
   // 微信支付仅在微信内可用（H5审核未通过）
   const wechatBtn = document.getElementById('payBtnWechat');
   if (wechatBtn) wechatBtn.style.display = _isWeChat ? '' : 'none';
@@ -3715,10 +3719,11 @@ async function choosePay(channel) {
     document.getElementById('payStep2Title').textContent = '正在创建订单…';
     document.getElementById('payLinkWrap').style.display = 'none';
     try {
+      const _agentId = window._currentAgent?.id || null;
       const resp = await fetch(PROXY_URL + '/api/v1/pay/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channel: 'wechat', amount: 990, openid }),
+        body: JSON.stringify({ channel: 'wechat', amount: getPrice(_agentId), openid, agentId: _agentId }),
       });
       const data = await resp.json();
       if (!data.orderId || !data.jsapi) throw new Error(data.error || '创建订单失败');
@@ -3806,10 +3811,11 @@ async function choosePay(channel) {
   document.getElementById('payLinkWrap').style.display = 'none';
 
   try {
+    const _agentId = window._currentAgent?.id || null;
     const resp = await fetch(PROXY_URL + '/api/v1/pay/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channel, amount: 990 }),
+      body: JSON.stringify({ channel, amount: getPrice(_agentId), agentId: _agentId }),
     });
     const data = await resp.json();
     if (!data.orderId) throw new Error(data.error || '创建订单失败');

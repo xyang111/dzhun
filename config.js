@@ -16,6 +16,12 @@ const AGENTS = {
     qr: '/qr_agent_1.jpg',
     notify: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=eeac39a4-e6f8-487d-8a3c-92f6421829b2'
   },
+  'XRT': {
+    name:   '鑫融腾',
+    phone:  '15260211119',
+    qr: '/qr_agent_2.jpg',
+    notify: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=59848f9e-272d-401c-bb5b-7d6150657c08'
+  },
   // 新增代理商在这里继续添加：
   // 'XX002': {
   //   name:   '代理商名称',
@@ -24,6 +30,15 @@ const AGENTS = {
   //   notify: '企业微信群webhook地址'
   // },
 };
+
+// ── 代理商价格覆盖（单位：分；未列出 = 默认 990）──
+const AGENT_PRICES = {
+  'XRT': 2800,  // 鑫融腾 ¥28
+};
+const DEFAULT_PRICE = 990;
+function getPrice(agentId) {
+  return (agentId && AGENT_PRICES[agentId]) || DEFAULT_PRICE;
+}
 
 // 当前会话的代理商信息（页面加载时自动读取URL参数）
 let _currentAgent = null;

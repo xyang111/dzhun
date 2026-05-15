@@ -11,7 +11,7 @@
 <meta property="og:url" content="https://dzhun.com.cn/checkup.html" />
 <meta property="og:type" content="website" />
 <meta name="description" content="AI 读懂你的简版征信报告，给出资质区间评估和方向级建议。不发起任何查询，不替你提交申请。" />
-<link rel="stylesheet" href="style.css?v=1778745643">
+<link rel="stylesheet" href="style.css?v=1778836287">
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 <script>
 // 工具页 logo 点击：跳回主页，完整透传 query string（agent / ref 等）
@@ -936,8 +936,8 @@ function goHome() {
   </div>
 </footer>
 
-<script src="config.js?v=1778745643"></script>
-<script src="app.js?v=1778745643"></script>
+<script src="config.js?v=1778836287"></script>
+<script src="app.js?v=1778836287"></script>
 
 <!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
 <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">
@@ -988,7 +988,7 @@ function goHome() {
       <div style="font-size:12px;color:var(--silver);line-height:1.8;margin-bottom:6px">
         征信识别结果免费查看<br>资质区间 · 申请方向 · 优化建议 · 单次付费
       </div>
-      <div class="pay-price">¥<span style="font-size:44px">9.9</span></div>
+      <div class="pay-price">¥<span id="payPriceVal" style="font-size:44px">9.9</span></div>
       <div class="pay-btn-row">
         <button id="payBtnWechat" class="pay-btn pay-btn-wechat" onclick="choosePay('wechat')">微信支付</button>
         <button id="payBtnAlipay" class="pay-btn pay-btn-alipay" onclick="choosePay('alipay')">支付宝</button>
