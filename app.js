@@ -1094,12 +1094,23 @@ class ScoreEngine {
         cost:`拉低分数约${gain}分`, fix:`时间修复，距今越久银行容忍度越高`,
         months:Math.max(0,60-(f.latestOvMths||12)), gain });
     }
+    // 负债率偏高（XAI 问题诊断）
+    // 触发条件：用 effIncome 口径的 dti > 50%（即 ScoreEngine 实际扣分用的口径）
+    // desc 分两种情形：
+    //   1) 无折损（effIncome === income）：直接显示 _rawDti，简单清晰
+    //   2) 有折损（公积金反推月薪 > 申报，trustScore 拉低 effIncome）：展开折损链路，
+    //      让客户看懂"为什么我申报 X 元、月还款只占 Y%，却被判负债率超红线"
     const _rawDti = f.income > 0 ? f.monthly / f.income : f.dti;
-    if (f.dti > 0.5 && _rawDti > 0.5 && f.effIncome > 0) {
+    if (f.dti > 0.5 && f.effIncome > 0) {
       const gain = _gain('dti');
+      const _dtiPct  = Math.round(f.dti  * 100);
+      const _rawPct  = Math.round(_rawDti * 100);
+      const _hasDiscount = f.income > 0 && f.effIncome < f.income;
+      const desc = _hasDiscount
+        ? `按可承受收入¥${f.effIncome}计算月还款占${_dtiPct}%，超50%上限（公积金反推月薪¥${f.inferIncome}远高于申报¥${f.income}，银行不全信申报口径、按折损后¥${f.effIncome}审批）`
+        : `月还款占收入${_rawPct}%，超银行50%上限`;
       issues.push({ icon:_ico.down, tag:'负债率偏高',
-        desc:`月还款占收入${Math.round(_rawDti*100)}%，超银行50%上限`,
-        cost:`拉低分数约${gain}分`, fix:`结清部分贷款，将负债率降至50%以下`, months:3, gain });
+        desc, cost:`拉低分数约${gain}分`, fix:`结清部分贷款，将负债率降至50%以下`, months:3, gain });
     }
 
     const passRates = (products||[]).map(p => ({
