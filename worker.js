@@ -36,6 +36,13 @@ var ALLOWED_ORIGINS = [
   "https://www.dzhun.com.cn",
 ];
 var PRODUCT_PRICE = 990;
+// 代理商价格覆盖（单位：分；未列出 = 默认 PRODUCT_PRICE）— 与 config.js AGENT_PRICES 保持一致
+var AGENT_PRICES = {
+  'XRT': 2800,  // 鑫融腾 ¥28
+};
+function getPrice(agentId) {
+  return (agentId && AGENT_PRICES[agentId]) || PRODUCT_PRICE;
+}
 
 // ═══════════════════════════════════════════
 // ② OCR 解析 Prompt — 双版本
@@ -690,7 +697,10 @@ function buildMatchPrompt(payload) {
       return `普通工薪、收入偏低（月收入 ${_incomeNum} 元，${noBoost}），按 50% DTI 推算纯信用贷新增月供上限约 ${remainMonthly} 元${hasAsset ? assetNote : '，对应可贷额度有限'}`;
     }
     // Case D：普通工薪 + 中等及以上
-    return `普通工薪（月收入 ${_incomeNum} 元${_pvdNum > 0 ? `，公积金 ${_pvdNum} 元` : ''}），按 50% DTI 推算新增月供上限约 ${remainMonthly} 元${assetNote}`;
+    const _calcNote = realIncome !== _incomeNum
+      ? `（银行取公积金倒推参考收入 ${realIncome} 元：${realIncome}×50%-${_monthlyNum}=${remainMonthly}）`
+      : `（${_incomeNum}×50%-${_monthlyNum}=${remainMonthly}）`;
+    return `普通工薪（月收入 ${_incomeNum} 元${_pvdNum > 0 ? `，公积金 ${_pvdNum} 元` : ''}），按 50% DTI 推算新增月供上限约 ${remainMonthly} 元 ${_calcNote}${assetNote}`;
   })();
 
   const creditTagsText = `- 负债率状态：${debtStatus}
@@ -748,7 +758,11 @@ function buildMatchPrompt(payload) {
 ③ advice.strengths：从征信指标里找让他进入C级而非D级的具体优势（无逾期、社保稳定、有公积金等），给客户建立信心。advice.issues：用利率档成本量化（"走过渡方向比等3个月直接进入主流银行区间多承担 1-2 档利率"，不写具体百分比）。advice.suggestions：给具体方向路径，强调"申请顺序影响3个月后的资格"。`,
     D: `客户是 D 级（${score}分，REHABILITATION PLAN）。银行通道暂时关闭。禁止做损失量化，客户已经知道情况不好，不需要再强化焦虑。你的核心任务是给控制感和路线图：
 ① key_risk：直接说明导致D级的主因（从xai issues第一条，精确描述），一句话，语气是解释不是判决。
-② optimization：严格按时间轴三步，time 字段用相对时间（"立即""3个月后""6个月后"），禁止绝对年月——第一步"立即执行"（具体做什么），第二步"3个月后"（第一个里程碑，解锁什么方向），第三步"6个月后"（回到C级/B级的节点）。每步的 unlock 写"进入城商行区间"或"进入股份制银行区间"这类方向里程碑，禁止具体银行/产品名。
+② optimization：严格按时间轴三步，time 字段用相对时间，禁止绝对年月——第一步"立即执行"（具体做什么），第二步给第一个里程碑（解锁什么方向），第三步给回到 C/B 级的节点。每步的 unlock 写"进入城商行区间"或"进入股份制银行区间"这类方向里程碑，禁止具体银行/产品名。
+   ★ 时间节点选择规则（基于查询状态 + 负债率状态联动）：
+     - 普通 D 级（查询偏高 / 负债率超红线 单项触发）：用"立即""3个月后""6个月后"
+     - 极重 D 级（查询状态为"严重花户" AND 负债率状态为"严重超红线"）：必须用"立即""6个月后""12个月后/18个月后"
+       —— 花户+高负债的真实修复周期是 12-18 个月，3-6 个月给客户虚假预期反而毁信任
 ③ advice.strengths：找任何可以建立信心的点（哪怕是"无历史逾期"或"公积金在缴"）。advice.issues：解释原因，不指责。advice.suggestions：第一步最重要的单一行动，给足执行细节，让客户知道"做这件事就是在向前走"。`,
   }[level] || '';
 
@@ -770,6 +784,18 @@ function buildMatchPrompt(payload) {
 4. 本地规则引擎已完成方向判断（见下方"方向可达性映射"），你必须严格遵守该映射推荐申请顺序，不得自己重新判断哪个方向先申
 5. 只输出前端实际渲染的 3 个字段：key_risk、optimization、advice
 6. time 字段必须用相对时间（"立即""1个月后""3个月后""6个月后"），严禁输出"XXXX年X月"等绝对日期
+7. 严禁"修复后可回收 X 分""提升 X 分""回收 XX 分（A分+B分）"等扣分项线性相加表述
+   —— 多个扣分项之间存在共因（如花户和高负债同时拉低，惩罚有重叠），不可线性相加
+   —— 回收数字必须用模糊定性："评分有望回到 C 级区间"/"扣分项消除后评级有望提升至 X 级"
+8. 严禁"将月还款降至 0 元""月还款归零"等绝对化清零表述
+   —— 除非客户结清后确实无任何贷款余额和信用卡欠款，否则月还款不会真到 0
+   —— 应改为"网贷部分月还款大幅下降"/"整体月还款明显降低至 X 元左右"
+9. FIX / impact / time 字段不得在同一条目内重复同一时间数字
+   —— 反例："6个月后查询自然冷却至安全线（约 6 个月）"括号内冗余必须删
+   —— 正例："6个月后查询自然冷却至安全线"
+10. "网贷机构 N 家" 输出时若 N 显著小于未结清贷款总数（同机构多笔），
+    必须在 issues 或 impact 里明示"N 家网贷机构共 X 笔贷款（部分机构存在多笔）"
+    避免客户产生"机构数 vs 贷款数对不上"的疑惑
 
 【征信状态硬约束 — 违反任意一条视为生成失败】
 A. 负债率约束：
@@ -781,6 +807,8 @@ B. 查询次数约束：
    - 查询状态为"严重花户/花户"时，optimization 第一步 time 字段不能是"立即"，应是"3 个月后"或"6 个月后"（先养征信）
    - 严禁把"严重花户/花户"的客户写进 strengths（"查询少"是错的）；strengths 里的查询相关项必须看半年总数 q6m 而不是只看近 1 月
    - 仅当查询状态为"正常"时，才允许把查询节奏写入 strengths
+   - 查询状态为"严重花户/花户"时，suggestions 必须显式提示：本阶段禁止使用任何 APP/手机银行/线上贷款入口（每次点击都会再叠加一次查询，进一步打花征信），唯一可行路径是线下面签通道
+   - 上一条的"线下面签通道"表述必须搭配"由顾问协助筛选窗口、确定时机、准备面签话术"语义，严禁出现"自行前往""自己去支行""直接联系银行客户经理""自己去家附近网点"等绕过顾问的表述（与写作规则 2-⑤ 联动）
 C. 收入基数约束（按状态文本里的关键词分情形处理，禁止一刀切）：
    - 含"白名单职业"时：suggestions/issues 必须如实反映"DTI 可放宽到 70%"和职业身份带来的优待，**严禁**只用工资数字限制可贷空间；若状态文本同时含"有资产"，必须提到"如有融资需求可优先考虑抵押贷方向（不走信用贷 DTI 限制，授信可达资产估值的 60-70%）"
    - 含"公积金倒推"时：必须按倒推隐含月薪（而非工资条数字）描述可贷空间，让客户知道银行真实审批基准；strengths 可写"公积金缴存稳定，银行按隐含真实收入审批"
@@ -1176,11 +1204,16 @@ async function handleMatch(request, env) {
   if (!payToken && !agentId) {
     return jsonResp({ error: { message: '需要付费后才能查看匹配结果', code: 'PAYMENT_REQUIRED' } }, 402, request);
   }
+  // 付费代理商（如 XRT）：agentId 仅识别渠道，仍必须有有效 pay_token
+  const isPaidAgentCh = agentId && AGENT_PRICES[agentId];
   if (agentId) {
     const agentRaw = await env.ORDERS.get(`agent:${agentId}`);
     if (!agentRaw) return jsonResp({ error: { message: '代理商账号不存在', code: 'PAYMENT_REQUIRED' } }, 403, request);
-    // 代理商验证通过，直接继续（无需 token 过期检查）
-  } else {
+  }
+  if (!agentId || isPaidAgentCh) {
+    if (!payToken) {
+      return jsonResp({ error: { message: '需要付费后才能查看匹配结果', code: 'PAYMENT_REQUIRED' } }, 402, request);
+    }
     const tokenRaw = await env.ORDERS.get(`token:${payToken}`);
     if (!tokenRaw) {
       return jsonResp({ error: { message: '支付凭证无效或已过期，请重新付费', code: 'PAYMENT_REQUIRED' } }, 402, request);
@@ -1232,18 +1265,20 @@ async function handlePayCreate(request, env) {
   try { body = await request.json(); } catch (e) {
     return jsonResp({ error: '请求格式错误' }, 400, request);
   }
-  const { channel, amount, openid } = body;
-  if (amount !== PRODUCT_PRICE) return jsonResp({ error: '金额异常' }, 400, request);
+  const { channel, amount, openid, agentId } = body;
+  const expectedPrice = getPrice(agentId);
+  if (amount !== expectedPrice) return jsonResp({ error: '金额异常' }, 400, request);
   if (channel !== 'wechat' && channel !== 'alipay') return jsonResp({ error: '不支持的支付方式' }, 400, request);
   const orderId = 'DZ' + Date.now() + randomHex(6);
   await env.ORDERS.put(`order:${orderId}`, JSON.stringify({
-    status: 'pending', channel, amount, createdAt: Date.now()
+    status: 'pending', channel, amount, agentId: agentId || null, createdAt: Date.now()
   }), { expirationTtl: 3600 });
-  if (channel === 'wechat') return handleWechatCreate(request, env, orderId, openid);
-  return handleAlipayCreate(request, env, orderId);
+  if (channel === 'wechat') return handleWechatCreate(request, env, orderId, openid, expectedPrice);
+  return handleAlipayCreate(request, env, orderId, expectedPrice);
 }
 
-async function handleWechatCreate(request, env, orderId, openid) {
+async function handleWechatCreate(request, env, orderId, openid, price) {
+  const totalFen = price || PRODUCT_PRICE;
   const appid   = env.WECHAT_APPID    || '';
   const mchid   = env.WECHAT_MCH_ID   || '';
   const serial  = env.WECHAT_SERIAL   || '';
@@ -1262,7 +1297,7 @@ async function handleWechatCreate(request, env, orderId, openid) {
       appid, mchid,
       description: '贷准-AI征信匹配',
       out_trade_no: orderId,
-      amount: { total: PRODUCT_PRICE, currency: 'CNY' },
+      amount: { total: totalFen, currency: 'CNY' },
       payer: { openid },
       notify_url: 'https://api.dzhun.com.cn/pay/notify/wechat',
     });
@@ -1300,7 +1335,7 @@ async function handleWechatCreate(request, env, orderId, openid) {
     appid, mchid,
     description: '贷准-AI征信匹配',
     out_trade_no: orderId,
-    amount: { total: PRODUCT_PRICE, currency: 'CNY' },
+    amount: { total: totalFen, currency: 'CNY' },
     scene_info: {
       payer_client_ip: clientIp,
       h5_info: { type: 'Wap', app_name: '贷准', app_url: 'https://dzhun.com.cn' },
@@ -1439,7 +1474,8 @@ async function handleWechatOAuth(request, env) {
   }
 }
 
-async function handleAlipayCreate(request, env, orderId) {
+async function handleAlipayCreate(request, env, orderId, price) {
+  const totalYuan = ((price || PRODUCT_PRICE) / 100).toFixed(2);
   const appId   = env.ALIPAY_APP_ID   || '';
   const privKey = env.ALIPAY_PRIV_KEY || '';
   if (!appId || !privKey) {
@@ -1452,7 +1488,7 @@ async function handleAlipayCreate(request, env, orderId) {
   const pad = n => String(n).padStart(2, '0');
   const ts  = `${now.getUTCFullYear()}-${pad(now.getUTCMonth()+1)}-${pad(now.getUTCDate())} ${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())}`;
   const bizContent = JSON.stringify({
-    out_trade_no: orderId, total_amount: '9.90',
+    out_trade_no: orderId, total_amount: totalYuan,
     subject: '贷准-AI征信匹配', product_code: 'QUICK_WAP_WAY',
   });
   const params = {
@@ -1747,6 +1783,7 @@ async function handleScoreAdmin(request, env) {
 // 代理商企业微信群机器人 Webhook（key 与 config.js 保持一致）
 const AGENT_WEBHOOKS = {
   'AHX': 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=eeac39a4-e6f8-487d-8a3c-92f6421829b2',
+  'XRT': 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=59848f9e-272d-401c-bb5b-7d6150657c08',
 };
 
 async function handleReport(request, env, ctx) {
@@ -2075,13 +2112,17 @@ async function handlePdf(request, env) {
   const { ocrData, v2Score, userInfo, pdfStats, aiResult, agentId, payToken } = body;
   if (!ocrData) return jsonResp({ error: '缺少报告数据' }, 400, request);
 
-  // 鉴权：付费 token 或代理商 agentId 二选一即可
+  // 鉴权：付费 token 或代理商 agentId 二选一即可；付费代理商必须有 token
   if (!payToken && !agentId) {
     return jsonResp({ error: '请先完成付费后再下载' }, 402, request);
   }
+  const isPaidAgentCh = agentId && AGENT_PRICES[agentId];
   if (agentId) {
     const raw = await env.ORDERS.get(`agent:${agentId}`);
     if (!raw) return jsonResp({ error: '代理商账号不存在' }, 403, request);
+  }
+  if (isPaidAgentCh && !payToken) {
+    return jsonResp({ error: '请先完成付费后再下载' }, 402, request);
   }
   if (payToken) {
     const tokenRaw = await env.ORDERS.get(`token:${payToken}`);

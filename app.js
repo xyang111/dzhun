@@ -1079,10 +1079,11 @@ class ScoreEngine {
         cost:`拉低分数约${gain}分`, fix:`时间修复，距今越久银行容忍度越高`,
         months:Math.max(0,60-(f.latestOvMths||12)), gain });
     }
-    if (f.dti > 0.5 && f.effIncome > 0) {
+    const _rawDti = f.income > 0 ? f.monthly / f.income : f.dti;
+    if (f.dti > 0.5 && _rawDti > 0.5 && f.effIncome > 0) {
       const gain = _gain('dti');
       issues.push({ icon:_ico.down, tag:'负债率偏高',
-        desc:`月还款占收入${Math.round(f.dti*100)}%，超银行50%上限`,
+        desc:`月还款占收入${Math.round(_rawDti*100)}%，超银行50%上限`,
         cost:`拉低分数约${gain}分`, fix:`结清部分贷款，将负债率降至50%以下`, months:3, gain });
     }
 
@@ -1885,8 +1886,9 @@ async function startMatching() {
   const cfCount2 = [...new Set(onlineLoansM.filter(l => l.online_subtype==='consumer_finance').map(l=>l.name.split('-')[0]))].length;
   const mlCount2 = [...new Set(onlineLoansM.filter(l => l.online_subtype==='microloan').map(l=>l.name.split('-')[0]))].length;
   const obCount2 = [...new Set(onlineLoansM.filter(l => l.online_subtype==='online_bank').map(l=>l.name.split('-')[0]))].length;
-  const totalCardLimit = cards.reduce((s, c) => s + (c.limit || 0), 0);
-  const totalCardUsed = cards.reduce((s, c) => s + (c.used || 0), 0);
+  const _cardsWithKnownLimit = cards.filter(c => (c.limit || 0) > 0);
+  const totalCardLimit = _cardsWithKnownLimit.reduce((s, c) => s + c.limit, 0);
+  const totalCardUsed = _cardsWithKnownLimit.reduce((s, c) => s + (c.used || 0), 0);
   const cardUtil = totalCardLimit > 0 ? Math.round(totalCardUsed / totalCardLimit * 100) : 0;
   const q3 = q.q_3m || 0;
   const q6 = q.q_6m || 0;
