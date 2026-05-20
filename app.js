@@ -275,11 +275,13 @@ function localFallbackMatch(data, v2Score = 0) {
   if (income > 0 && income < 5000)
     advIssues.push({ point: `月收入${income}元偏低`, impact: '低于多数银行最低收入门槛，额度和通过率均受限' });
 
-  // 信用卡使用率
+  // 信用卡使用率（按规则2：只对有授信的卡计算，分子分母都过滤 limit>0）
+  // Why: 不过滤会把无授信卡的 used 也算进分子，得出 150%+ 虚高数字（彭德辉案例）
+  const _advCardsAll = getActiveCards(_recognizedData);
+  const _advCardsWithLimit = _advCardsAll.filter(c => (c.limit || 0) > 0);
   const _advCardUtil = (() => {
-    const cards2 = getActiveCards(_recognizedData);
-    const lim = cards2.reduce((s, c) => s + (c.limit || 0), 0);
-    const used = cards2.reduce((s, c) => s + (c.used || 0), 0);
+    const lim  = _advCardsWithLimit.reduce((s, c) => s + (c.limit || 0), 0);
+    const used = _advCardsWithLimit.reduce((s, c) => s + (c.used  || 0), 0);
     return lim > 0 ? Math.round(used / lim * 100) : 0;
   })();
   if (_advCardUtil > 70)
@@ -287,8 +289,21 @@ function localFallbackMatch(data, v2Score = 0) {
   else if (_advCardUtil > 50)
     advIssues.push({ point: `信用卡使用率${_advCardUtil}%偏高`, impact: '信用卡使用率超过50%，建议降低至50%以下以提升审批通过率' });
 
+  // 大额分期专属额度识别 — used 远超 limit 的卡，几乎可以确定是循环已用满 + 叠加了大额分期
+  // 不属于循环爆额/透支风险，月供按固定分期还款（已计入总月还款）
+  const _cardsBigInstall = _advCardsWithLimit.filter(c => c.used > c.limit * 2.5);
+  if (_cardsBigInstall.length > 0) {
+    _cardsBigInstall.forEach(c => {
+      const _bankShort = (c.name || '').split('-')[0].replace(/股份有限公司|有限公司/g, '');
+      advIssues.push({
+        point: `${_bankShort}卡已用${(c.used||0).toLocaleString()}元远超授信${(c.limit||0).toLocaleString()}元`,
+        impact: '包含大额分期专属额度（如商户分期、E分期等专项额度），按固定月供还款、月供已计入总月还款；属于真实负债但不属于"循环透支爆额"风险，无需当月一次性还清',
+      });
+    });
+  }
+
   // 无授信但有已用余额的信用卡（可能是大额分期专属额度 / 被取消额度），独立说明，避免使用率与总负债对不上
-  const _cardsNoLimit = getActiveCards(_recognizedData).filter(c => (!c.limit || c.limit === 0) && (c.used || 0) > 0);
+  const _cardsNoLimit = _advCardsAll.filter(c => (!c.limit || c.limit === 0) && (c.used || 0) > 0);
   if (_cardsNoLimit.length > 0) {
     const _noLimitSum = _cardsNoLimit.reduce((s, c) => s + (c.used || 0), 0);
     advIssues.push({
@@ -1530,9 +1545,10 @@ function renderResult(data) {
   if (q3total >= 5) warns.push('近3月申请类查询 <strong>' + q3total + ' 次</strong>，征信已花，建议暂停申请养3-6个月');
   else if (q3total >= 3) warns.push('近3月申请类查询 <strong>' + q3total + ' 次</strong>，偏多，部分银行可能拒贷');
 
-  // 信用卡综合使用率警告
-  const _cardLimitTotal = cards.reduce((s, c) => s + (c.limit || 0), 0);
-  const _cardUsedTotal  = cards.reduce((s, c) => s + (c.used || 0), 0);
+  // 信用卡综合使用率警告（按规则2：只对有授信的卡计算）
+  const _cardsWithLimitW = cards.filter(c => (c.limit || 0) > 0);
+  const _cardLimitTotal  = _cardsWithLimitW.reduce((s, c) => s + (c.limit || 0), 0);
+  const _cardUsedTotal   = _cardsWithLimitW.reduce((s, c) => s + (c.used  || 0), 0);
   const _cardUtil = _cardLimitTotal > 0 ? Math.round(_cardUsedTotal / _cardLimitTotal * 100) : 0;
   if (_cardUtil > 70) warns.push('信用卡综合使用率 <strong>' + _cardUtil + '%</strong>，超过70%警戒线，银行审批将直接降分或拒贷');
   else if (_cardUtil > 50) warns.push('信用卡综合使用率 <strong>' + _cardUtil + '%</strong>，超过50%预警线，建议降低至50%以下');
