@@ -1177,9 +1177,9 @@ function handleFiles(files) {
 }
 
 function _processPdf(f) {
-  const maxMB = 3;
+  const maxMB = 10;
   if (f.size > maxMB * 1024 * 1024) {
-    alert(`PDF过大（${(f.size/1024/1024).toFixed(1)}MB），简版征信通常不超过3MB，请确认上传的是人行简版征信`);
+    alert(`PDF过大（${(f.size/1024/1024).toFixed(1)}MB），单文件上限 ${maxMB}MB。\n\n如确认是简版征信（一般 3-10 页）：\n• 文本型 PDF 通常 1MB 内，请重新从征信中心下载\n• 扫描型 PDF（如扫描全能王）可降低分辨率后再上传`);
     return;
   }
   const reader = new FileReader();
