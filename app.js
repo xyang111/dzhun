@@ -3145,10 +3145,17 @@ function renderTableFooters(loans, cards) {
   if (cards.length > 0) {
     const totalLimit = cards.reduce((s, c) => s + (c.limit || 0), 0);
     const totalUsed  = cards.reduce((s, c) => s + (c.used  || 0), 0);
-    const totalUtil  = totalLimit > 0 ? Math.round(totalUsed / totalLimit * 100) : null;
+    const totalInst  = cards.reduce((s, c) => s + (c.big_install || 0), 0);
+    // 合计使用率按循环口径（剔除 big_install），分母只算有授信卡
+    const _withLim   = cards.filter(c => (c.limit || 0) > 0);
+    const _revLim    = _withLim.reduce((s, c) => s + c.limit, 0);
+    const _revUsed   = _withLim.reduce((s, c) => s + Math.max(0, (c.used || 0) - (c.big_install || 0)), 0);
+    const totalUtil  = _revLim > 0 ? Math.round(_revUsed / _revLim * 100) : null;
     const utilColor  = totalUtil == null ? '' : totalUtil <= 30 ? 'var(--success)' : totalUtil <= 70 ? 'var(--warn)' : 'var(--danger)';
     document.getElementById('cards-total-limit').innerHTML = totalLimit > 0 ? '<strong>' + fmt(totalLimit) + ' 元</strong>' : '--';
-    document.getElementById('cards-total-used').innerHTML  = totalUsed  > 0 ? '<strong>' + fmt(totalUsed)  + ' 元</strong>' : '--';
+    document.getElementById('cards-total-used').innerHTML  = totalUsed  > 0
+      ? '<strong>' + fmt(totalUsed) + ' 元</strong>' + (totalInst > 0 ? '<div style="font-size:9px;color:var(--gray-mid);font-weight:400;line-height:1.4">含分期 ' + fmt(totalInst) + ' 元</div>' : '')
+      : '--';
     document.getElementById('cards-total-util').innerHTML  = totalUtil  != null
       ? '<strong style="color:' + utilColor + '">' + totalUtil + '%</strong>' : '--';
     document.getElementById('cardsTfoot').style.display = '';
