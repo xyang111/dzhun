@@ -275,40 +275,45 @@ function localFallbackMatch(data, v2Score = 0) {
   if (income > 0 && income < 5000)
     advIssues.push({ point: `月收入${income}元偏低`, impact: '低于多数银行最低收入门槛，额度和通过率均受限' });
 
-  // 信用卡使用率（按规则2：只对有授信的卡计算，分子分母都过滤 limit>0）
-  // Why: 不过滤会把无授信卡的 used 也算进分子，得出 150%+ 虚高数字（彭德辉案例）
+  // 信用卡使用率（按规则2：只对有授信的卡，按循环口径计算）
+  // 循环口径 = (used - big_install) / limit，剔除征信原文明示的大额专项分期未还本金
+  // Why: 大额分期是固定月供，不是循环爆额，把它算进使用率会把"含分期"客户全部错杀
   const _advCardsAll = getActiveCards(_recognizedData);
   const _advCardsWithLimit = _advCardsAll.filter(c => (c.limit || 0) > 0);
   const _advCardUtil = (() => {
-    const lim  = _advCardsWithLimit.reduce((s, c) => s + (c.limit || 0), 0);
-    const used = _advCardsWithLimit.reduce((s, c) => s + (c.used  || 0), 0);
-    return lim > 0 ? Math.round(used / lim * 100) : 0;
+    const lim   = _advCardsWithLimit.reduce((s, c) => s + (c.limit || 0), 0);
+    const used  = _advCardsWithLimit.reduce((s, c) => s + (c.used  || 0), 0);
+    const inst  = _advCardsWithLimit.reduce((s, c) => s + (c.big_install || 0), 0);
+    const rev   = Math.max(0, used - inst);
+    return lim > 0 ? Math.round(rev / lim * 100) : 0;
   })();
   if (_advCardUtil > 70)
-    advIssues.push({ point: `信用卡使用率${_advCardUtil}%超标`, impact: '信用卡使用率超过70%，银行审批将直接扣分，影响贷款通过率' });
+    advIssues.push({ point: `信用卡循环使用率${_advCardUtil}%超标`, impact: '循环已用占授信超70%，银行审批将直接扣分；分期部分已独立列示、不参与此项' });
   else if (_advCardUtil > 50)
-    advIssues.push({ point: `信用卡使用率${_advCardUtil}%偏高`, impact: '信用卡使用率超过50%，建议降低至50%以下以提升审批通过率' });
+    advIssues.push({ point: `信用卡循环使用率${_advCardUtil}%偏高`, impact: '循环已用占授信超50%，建议降低至50%以下；分期部分已独立列示、不参与此项' });
 
-  // 大额分期专属额度识别 — used 远超 limit 的卡，几乎可以确定是循环已用满 + 叠加了大额分期
-  // 不属于循环爆额/透支风险，月供按固定分期还款（已计入总月还款）
-  const _cardsBigInstall = _advCardsWithLimit.filter(c => c.used > c.limit * 2.5);
-  if (_cardsBigInstall.length > 0) {
-    _cardsBigInstall.forEach(c => {
-      const _bankShort = (c.name || '').split('-')[0].replace(/股份有限公司|有限公司/g, '');
-      advIssues.push({
-        point: `${_bankShort}卡已用${(c.used||0).toLocaleString()}元远超授信${(c.limit||0).toLocaleString()}元`,
-        impact: '包含大额分期专属额度（如商户分期、E分期等专项额度），按固定月供还款、月供已计入总月还款；属于真实负债但不属于"循环透支爆额"风险，无需当月一次性还清',
-      });
+  // 大额分期独立列项（精确：从征信原文 big_install 字段提取，不再用 used>limit×2.5 启发式）
+  // ① 有 limit 卡叠加大额分期 → 客户实际是"有循环额度 + 又办了大额分期"
+  // ② 无 limit 卡有 big_install → 大额分期专属额度卡（不占循环授信）
+  const _cardsWithBigInst = _advCardsAll.filter(c => (c.big_install || 0) > 0);
+  if (_cardsWithBigInst.length > 0) {
+    const _bigInstTotal = _cardsWithBigInst.reduce((s, c) => s + (c.big_install || 0), 0);
+    advIssues.push({
+      point: `${_cardsWithBigInst.length}张信用卡含大额专项分期共${_bigInstTotal.toLocaleString()}元`,
+      impact: '征信原文明确标注的大额专项分期未还本金，按固定月供分期还款（已计入总月还款估算）；属于真实负债但不参与"循环使用率"计算，不属于"循环透支爆额"风险',
     });
   }
 
-  // 无授信但有已用余额的信用卡（可能是大额分期专属额度 / 被取消额度），独立说明，避免使用率与总负债对不上
-  const _cardsNoLimit = _advCardsAll.filter(c => (!c.limit || c.limit === 0) && (c.used || 0) > 0);
+  // 无授信且无 big_install 标注、但有已用余额的卡（被取消/冻结的额度，或 OCR 漏标分期）
+  // 与 _cardsWithBigInst 分开，避免重复列项
+  const _cardsNoLimit = _advCardsAll.filter(c =>
+    (!c.limit || c.limit === 0) && (c.used || 0) > 0 && !((c.big_install || 0) > 0)
+  );
   if (_cardsNoLimit.length > 0) {
     const _noLimitSum = _cardsNoLimit.reduce((s, c) => s + (c.used || 0), 0);
     advIssues.push({
       point: `${_cardsNoLimit.length}张信用卡显示已用${_noLimitSum.toLocaleString()}元但无授信信息`,
-      impact: '可能是大额分期专属额度（不占信用卡循环额度）或已被取消/冻结的额度；余额已纳入总负债，但不参与信用卡使用率计算（避免使用率虚高失真）',
+      impact: '可能是已被取消/冻结的额度，或征信报告未明示分期但实质为分期专属额度；余额已纳入总负债，但不参与循环使用率计算',
     });
   }
 
@@ -753,8 +758,17 @@ function calcLoanMonthly(loan) {
 
 function calcTotalMonthly(loans, cards) {
   const loanPart = loans.reduce((s, l) => s + calcLoanMonthly(l), 0);
-  // 银行审批口径：信用卡按【已用额度×2%】折算月供（银行实际通用口径）
-  const cardPart = cards.reduce((s, c) => s + Math.round(Math.max(0, c.used || 0) * 0.02), 0);
+  // 信用卡月供分两段（征信原文 big_install 字段可区分时使用）：
+  // ① 循环已用 (used - big_install) × 2%：最低还款额类比，覆盖账单分期与循环利息
+  // ② 大额专项分期 big_install / 36：按 36 期估算固定月供
+  //    征信不暴露真实期数，业内常见 12/24/36，36 期最常见（商户分期偏长），算下来约等于 used × 2.8%，与旧算法平滑过渡
+  // big_install 缺失（旧 OCR 数据或无此项）时退化为纯 used × 2%，行为与旧算法一致
+  const cardPart = cards.reduce((s, c) => {
+    const used = Math.max(0, c.used || 0);
+    const inst = Math.max(0, c.big_install || 0);
+    const revolving = Math.max(0, used - inst);
+    return s + Math.round(revolving * 0.02) + Math.round(inst / 36);
+  }, 0);
   return loanPart + cardPart;
 }
 
@@ -830,10 +844,15 @@ class ScoreEngine {
 
     // 信用卡使用率：只对有授信数据的卡计算（避免 OCR 未识别授信的卡 used 计入分子但无对应 limit，
     // 导致 cardUtil > 100% 的伪问题，如 5 张卡仅 1 张有授信时算出 139%）
+    // 进一步剔除 big_install（征信原文标注的大额专项分期余额）：
+    //   分期是固定月供、不是循环爆额，不应触发"使用率超70%"扣分；
+    //   分期总额仍计入总月还款（calcTotalMonthly），不会被遗漏。
     const _cardsWithLimit = cards.filter(c => (c.limit || 0) > 0);
-    const cLimit  = _cardsWithLimit.reduce((s, c) => s + c.limit, 0);
-    const cUsed   = _cardsWithLimit.reduce((s, c) => s + (c.used || 0), 0);
-    const cardUtil = cLimit > 0 ? cUsed / cLimit : 0;
+    const cLimit    = _cardsWithLimit.reduce((s, c) => s + c.limit, 0);
+    const cUsedAll  = _cardsWithLimit.reduce((s, c) => s + (c.used || 0), 0);
+    const cBigInst  = _cardsWithLimit.reduce((s, c) => s + (c.big_install || 0), 0);
+    const cUsedRev  = Math.max(0, cUsedAll - cBigInst);  // 循环已用（剔除大额分期）
+    const cardUtil  = cLimit > 0 ? cUsedRev / cLimit : 0;
 
     const curOv   = (ocr.overdue_current || 0) > 0;
     const badRec  = ocr.has_bad_record || false;
@@ -1556,11 +1575,13 @@ function renderResult(data) {
   if (q3total >= 5) warns.push('近3月申请类查询 <strong>' + q3total + ' 次</strong>，征信已花，建议暂停申请养3-6个月');
   else if (q3total >= 3) warns.push('近3月申请类查询 <strong>' + q3total + ' 次</strong>，偏多，部分银行可能拒贷');
 
-  // 信用卡综合使用率警告（按规则2：只对有授信的卡计算）
+  // 信用卡综合使用率警告（循环口径：有授信卡 + 剔除 big_install）
   const _cardsWithLimitW = cards.filter(c => (c.limit || 0) > 0);
   const _cardLimitTotal  = _cardsWithLimitW.reduce((s, c) => s + (c.limit || 0), 0);
   const _cardUsedTotal   = _cardsWithLimitW.reduce((s, c) => s + (c.used  || 0), 0);
-  const _cardUtil = _cardLimitTotal > 0 ? Math.round(_cardUsedTotal / _cardLimitTotal * 100) : 0;
+  const _cardInstTotal   = _cardsWithLimitW.reduce((s, c) => s + (c.big_install || 0), 0);
+  const _cardUsedRev     = Math.max(0, _cardUsedTotal - _cardInstTotal);
+  const _cardUtil = _cardLimitTotal > 0 ? Math.round(_cardUsedRev / _cardLimitTotal * 100) : 0;
   if (_cardUtil > 70) warns.push('信用卡综合使用率 <strong>' + _cardUtil + '%</strong>，超过70%警戒线，银行审批将直接降分或拒贷');
   else if (_cardUtil > 50) warns.push('信用卡综合使用率 <strong>' + _cardUtil + '%</strong>，超过50%预警线，建议降低至50%以下');
   else if (_cardUtil > 0) warns.push('信用卡综合使用率 <strong>' + _cardUtil + '%</strong>，处于安全范围');
@@ -1668,13 +1689,22 @@ function renderResult(data) {
     document.getElementById('cardsSection').style.display = 'block';
     document.getElementById('cardCount').textContent = cards.length;
     document.getElementById('cardsBody').innerHTML = cards.map(c => {
-      const util = c.limit > 0 ? Math.round((c.used || 0) / c.limit * 100) : null;
+      const used    = c.used != null ? c.used : null;
+      const inst    = c.big_install || 0;
+      const revolv  = used != null ? Math.max(0, used - inst) : null;
+      // 循环使用率（剔除大额分期），与 PDF / ScoreEngine 口径一致
+      const util = c.limit > 0 && revolv != null ? Math.round(revolv / c.limit * 100) : null;
       const utilColor = util == null ? 'var(--white)' : util <= 30 ? 'var(--success)' : util <= 70 ? 'var(--warn)' : 'var(--danger)';
+      const usedCell = used == null
+        ? '--'
+        : inst > 0
+          ? `${fmt(used)}元<div style="font-size:9px;color:var(--gray-mid);line-height:1.4">含分期 ${fmt(inst)}元</div>`
+          : `${fmt(used)}元`;
       return `
         <tr>
           <td>${shortenBankName(c.name)}</td>
           <td style="text-align:right">${c.limit ? fmt(c.limit) + '元' : '--'}</td>
-          <td style="text-align:right">${c.used != null ? fmt(c.used) + '元' : '--'}</td>
+          <td style="text-align:right">${usedCell}</td>
           <td style="text-align:right;font-weight:600;color:${utilColor}">${util != null ? util + '%' : '--'}</td>
           <td style="text-align:center"><span class="badge ${c.status === '正常' ? 'badge-ok' : 'badge-bad'}">${c.status || '--'}</span></td>
         </tr>
@@ -1913,10 +1943,13 @@ async function startMatching() {
   const cfCount2 = [...new Set(onlineLoansM.filter(l => l.online_subtype==='consumer_finance').map(l=>l.name.split('-')[0]))].length;
   const mlCount2 = [...new Set(onlineLoansM.filter(l => l.online_subtype==='microloan').map(l=>l.name.split('-')[0]))].length;
   const obCount2 = [...new Set(onlineLoansM.filter(l => l.online_subtype==='online_bank').map(l=>l.name.split('-')[0]))].length;
+  // 循环口径 cardUtil（剔除 big_install 大额专项分期），与 ScoreEngine line 846 / worker prompt 状态保持一致
   const _cardsWithKnownLimit = cards.filter(c => (c.limit || 0) > 0);
   const totalCardLimit = _cardsWithKnownLimit.reduce((s, c) => s + c.limit, 0);
   const totalCardUsed = _cardsWithKnownLimit.reduce((s, c) => s + (c.used || 0), 0);
-  const cardUtil = totalCardLimit > 0 ? Math.round(totalCardUsed / totalCardLimit * 100) : 0;
+  const totalCardInst = _cardsWithKnownLimit.reduce((s, c) => s + (c.big_install || 0), 0);
+  const totalCardRev  = Math.max(0, totalCardUsed - totalCardInst);
+  const cardUtil = totalCardLimit > 0 ? Math.round(totalCardRev / totalCardLimit * 100) : 0;
   const q3 = q.q_3m || 0;
   const q6 = q.q_6m || 0;
 
