@@ -922,7 +922,7 @@ class ScoreEngine {
       income, effIncome, monthly, trustScore, inferIncome,
       pvdTotal, pvdRate, pvdIndiv, socialMths,
       wkScore, eduScore, hkScore, ageScore, astScore,
-      cLimit, cUsed, age, loans, cards,
+      cLimit, cUsed: cUsedAll, age, loans, cards,
       creditStartAge, netDebtTrend6m,
     };
   }
