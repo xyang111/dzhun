@@ -431,20 +431,48 @@ function _hukouScore(hukou) {
 function calcCreditScore(data, ui) {
   if (!data || typeof data !== 'object') data = {};
   const isBasic = !ui || !ui.income;
+  // 客观模式：STEP 02 阶段补充信息未填，稳定性/资产偿债依赖兜底默认值会严重误导
+  // 此时只用 OCR 客观可算的两域（信用行为×0.4 + 反欺诈×0.05）归一化为百分制
+  const isObjective = !ui || (!ui.income && !ui.work && !ui.social && !ui.provident);
 
-  // V2.0 千分制 → 百分制分段映射，让圆环数字与下方 V2.0 等级标签认知一致
+  const v2 = new ScoreEngine(data, ui).compute(getProducts());
+
+  const ds = v2.domainScores || {};
+  const _color = s => s >= 75 ? '#4ade80' : s >= 50 ? '#fbbf24' : '#f87171';
+  const _round = v => Math.round(v == null ? 50 : v);
+
+  let score, level, cls, hint, dims;
+
+  if (isObjective) {
+    // 客观评分：(信用行为×0.4 + 反欺诈×0.05) / 0.45
+    const credit = _round(ds.credit);
+    const fraud  = _round(ds.fraud);
+    score = Math.round((credit * 0.4 + fraud * 0.05) / 0.45);
+    score = Math.max(8, Math.min(100, score));
+    if (score >= 75)      { level = '客观信号良好'; cls = 'cs-lv-gd'; }
+    else if (score >= 55) { level = '客观信号一般'; cls = 'cs-lv-ok'; }
+    else                  { level = '客观信号偏弱'; cls = 'cs-lv-wk'; }
+    hint = '基于征信客观数据的初步评分，填写补充信息后将解锁完整综合分';
+    dims = [
+      { name: '信用行为', s: credit, w: 0.40, c: _color(credit) },
+      { name: '工作稳定', s: null,   w: 0.30, c: '#888', masked: true, mask: '填写补充信息后解锁' },
+      { name: '资产偿债', s: null,   w: 0.25, c: '#888', masked: true, mask: '填写补充信息后解锁' },
+      { name: '反欺诈',   s: fraud,  w: 0.05, c: _color(fraud) },
+    ];
+    return { score, level, cls, hint, dims, isBasic, isObjective: true };
+  }
+
+  // 完整 V2.0 模式：千分制 → 百分制分段映射
   // 历史包袱：旧版独立算法虚高（"93良好"但实际 V2.0=658 B级）；
   //          线性映射又走另一极端（B 级 650 仅显示 50 分，"良好但才及格"的认知错位）
   // 分段映射对齐等级常识：A→85-100 / B→70-84 / C→50-69 / D→8-49（地板8防赶客）
-  const v2 = new ScoreEngine(data, ui).compute(getProducts());
-  const score = (v => {
+  score = (v => {
     if (v >= 800) return Math.round(85 + (v - 800) / 200 * 15);
     if (v >= 650) return Math.round(70 + (v - 650) / 150 * 14);
     if (v >= 500) return Math.round(50 + (v - 500) / 150 * 19);
     return Math.max(8, Math.round(8 + (v - 300) / 200 * 41));
   })(v2.score);
 
-  // 等级映射：A→优质 / B→良好 / C→一般 / D→较弱 或 高风险（<40）
   const lvMap = {
     A: { level: '优质', cls: 'cs-lv-exc' },
     B: { level: '良好', cls: 'cs-lv-gd'  },
@@ -453,13 +481,9 @@ function calcCreditScore(data, ui) {
   const dFallback = score >= 40
     ? { level: '较弱',   cls: 'cs-lv-wk'  }
     : { level: '高风险', cls: 'cs-lv-bad' };
-  const { level, cls } = lvMap[v2.level] || dFallback;
+  ({ level, cls } = lvMap[v2.level] || dFallback);
 
-  // dims 改用 V2.0 的 4 域分数（信用行为/稳定性/资产偿债/反欺诈），与总分同源避免矛盾
-  const ds = v2.domainScores || {};
-  const _color = s => s >= 75 ? '#4ade80' : s >= 50 ? '#fbbf24' : '#f87171';
-  const _round = v => Math.round(v == null ? 50 : v);
-  const dims = [
+  dims = [
     { name: '信用行为', s: _round(ds.credit),    w: 0.40, c: _color(_round(ds.credit))    },
     { name: '工作稳定', s: _round(ds.stability), w: 0.30, c: _color(_round(ds.stability)) },
     { name: '资产偿债', s: _round(ds.asset),     w: 0.25, c: _color(_round(ds.asset))     },
@@ -490,7 +514,12 @@ function renderCreditScore(data,ui) {
   const ul=document.getElementById('csUnlock');if(ul)ul.style.display=r.isBasic?'flex':'none';
   const grid=document.getElementById('csDims');
   if(grid){
-    grid.innerHTML=r.dims.map(d=>`<div class="cs-dim"><div class="cs-dim-name">${d.name}</div><div class="cs-dim-row"><div class="cs-dim-bar"><div class="cs-dim-fill" style="width:${d.s}%;background:${d.c}"></div></div><div class="cs-dim-val" style="color:${d.c}">${d.s}</div></div></div>`).join('');
+    grid.innerHTML=r.dims.map(d=>{
+      if(d.masked){
+        return `<div class="cs-dim" title="${d.mask||''}" style="opacity:.55"><div class="cs-dim-name" style="color:#888">${d.name}</div><div class="cs-dim-row"><div class="cs-dim-bar"><div class="cs-dim-fill" style="width:0%;background:#888"></div></div><div class="cs-dim-val" style="color:#888">--</div></div></div>`;
+      }
+      return `<div class="cs-dim"><div class="cs-dim-name">${d.name}</div><div class="cs-dim-row"><div class="cs-dim-bar"><div class="cs-dim-fill" style="width:${d.s}%;background:${d.c}"></div></div><div class="cs-dim-val" style="color:${d.c}">${d.s}</div></div></div>`;
+    }).join('');
   }
 }
 
