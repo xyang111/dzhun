@@ -2633,8 +2633,9 @@ function renderMatchResult(r) {
   const cUtil   = cLimit>0?Math.round(cUsed/cLimit*100):0;
   // 职业信贷倍数（月收入×N倍 = 银行实际可授信上限参考）
   // 稳定职业（事业单位/国企）单行30-80万，私营企业/个体户明显偏低
-  const wtMultMap = {'政府机关/公务员':90,'事业单位':80,'国有企业/央企':65,'上市公司/500强':50,'私营企业':35,'个体工商户':25,'自由职业':20};
-  const wt      = WORK_TYPE_MAP[workVal]||'private';
+  // 2026-05-22 修：原 wtMultMap 用中文 key，但 workVal 直接读 select 英文 value，导致全员 fallback 25
+  const wtMultMap = {gov:90, institution:80, state:65, listed:50, private:35, self:25, freelance:20};
+  const wt      = workVal || 'private';
   const mult    = wtMultMap[workVal]||25;
   let qf=1;
   if(q3>10)qf*=.5;else if(q3>6)qf*=.7;
@@ -2643,17 +2644,20 @@ function renderMatchResult(r) {
   // V2-level floor：防止高分客户出现与评级严重矛盾的极低额度
   const _amtFloor = {A:200000,B:100000,C:0,D:0}[v2Level]||0;
   // DTI惩罚：用月供/月收入比替代直接减负债余额（稳定职业银行容忍度更高）
-  const _isStable = ['政府机关/公务员','事业单位','国有企业/央企'].includes(workVal);
-  const _dtiRatio = income>0?monthly/income:0;
+  // 2026-05-22 修：用 effIncome（公积金倒推后）替代 income，避免国企/事业单位用户因工资条低报被双重惩罚
+  const _isStable = ['gov', 'institution', 'state'].includes(workVal);
+  const _effIncome = (window._v2Result?.features?.effIncome) || income;
+  const _incomeForAmt = Math.max(income, _effIncome);  // 取较大者，公积金倒推 > 工资条时按倒推算
+  const _dtiRatio = _incomeForAmt>0?monthly/_incomeForAmt:0;
   const _dtiPenalty = _dtiRatio>0.9?0.4:_dtiRatio>0.75?(_isStable?0.7:0.5):_dtiRatio>0.6?(_isStable?0.85:0.7):1.0;
-  const estHi = income>0?Math.max(_amtFloor,Math.min(3e6,Math.round(income*mult*_dtiPenalty*qf))):0;
-  const estLo = income>0?Math.round(estHi*0.45):0;
+  const estHi = _incomeForAmt>0?Math.max(_amtFloor,Math.min(3e6,Math.round(_incomeForAmt*mult*_dtiPenalty*qf))):0;
+  const estLo = _incomeForAmt>0?Math.round(estHi*0.45):0;
   // 优化后额度：假设查询已冷却，移除查询次数惩罚，仅保留卡片惩罚
   let qfOpt=1;
   if(loans2.length>=5)qfOpt*=.8;
   if(cUtil>90)qfOpt*=.7;else if(cUtil>70)qfOpt*=.85;
-  const estHiO = income>0?Math.max(_amtFloor,Math.min(3e6,Math.round(income*mult*_dtiPenalty*qfOpt))):0;
-  const estLoO = income>0?Math.round(estHiO*0.45):0;
+  const estHiO = _incomeForAmt>0?Math.max(_amtFloor,Math.min(3e6,Math.round(_incomeForAmt*mult*_dtiPenalty*qfOpt))):0;
+  const estLoO = _incomeForAmt>0?Math.round(estHiO*0.45):0;
   const fw     = v=>v<=0?'0':(v<1e4?'<1':Math.round(v/1e4)+'');
   const curAmt = income>0?(estHi>0?fw(estLo)+'–'+fw(estHi):'当前负债较高'):'填写收入后显示';
   const optAmt = income>0?(estHiO>0?fw(estLoO)+'–'+fw(estHiO):'当前负债较高'):'填写收入后显示';
