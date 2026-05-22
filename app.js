@@ -857,12 +857,16 @@ class ScoreEngine {
     const hpfHigher   = income > 0 && inferIncome > income * 1.15;
     const incDiff     = income > 0 && inferIncome > 0
       ? Math.abs(inferIncome - income) / Math.max(inferIncome, income) : 0;
+    // 国企/事业单位/公务员场景：公积金倒推 > 工资条申报是常态（奖金/绩效/年终入公积金基数，
+    // 工资条仅基本工资），不是低报信号，不应折损 trustScore。
+    const _isPublicSector = wKey === 'gov' || wKey === 'institution' || wKey === 'state';
     const trustScore  = pvdTotal === 0
       ? 50                                                                         // 无公积金：中性
       : pvdMinBase && !hpfHigher
         ? (incDiff < 0.3 ? 100 : 75)                                               // 最低基数：HPF信号弱，轻度折扣
         : hpfHigher
-          ? (incDiff < 0.15 ? 100 : incDiff < 0.4 ? 60 : 20)                      // HPF反推高于申报：可疑
+          ? (_isPublicSector ? 100                                                 // 公职体系：HPF高于申报是常态，全信任
+            : incDiff < 0.15 ? 100 : incDiff < 0.4 ? 60 : 20)                      // 其他：HPF反推高于申报视为可疑
           : (incDiff < 0.2 ? 100 : incDiff < 0.4 ? 80 : incDiff < 0.8 ? 55 : 35); // 正常区间（HPF低于申报）：非对称软化
     const effIncome  = income > 0
       ? (trustScore >= 75 ? income : trustScore >= 40 ? Math.round(income * 0.8) : Math.round(income * 0.6)) : 0;
@@ -1811,8 +1815,6 @@ function _validateInfoForm() {
   }
   const prov = document.getElementById('if-provident');
   if (!prov || prov.value === '') { _hi('if-provident'); missing.push('公积金月缴额（无则填0）'); }
-  const fx = document.getElementById('if-fixed-expense');
-  if (!fx || fx.value === '') { _hi('if-fixed-expense'); missing.push('月固定生活支出（无则填0）'); }
   const hasAsset = Object.values(_assetState).some(v => v);
   if (!hasAsset) {
     ['asset-house','asset-car','asset-biz','asset-none'].forEach(id => { const el=document.getElementById(id); if(el){el.style.outline='2px solid var(--danger)';setTimeout(()=>{el.style.outline='';},3000);} });
@@ -3172,7 +3174,7 @@ function collectInfoData() {
     edu:          eduMap[eduVal] || eduVal || '未填写',
     social:       _socialState.val === 'yes' ? ('有缴纳' + (v('if-social-months') ? '，已缴' + v('if-social-months') + '月' : '')) : _socialState.val === 'no' ? '无缴纳' : '未填写',
     provident:      v('if-provident') ? parseInt(v('if-provident')) : null,
-    fixed_expense:  v('if-fixed-expense') ? parseInt(v('if-fixed-expense')) : null,
+    fixed_expense:  null,
     assets:         assets.length > 0 ? assets.join(' / ') : '未填写',
   };
 }
