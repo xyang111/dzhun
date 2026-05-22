@@ -2725,11 +2725,15 @@ function renderMatchResult(r) {
   // 2026-05-22 修：国企/事业用户当公积金倒推（inferIncome）>申报时，按倒推月薪算授信，
   // 避免工资条只反映基本工资的"双重惩罚"。effIncome 是 income 的折损版（≤income），
   // 真正的"真实月薪估算"是 inferIncome（公积金÷缴存比例反推）
-  const _isStable = ['gov', 'institution', 'state'].includes(workVal);
+  // 2026-05-22 选项D：优质单位（含上市公司/500强）DTI 容忍度放宽，对齐"DTI 可放宽至 70%" 的银行实际规则
+  const _isPremium = ['gov', 'institution', 'state', 'listed'].includes(workVal);
   const _inferIncome = (window._v2Result?.features?.inferIncome) || 0;
-  const _incomeForAmt = (_isStable && _inferIncome > income) ? _inferIncome : income;
+  const _incomeForAmt = (_isPremium && _inferIncome > income) ? _inferIncome : income;
   const _dtiRatio = _incomeForAmt>0?monthly/_incomeForAmt:0;
-  const _dtiPenalty = _dtiRatio>0.9?0.4:_dtiRatio>0.75?(_isStable?0.7:0.5):_dtiRatio>0.6?(_isStable?0.85:0.7):1.0;
+  const _dtiPenalty = _dtiRatio>0.9 ? (_isPremium?0.55:0.4)
+                    : _dtiRatio>0.75 ? (_isPremium?0.85:0.5)
+                    : _dtiRatio>0.6 ? (_isPremium?0.95:0.7)
+                    : 1.0;
   const estHi = _incomeForAmt>0?Math.max(_amtFloor,Math.min(3e6,Math.round(_incomeForAmt*mult*_dtiPenalty*qf))):0;
   const estLo = _incomeForAmt>0?Math.round(estHi*0.45):0;
   // 优化后额度：假设查询已冷却，移除查询次数惩罚，仅保留卡片惩罚
@@ -2903,22 +2907,58 @@ function renderMatchResult(r) {
     if(ur)ur.textContent='查询次数再增加，直接降级为「银行无法通过」。恢复周期：1–3个月。现在的行动决定3个月后的结果。';
   }
 
-  // 当前资质预计可申请额度（2026-05-22 简化版，避免对企业主/个体户失去价值）
+  // 预计可申请额度（2026-05-22 两行版：当前 + 修复后，避免负债过高用户被劝退）
   const ccEl = document.getElementById('creditCapacityCard');
   const mrEl=document.getElementById('mrEstimate');
-  if(income>0 && estHi>0 && v2Level!=='B'){
-    const _stage = products.length === 0 ? '征信修复后' : '当前资质';
-    if (ccEl) {
-      ccEl.style.display = 'block';
-      document.getElementById('ccBody').innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
-          <span style="color:var(--silver);font-size:13px">${esc(_stage)}预计可申请</span>
-          <span style="color:${products.length===0?'var(--success)':'var(--accentB)'};font-weight:700;font-size:16px">${fw(estLo)}–${fw(estHi)} 万</span>
-        </div>
-        <div style="font-size:10px;color:var(--silver);opacity:.7;margin-top:6px;line-height:1.5">基于工薪族可贷倍数估算，实际审批受查询次数 / 负债结构 / 历史征信影响，以银行实际审批为准</div>
-      `;
+  if(income>0 && v2Level!=='B'){
+    const _hasCurrentAmt = estHi >= 10000;  // 当前资质至少能申请 1 万
+    const _hasOptAmt    = estHiO >= 10000;
+    const _gapW         = Math.max(0, Math.round((estHiO - estHi)/1e4));
+
+    if (_hasCurrentAmt || _hasOptAmt) {
+      if (ccEl) {
+        ccEl.style.display = 'block';
+        let _html = '';
+        if (_hasCurrentAmt) {
+          _html += `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+              <span style="color:var(--silver);font-size:13px">当前资质预计可申请</span>
+              <span style="color:var(--accentB);font-weight:700;font-size:16px">${fw(estLo)}–${fw(estHi)} 万</span>
+            </div>`;
+        } else {
+          _html += `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+              <span style="color:var(--silver);font-size:13px">当前资质</span>
+              <span style="color:var(--danger);font-weight:600;font-size:13px">负债已超授信容量，建议先优化</span>
+            </div>`;
+        }
+        if (_hasOptAmt && (estHiO > estHi || !_hasCurrentAmt)) {
+          _html += `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--border);margin-top:4px">
+              <span style="color:var(--silver);font-size:13px">征信修复后可申请</span>
+              <span style="color:var(--success);font-weight:700;font-size:16px">${fw(estLoO)}–${fw(estHiO)} 万</span>
+            </div>`;
+          if (_gapW > 0) {
+            _html += `<div style="font-size:11px;color:var(--success);opacity:.85;margin-top:4px;text-align:right">↑ 比当前多 ${_gapW} 万空间</div>`;
+          }
+        }
+        _html += `<div style="font-size:10px;color:var(--silver);opacity:.7;margin-top:8px;line-height:1.5">基于工薪族可贷倍数估算，实际审批受查询次数 / 负债结构 / 历史征信影响，以银行实际审批为准</div>`;
+        document.getElementById('ccBody').innerHTML = _html;
+      }
+      if (mrEl) mrEl.style.display = 'none';
+    } else {
+      // 当前和修复后估算都 < 1 万 → 极重负债场景，引导联系顾问
+      if (ccEl) {
+        ccEl.style.display = 'block';
+        document.getElementById('ccBody').innerHTML = `
+          <div style="padding:6px 0">
+            <div style="color:var(--danger);font-weight:600;font-size:13px;margin-bottom:4px">当前负债结构已超出可贷区间</div>
+            <div style="color:var(--silver);font-size:12px;line-height:1.6">需结清部分账户 + 停查询养征信，路径已生成。建议联系专属顾问获取定制优化方案，逐步释放授信空间。</div>
+          </div>
+        `;
+      }
+      if (mrEl) mrEl.style.display = 'none';
     }
-    if (mrEl) mrEl.style.display = 'none';
   }
 
   // ⑧ 转化区
