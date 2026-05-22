@@ -2907,34 +2907,36 @@ function renderMatchResult(r) {
     if(ur)ur.textContent='查询次数再增加，直接降级为「银行无法通过」。恢复周期：1–3个月。现在的行动决定3个月后的结果。';
   }
 
-  // 预计可申请额度（2026-05-22 终版：D 级隐藏当前，跟 Hero "通道关闭" 口径一致；文案中性化）
+  // 预计可申请额度（2026-05-22 终版：按等级差异化展示，避免跟 Hero 口径矛盾）
+  //   A 级：只显示"当前资质可申请"（已是优质客户，不需要修复）
+  //   B 级：不显示卡片（Hero 已说"差 N 步进入优质"，重复展示反而冗余）
+  //   C 级：当前 + 修复后两行（修复有意义）
+  //   D 级：只显示"修复后可申请"（Hero 已说"银行通道关闭"，不能矛盾给当前数字）
   const ccEl = document.getElementById('creditCapacityCard');
   const mrEl=document.getElementById('mrEstimate');
   if(income>0 && v2Level!=='B'){
-    const _hasCurrentAmt = estHi >= 10000 && v2Level !== 'D';   // D 级不展示"当前可申请"，避免跟"银行通道关闭"矛盾
-    const _hasOptAmt    = estHiO >= 10000;
-    const _gapW         = Math.max(0, Math.round((estHiO - estHi)/1e4));
+    const _showCurrent = (v2Level === 'A' || v2Level === 'C') && estHi >= 10000;
+    const _showOpt     = (v2Level === 'C' || v2Level === 'D') && estHiO >= 10000;
+    const _gapW        = Math.max(0, Math.round((estHiO - estHi)/1e4));
 
-    if (_hasCurrentAmt || _hasOptAmt) {
+    if (_showCurrent || _showOpt) {
       if (ccEl) {
         ccEl.style.display = 'block';
         let _html = '';
-        if (_hasCurrentAmt) {
+        if (_showCurrent) {
           _html += `
             <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
               <span style="color:var(--silver);font-size:13px">当前资质预计可申请</span>
               <span style="color:var(--accentB);font-weight:700;font-size:16px">${fw(estLo)}–${fw(estHi)} 万</span>
             </div>`;
         }
-        if (_hasOptAmt) {
-          // D 级独显修复后；其他级别有当前则同时显示修复后
-          const _label = v2Level === 'D' ? '征信修复后可申请' : '征信修复后可申请';
+        if (_showOpt) {
           _html += `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;${_hasCurrentAmt?'border-top:1px solid var(--border);margin-top:4px;':''}">
-              <span style="color:var(--silver);font-size:13px">${_label}</span>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;${_showCurrent?'border-top:1px solid var(--border);margin-top:4px;':''}">
+              <span style="color:var(--silver);font-size:13px">征信修复后可申请</span>
               <span style="color:var(--success);font-weight:700;font-size:16px">${fw(estLoO)}–${fw(estHiO)} 万</span>
             </div>`;
-          if (_hasCurrentAmt && _gapW > 0) {
+          if (_showCurrent && _gapW > 0) {
             _html += `<div style="font-size:11px;color:var(--success);opacity:.85;margin-top:4px;text-align:right">↑ 比当前多 ${_gapW} 万空间</div>`;
           }
         }
@@ -2942,8 +2944,8 @@ function renderMatchResult(r) {
         document.getElementById('ccBody').innerHTML = _html;
       }
       if (mrEl) mrEl.style.display = 'none';
-    } else {
-      // 极重负债场景：当前和修复后估算都 < 1 万 → 引导联系顾问
+    } else if (v2Level === 'D') {
+      // D 级但修复后也算不出 1 万以上 → 极重负债场景，引导联系顾问
       if (ccEl) {
         ccEl.style.display = 'block';
         document.getElementById('ccBody').innerHTML = `
@@ -2953,6 +2955,10 @@ function renderMatchResult(r) {
           </div>
         `;
       }
+      if (mrEl) mrEl.style.display = 'none';
+    } else {
+      // 其他场景（如 A 级 estHi 算出来 < 1 万的边界）：不显示卡片
+      if (ccEl) ccEl.style.display = 'none';
       if (mrEl) mrEl.style.display = 'none';
     }
   }
