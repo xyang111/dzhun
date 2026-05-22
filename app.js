@@ -2711,7 +2711,8 @@ function renderMatchResult(r) {
   // 职业信贷倍数（月收入×N倍 = 银行实际可授信上限参考）
   // 稳定职业（事业单位/国企）单行30-80万，私营企业/个体户明显偏低
   // 2026-05-22 修：原 wtMultMap 用中文 key，但 workVal 直接读 select 英文 value，导致全员 fallback 25
-  const wtMultMap = {gov:90, institution:80, state:65, listed:50, private:35, self:25, freelance:20};
+  // 2026-05-22 对齐工薪族实际可贷倍数：私企30-50x、国企50-60x、事业/公务员80-100x
+  const wtMultMap = {gov:90, institution:80, state:60, listed:50, private:35, self:25, freelance:20};
   const wt      = workVal || 'private';
   const mult    = wtMultMap[workVal]||25;
   let qf=1;
@@ -2902,15 +2903,37 @@ function renderMatchResult(r) {
     if(ur)ur.textContent='查询次数再增加，直接降级为「银行无法通过」。恢复周期：1–3个月。现在的行动决定3个月后的结果。';
   }
 
-  // 可承担额度估算（基于月供/收入比，非产品匹配结果）
+  // 工薪族授信容量参考卡片（2026-05-22 新增）+ 可承担额度估算
+  const ccEl = document.getElementById('creditCapacityCard');
   const mrEl=document.getElementById('mrEstimate');
-  if(mrEl&&income>0&&estHi>0&&v2Level!=='B'){
-    mrEl.style.display='block';
-    if (products.length === 0) {
-      mrEl.textContent='征信修复后，按月供/收入比估算可承担额度区间：'+fw(estLo)+'–'+fw(estHi)+' 万 · 实际审批以银行为准';
-    } else {
-      mrEl.textContent='按月供/收入比估算，可承担额度区间：'+fw(estLo)+'–'+fw(estHi)+' 万 · 实际审批以银行为准';
+  if(income>0 && estHi>0 && v2Level!=='B'){
+    const _wtLabel = ({gov:'政府机关/公务员',institution:'事业单位',state:'国企/央企',listed:'上市公司/500强',private:'私企',self:'个体工商户',freelance:'自由职业'})[workVal] || '工薪族';
+    const _multRangeMap = {gov:'80-100', institution:'80-100', state:'50-60', listed:'40-50', private:'30-50', self:'20-30', freelance:'15-25'};
+    const _multRange = _multRangeMap[workVal] || '20-30';
+    const _monthlySalary = Math.round(_incomeForAmt/100)*100;
+    const _theoMin = Math.round(_incomeForAmt * (parseInt(_multRange.split('-')[0])||mult) / 1e4);
+    const _theoMax = Math.round(_incomeForAmt * (parseInt(_multRange.split('-')[1])||mult) / 1e4);
+    // 当前已用授信 = 贷款余额合计 + 信用卡已用合计
+    const _loanBal = loans2.reduce((s,l)=>s+(l.balance||0),0);
+    const _usedTotal = Math.round((_loanBal + cUsed)/1e4);
+    const _usedPct = _theoMax > 0 ? Math.round(_usedTotal / _theoMax * 100) : 0;
+    const _pvdTotal = window._v2Result?.features?.pvdTotal || 0;
+    const _salaryNote = _incomeForAmt > income ? `（公积金 ${_pvdTotal} 元倒推，含奖金/绩效）` : '';
+    const _stage = products.length === 0 ? '征信修复后' : '当前资质';
+
+    if (ccEl) {
+      ccEl.style.display = 'block';
+      document.getElementById('ccBody').innerHTML = `
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">工作类型</span><span style="color:var(--white);font-weight:600">${esc(_wtLabel)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">标准可贷倍数</span><span style="color:var(--white);font-weight:600">${_multRange} × 月薪</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">月薪推算</span><span style="color:var(--white);font-weight:600">${_monthlySalary.toLocaleString()} 元${_salaryNote ? `<span style="font-size:10px;color:var(--silver);margin-left:4px">${esc(_salaryNote)}</span>` : ''}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">理论授信容量</span><span style="color:var(--accentB);font-weight:700">${_theoMin}-${_theoMax} 万</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">当前已用</span><span style="color:var(--white);font-weight:600">${_usedTotal} 万${_usedPct>0?`（约 ${_usedPct}% 占用）`:''}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0"><span style="color:var(--muted)">${esc(_stage)}可申请</span><span style="color:${products.length===0?'var(--success)':'var(--accentB)'};font-weight:700">${fw(estLo)}–${fw(estHi)} 万</span></div>
+        <div style="font-size:10px;color:var(--silver);opacity:.7;margin-top:8px;line-height:1.5">理论容量是工薪族行业标准的可贷倍数上限，实际审批受查询次数/负债结构/历史征信影响，以银行实际审批为准</div>
+      `;
     }
+    if (mrEl) mrEl.style.display = 'none';  // D 卡片已经包含同样信息，避免重复
   }
 
   // ⑧ 转化区
