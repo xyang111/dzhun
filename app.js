@@ -2783,16 +2783,9 @@ function renderMatchResult(r) {
     if (_countWrap) _countWrap.style.display = '';
   }
 
-  // 更新评分卡底部统计（当前/优化后可申请）
+  // 2026-05-22：评分卡底部"X 款产品"统计是旧版产品匹配遗留，新定位下已无意义，直接隐藏
   const _ssEl = document.getElementById('scoreStats');
-  if (_ssEl) {
-    const _curCnt = document.getElementById('csCurrentCount');
-    const _optCnt = document.getElementById('csOptCount');
-    const _optCount = Math.max(products.length, r.optimized_products || r.optimized_products_count || 0);
-    if (_curCnt) _curCnt.textContent = products.length + ' 款产品';
-    if (_optCnt) _optCnt.textContent = _optCount + ' 款产品';
-    _ssEl.style.display = _optCount > products.length ? 'block' : 'none';
-  }
+  if (_ssEl) _ssEl.style.display = 'none';
 
   // ① 顶部英雄区（差异化）
   const topEl = document.getElementById('convTop');
