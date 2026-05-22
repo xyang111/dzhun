@@ -2644,10 +2644,12 @@ function renderMatchResult(r) {
   // V2-level floor：防止高分客户出现与评级严重矛盾的极低额度
   const _amtFloor = {A:200000,B:100000,C:0,D:0}[v2Level]||0;
   // DTI惩罚：用月供/月收入比替代直接减负债余额（稳定职业银行容忍度更高）
-  // 2026-05-22 修：用 effIncome（公积金倒推后）替代 income，避免国企/事业单位用户因工资条低报被双重惩罚
+  // 2026-05-22 修：国企/事业用户当公积金倒推（inferIncome）>申报时，按倒推月薪算授信，
+  // 避免工资条只反映基本工资的"双重惩罚"。effIncome 是 income 的折损版（≤income），
+  // 真正的"真实月薪估算"是 inferIncome（公积金÷缴存比例反推）
   const _isStable = ['gov', 'institution', 'state'].includes(workVal);
-  const _effIncome = (window._v2Result?.features?.effIncome) || income;
-  const _incomeForAmt = Math.max(income, _effIncome);  // 取较大者，公积金倒推 > 工资条时按倒推算
+  const _inferIncome = (window._v2Result?.features?.inferIncome) || 0;
+  const _incomeForAmt = (_isStable && _inferIncome > income) ? _inferIncome : income;
   const _dtiRatio = _incomeForAmt>0?monthly/_incomeForAmt:0;
   const _dtiPenalty = _dtiRatio>0.9?0.4:_dtiRatio>0.75?(_isStable?0.7:0.5):_dtiRatio>0.6?(_isStable?0.85:0.7):1.0;
   const estHi = _incomeForAmt>0?Math.max(_amtFloor,Math.min(3e6,Math.round(_incomeForAmt*mult*_dtiPenalty*qf))):0;
