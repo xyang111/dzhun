@@ -2764,15 +2764,22 @@ function renderMatchResult(r) {
   const hasOvHist = (data2.loans||[]).some(l => (l.overdue_count||0) > 0);
   const v2Score   = (window._v2Result && window._v2Result.score) || 0;
 
-  // 更新产品数量，切换header锁定提示
+  // 更新卡片标题 + 数量，按等级差异化（D 级用"修复路线 / 体检诊断"避免"申请方向"语义错位）
+  const _titleEl = document.getElementById('productsCardTitle');
+  if (_titleEl) _titleEl.textContent = (v2Level === 'D') ? '修复路线 / 体检诊断' : '申请方向 / 体检方案';
   const _lockHint = document.getElementById('matchLockHint');
   const _countWrap = document.getElementById('matchCountWrap');
   if (_lockHint) _lockHint.style.display = 'none';
   if (_currentAgent) {
     // 代理商模式：header显示"征信报告已完成"而非产品数量
     if (_countWrap) { _countWrap.innerHTML = '<span style="color:var(--silver)">征信报告已完成</span>'; _countWrap.style.display = ''; }
+  } else if (v2Level === 'D') {
+    // D 级：显示"方案已生成"而非"1 个方向"，避免心理崩溃
+    if (_countWrap) { _countWrap.innerHTML = '<span style="color:var(--silver)">完整诊断已生成</span>'; _countWrap.style.display = ''; }
   } else {
     document.getElementById('matchCount').textContent = products.length;
+    const _unit = document.getElementById('matchCountUnit');
+    if (_unit) _unit.textContent = (v2Level === 'A' || v2Level === 'B') ? '个申请方向' : '个过渡方向';
     if (_countWrap) _countWrap.style.display = '';
   }
 
@@ -2996,7 +3003,7 @@ function renderMatchResult(r) {
   }
   if (!isPaid) {
     const _ghostCard = () => `<div class="pw-ghost"><div class="pw-ghost-l"><div class="pw-ghost-name"></div><div class="pw-ghost-sub"></div></div><div class="pw-ghost-r"><div class="pw-ghost-pct"></div><div class="pw-ghost-rate"></div></div></div>`;
-    const _lockOverlay = `<div class="pw-lock-overlay"><div class="pw-lock-ring"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="pw-lock-lbl">完整方案已生成，待解锁</div></div>`;
+    const _lockOverlay = `<div class="pw-lock-overlay"><div class="pw-lock-ring"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="pw-lock-lbl">专属方案已生成 · 付费解锁顾问 1v1 跟进</div></div>`;
     // A2 钩子文案：把"顾问通道+精确执行细节"前置，明确告知付费后能拿到什么
     // 注意：不暴露具体时间（如"9个月""3个月"），跟 Hero 模糊化策略一致
     const _hintByLevel = {

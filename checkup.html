@@ -11,7 +11,7 @@
 <meta property="og:url" content="https://dzhun.com.cn/checkup.html" />
 <meta property="og:type" content="website" />
 <meta name="description" content="AI 读懂你的简版征信报告，给出资质区间评估和方向级建议。不发起任何查询，不替你提交申请。" />
-<link rel="stylesheet" href="style.css?v=1779440852">
+<link rel="stylesheet" href="style.css?v=1779441133">
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 <script>
 // 工具页 logo 点击：跳回主页，完整透传 query string（agent / ref 等）
@@ -808,13 +808,13 @@ function goHome() {
           <!-- 预计可申请额度 -->
           <div id="mrEstimate" style="display:none;width:100%;box-sizing:border-box;background:rgba(59,123,246,0.08);border:1px solid rgba(59,123,246,0.3);padding:12px 16px;margin-bottom:10px;font-size:13px;font-weight:600;color:var(--accentB);text-align:left;letter-spacing:.2px;line-height:1.7"></div>
 
-          <!-- 申请方向 / 体检方案 -->
+          <!-- 申请方向 / 体检方案（D 级会动态改成"修复路线 / 体检诊断"） -->
           <div id="productsWrap" class="pcard" style="margin-bottom:10px">
             <div class="card-bar">
               <span class="step-tag">REPORT</span>
-              <span class="card-title">申请方向 / 体检方案</span>
+              <span class="card-title" id="productsCardTitle">申请方向 / 体检方案</span>
               <span id="matchLockHint" style="margin-left:auto;font-family:'SF Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.04em">付费解锁后显示</span>
-              <span id="matchCountWrap" style="display:none;margin-left:auto;font-size:11px;color:var(--silver)"><span id="matchCount">0</span> 个方向</span>
+              <span id="matchCountWrap" style="display:none;margin-left:auto;font-size:11px;color:var(--silver)"><span id="matchCount">0</span> <span id="matchCountUnit">个方向</span></span>
             </div>
             <div class="products-grid" id="productsGrid"></div>
 
@@ -936,8 +936,8 @@ function goHome() {
   </div>
 </footer>
 
-<script src="config.js?v=1779440852"></script>
-<script src="app.js?v=1779440852"></script>
+<script src="config.js?v=1779441133"></script>
+<script src="app.js?v=1779441133"></script>
 
 <!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
 <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">
