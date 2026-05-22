@@ -872,8 +872,8 @@ class ScoreEngine {
       ? (trustScore >= 75 ? income : trustScore >= 40 ? Math.round(income * 0.8) : Math.round(income * 0.6)) : 0;
 
     const monthly    = calcTotalMonthly(loans, cards);
-    const fixedExp   = ui.fixed_expense != null ? ui.fixed_expense : Math.round((income || 0) * 0.3);
-    const disposable = Math.max(0, effIncome - fixedExp - monthly);
+    // 2026-05-22 起：移除 fixedExp 维度，对齐银行真实 DTI 口径（不扣生活开支）
+    const disposable = Math.max(0, effIncome - monthly);
 
     // 信用卡使用率：只对有授信数据的卡计算（避免 OCR 未识别授信的卡 used 计入分子但无对应 limit，
     // 导致 cardUtil > 100% 的伪问题，如 5 张卡仅 1 张有授信时算出 139%）
@@ -951,7 +951,7 @@ class ScoreEngine {
       curOv, badRec, lian3, lei6, ovCount, ov90d, sumOv,
       accAge, accHealth, recent6mLoans, bankLR, cfConc,
       latestOvMths, entropy, cardUtil, monthlyCV,
-      cardTrend, onlineI, dti, disposable, fixedExp,
+      cardTrend, onlineI, dti, disposable,
       income, effIncome, monthly, trustScore, inferIncome,
       pvdTotal, pvdRate, pvdIndiv, socialMths,
       wkScore, eduScore, hkScore, ageScore, astScore,
@@ -976,7 +976,7 @@ class ScoreEngine {
       if (Math.abs(_domainW - 1.0) > 1e-9) console.error(`[ScoreEngine] 域权重不归一: Σ=${_domainW}`);
       const _stW = 0.25+0.25+0.15+0.12+0.08+0.08+0.05+0.02;
       if (Math.abs(_stW - 1.0) > 1e-9) console.error(`[ScoreEngine] 稳定性权重不归一: Σ=${_stW}`);
-      const _asW = 0.33+0.25+0.20+0.12+0.08+0.02;
+      const _asW = 0.40+0.26+0.20+0.12+0.02;
       if (Math.abs(_asW - 1.0) > 1e-9) console.error(`[ScoreEngine] 资产权重不归一: Σ=${_asW}`);
       const _frW = 0.50+0.30+0.20;
       if (Math.abs(_frW - 1.0) > 1e-9) console.error(`[ScoreEngine] 反欺诈权重不归一: Σ=${_frW}`);
@@ -1039,12 +1039,12 @@ class ScoreEngine {
       _creditStartAgeS       *0.02
     ) * stMod;
 
+    // 2026-05-22 起：移除 fixedExp/income 维度，权重并入 dti；disposable 不再依赖 fixedExp，对齐银行真实 DTI 口径
     const asScore =
-      mm(f.dti,0,1.2,true)                              *0.33 +
-      (f.effIncome>0?mm(f.disposable,0,f.effIncome):0.5)*0.25 +
+      mm(f.dti,0,1.2,true)                              *0.40 +
+      (f.effIncome>0?mm(f.disposable,0,f.effIncome):0.5)*0.26 +
       f.astScore                                         *0.20 +
       mm(f.cardUtil,0,1,true)                            *0.12 +
-      mm(f.fixedExp/Math.max(f.income||1,1),0,0.8,true)  *0.08 +
       mm(f.netDebtTrend6m,0,1,true)                      *0.02;
 
     const frScore =
