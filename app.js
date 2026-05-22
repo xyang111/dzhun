@@ -1827,7 +1827,9 @@ function _validateInfoForm() {
 
 async function startMatching() {
   if (window._isMatching) return;
+  try { _trackEvent('match_button_clicked', { agent_id: window._currentAgent?.id || null }); } catch (e) {}
   if (!_validateInfoForm()) return;
+  try { _trackEvent('info_form_submitted', { agent_id: window._currentAgent?.id || null }); } catch (e) {}
   window._isMatching = true;
   // 安全兜底：90秒后强制释放（匹配最长不超过这个时间）
   const _matchGuard = setTimeout(() => { window._isMatching = false; }, 90000);
@@ -2433,6 +2435,8 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt, products) {
   if (!el) return;
   const score = (window._v2Result && window._v2Result.score) || r.cs_score || 0;
   const scoreDisp = score > 0 ? (parseInt(score, 10) || '--') : '--';
+  // A2 模糊化：未付费用户隐藏具体时间表/上行目标，付费用户看完整版
+  const _heroIsPaid = !!getPayToken() || (!!window._currentAgent && typeof isPaidAgent === 'function' && !isPaidAgent(window._currentAgent.id));
 
   const _metricBox = (label, val, cls, sub) =>
     `<div class="hero-metric"><div class="hero-metric-label">${label}</div>` +
@@ -2457,6 +2461,20 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt, products) {
 
   if (level === 'B') {
     const nOpt = Array.isArray(r.optimization) ? r.optimization.length : 3;
+    // 未付费：保留"差 N 步"信号，模糊掉具体见效时间 + 强化顺序价值
+    if (!_heroIsPaid) {
+      el.innerHTML = `<div class="hero-wrap hero-b">
+        <div class="hero-eyebrow">B级 · OPTIMIZATION GAP</div>
+        <div class="hero-title">差 <span style="color:#15803d">${nOpt} 步</span> 可以进入优质准入区间</div>
+        <div class="hero-sub">优化清单与申请顺序已生成 · 顺序错了会多消耗查询次数（解锁后查看）</div>
+        <div class="hero-metrics cols-2">
+          ${_metricBox('当前评分', scoreDisp + ' / 1000', '')}
+          ${_metricBox('目标区间', 'A 级优质准入', 'gain')}
+        </div>
+        <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span><span>申请顺序的错误代价高于优化本身 · 顾问可提供精准执行计划</span></div>
+      </div>`;
+      return;
+    }
     el.innerHTML = `<div class="hero-wrap hero-b">
       <div class="hero-eyebrow">B级 · OPTIMIZATION GAP</div>
       <div class="hero-title">差 <span style="color:#15803d">${nOpt} 步</span> 可以进入优质准入区间</div>
@@ -2471,6 +2489,21 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt, products) {
   }
 
   if (level === 'C') {
+    // 未付费：只透露"过渡区间 + 有上行路径"，具体时间点和上行目标银行类型上锁
+    if (!_heroIsPaid) {
+      el.innerHTML = `<div class="hero-wrap hero-c">
+        <div class="hero-eyebrow">C级 · RECOVERY PATH</div>
+        <div class="hero-title">当前处于 <span style="color:#B85C00">过渡区间</span></div>
+        <div class="hero-sub">资质有明确上行路径，具体时间窗与目标区间已生成（解锁后查看）</div>
+        <div class="hero-metrics cols-3">
+          ${_metricBox('当前区间', '城商行 · 消金', '', '可尝试申请')}
+          ${_metricBox('短期目标', '上行至主流银行', 'locked', '解锁查看时间窗')}
+          ${_metricBox('中期目标', '进入优质区间', 'locked', '解锁查看路径')}
+        </div>
+        <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span><span>过渡方案可用，但申请顺序错了会延长恢复周期 · 顺序需顾问定制</span></div>
+      </div>`;
+      return;
+    }
     el.innerHTML = `<div class="hero-wrap hero-c">
       <div class="hero-eyebrow">C级 · RECOVERY PATH</div>
       <div class="hero-title">当前处于 <span style="color:#B85C00">城商行 / 消金过渡区间</span></div>
@@ -2486,6 +2519,21 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt, products) {
   }
 
   // D级
+  if (!_heroIsPaid) {
+    // 未付费：只透露"通道关闭 + 有修复方案"，具体里程碑和总周期上锁
+    el.innerHTML = `<div class="hero-wrap hero-d">
+      <div class="hero-eyebrow">D级 · REHABILITATION PLAN</div>
+      <div class="hero-title">银行通道暂时关闭</div>
+      <div class="hero-sub">专属征信修复路线图已生成 · 关键里程碑与恢复周期已计算（解锁后查看）</div>
+      <div class="hero-metrics cols-3">
+        ${_metricBox('当前方向', '消金保底', '')}
+        ${_metricBox('修复路径', '已定制', 'locked', '解锁查看里程碑')}
+        ${_metricBox('恢复周期', '已计算', 'locked', '解锁查看总时长')}
+      </div>
+      <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span><span>修复期每个时间节点的动作错了会前功尽弃 · 需顾问全程陪跑</span></div>
+    </div>`;
+    return;
+  }
   el.innerHTML = `<div class="hero-wrap hero-d">
     <div class="hero-eyebrow">D级 · REHABILITATION PLAN</div>
     <div class="hero-title">银行通道暂时关闭</div>
@@ -2672,7 +2720,8 @@ function renderMatchResult(r) {
     document.getElementById('convProbList').innerHTML=dp.map((p,i)=>`<div class="prob-item"><div class="prob-n">${i+1}</div><div><div class="prob-name"><strong>${esc(p.name)}：${esc(p.value)}</strong></div><div class="prob-desc">→ ${esc(p.threshold)}${p.severity==='high'?' · 影响较大':''}</div></div></div>`).join('');
   }
 
-  // ③ 损失对比（去具体利率，改为利率档定性叙事）
+  // ③ 损失对比（A2 模糊化：免费层只透露"存在代价"，具体利率档差收回付费后）
+  const _lossPaid = !!getPayToken() || (!!window._currentAgent && !isPaidAgent(window._currentAgent.id));
   const lossEl=document.getElementById('convLoss');
   if(lossEl && v2Level !== 'A' && v2Level !== 'D' && !(v2Level === 'B' && _tier === 'bank')){
     lossEl.style.display='block';
@@ -2686,19 +2735,25 @@ function renderMatchResult(r) {
     } else {
       if(lossTitle) lossTitle.textContent='现在直接申请，代价是什么';
       if(nt) nt.textContent=_tier==='mixed'?'银行 + 消金混合区间':'消金为主区间';
-      if(nr) nr.textContent='利率档：偏高 · 议价空间小';
+      if(nr) nr.textContent=_lossPaid?'利率档：偏高 · 议价空间小':'当前利率档可优化（潜在节省解锁查看）';
     }
     const n=document.getElementById('convIntNow');if(n)n.textContent='长期利息成本被放大';
     const o=document.getElementById('convIntOpt');if(o)o.textContent='长期利息成本最低';
-    const dEl=document.getElementById('convIntDiff');if(dEl)dEl.textContent='利率档差约 1–2 级';
+    const dEl=document.getElementById('convIntDiff');if(dEl)dEl.textContent=_lossPaid?'利率档差约 1–2 级':'利率档差已计算（解锁查看）';
   }
 
-  // ④ 提升空间
+  // ④ 提升空间（A2 模糊化：免费层只给方向，量化收益和具体笔数收回到付费后）
+  const _liftPaid = !!getPayToken() || (!!window._currentAgent && !isPaidAgent(window._currentAgent.id));
   const acts=r.optimize_actions||[];
   const lActs=[];
-  if(onlineI>=3) lActs.push({action:'结清'+Math.min(2,onlineI-1)+'笔网贷并注销账户',impact:'可新增'+Math.min(3,onlineI)+'家可申请银行产品'});
-  if(q3>3) lActs.push({action:'停止所有贷款查询'+(q3>6?'1个月':'2-3周'),impact:'查询风险下降，银行通过率提升约'+(q3>6?'30%':'15%')});
-  const da=(acts.length>0?acts:lActs).slice(0,3);
+  if (_liftPaid) {
+    if(onlineI>=3) lActs.push({action:'结清'+Math.min(2,onlineI-1)+'笔网贷并注销账户',impact:'可新增'+Math.min(3,onlineI)+'家可申请银行产品'});
+    if(q3>3) lActs.push({action:'停止所有贷款查询'+(q3>6?'1个月':'2-3周'),impact:'查询风险下降，银行通过率提升约'+(q3>6?'30%':'15%')});
+  } else {
+    if(onlineI>=3) lActs.push({action:'优化网贷负债结构',impact:'可释放银行准入空间（具体数量解锁查看）'});
+    if(q3>3) lActs.push({action:'查询冷却期管理',impact:'通过率可显著回升（具体冷却时长解锁查看）'});
+  }
+  const da=(acts.length>0&&_liftPaid?acts:lActs).slice(0,3);
   const liftEl=document.getElementById('convLift');
   if(liftEl&&da.length>0 && v2Level !== 'D'){
     liftEl.style.display='block';
@@ -2807,15 +2862,16 @@ function renderMatchResult(r) {
   if (!isPaid) {
     const _ghostCard = () => `<div class="pw-ghost"><div class="pw-ghost-l"><div class="pw-ghost-name"></div><div class="pw-ghost-sub"></div></div><div class="pw-ghost-r"><div class="pw-ghost-pct"></div><div class="pw-ghost-rate"></div></div></div>`;
     const _lockOverlay = `<div class="pw-lock-overlay"><div class="pw-lock-ring"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="pw-lock-lbl">完整方案已生成，待解锁</div></div>`;
+    // A2 钩子文案：把"顾问通道+精确执行细节"前置，明确告知付费后能拿到什么
     const _hintByLevel = {
-      A: '你的资质适合 <span style="color:var(--accentB);font-size:17px;font-weight:700">3</span> 个主流申请方向',
-      B: '你的资质差几步可进入 <span style="color:var(--accentB);font-size:17px;font-weight:700">3</span> 个主流申请方向',
-      C: '你的资质适合 <span style="color:var(--accentB);font-size:17px;font-weight:700">2</span> 个过渡申请方向',
-      D: '你的资质有 <span style="color:var(--accentB);font-size:17px;font-weight:700">1</span> 个保底方向 + 9 个月修复路径',
+      A: '解锁后获得：白名单通道顾问 1v1 · 利率档位谈判路径 · PDF 完整诊断',
+      B: '解锁后获得：精准申请顺序 · 优化清单具体执行时间表 · 顾问 1v1 微信 · PDF',
+      C: '解锁后获得：过渡方案具体时间窗 · 上行至主流银行的路径 · 顾问 1v1 · PDF',
+      D: '解锁后获得：9 个月修复路线图 · 每月动作清单 · 顾问全程陪跑 · PDF',
     };
-    const _countHint = _hintByLevel[v2Level] || '征信分析已完成';
+    const _countHint = _hintByLevel[v2Level] || '解锁后获得：完整诊断 · 顾问 1v1 微信 · PDF';
     const _payYuan = (getPrice(window._currentAgent?.id) / 100).toString().replace(/\.0$/, '');
-    document.getElementById('productsGrid').innerHTML = `<div class="pw-wrap"><div class="pw-preview">${_ghostCard()}${_ghostCard()}${_ghostCard()}${_lockOverlay}<div class="pw-fade"></div></div><div class="pw-hint">${_countHint}</div><button class="pw-btn" onclick="showPayModal(()=>startMatching())">解锁完整方案 · 顾问一对一跟进 &nbsp; ¥${_payYuan}</button></div>`;
+    document.getElementById('productsGrid').innerHTML = `<div class="pw-wrap"><div class="pw-preview">${_ghostCard()}${_ghostCard()}${_ghostCard()}${_lockOverlay}<div class="pw-fade"></div></div><div class="pw-hint">${_countHint}</div><button class="pw-btn" onclick="showPayModal(()=>startMatching())">解锁顾问 1v1 + 完整方案 &nbsp; ¥${_payYuan}</button></div>`;
     document.getElementById('matchResult').style.display='block';
     document.getElementById('matchResult').scrollIntoView({behavior:'smooth',block:'start'});
     window._isMatching = false;
@@ -3050,6 +3106,7 @@ function showInfoForm() {
   document.getElementById('infoCard').style.display = 'block';
   document.getElementById('matchBtn').style.display = 'none';
   document.getElementById('infoCard').scrollIntoView({ behavior:'smooth', block:'start' });
+  try { _trackEvent('info_form_started', { agent_id: window._currentAgent?.id || null }); } catch (e) {}
 }
 
 function selectToggle(group, val, btn) {
@@ -3778,6 +3835,7 @@ function showPayModal(callback) {
   _payCallback = callback;
   const overlay = document.getElementById('payOverlay');
   overlay.classList.add('show');
+  try { _trackEvent('pay_modal_shown', { agent_id: window._currentAgent?.id || null, level: window._v2Result?.level || null }); } catch (e) {}
   document.getElementById('payStep1').style.display = 'block';
   document.getElementById('payStep2').style.display = 'none';
   document.getElementById('payStep3').style.display = 'none';
@@ -3793,6 +3851,8 @@ function closePayModal() {
   clearInterval(_pollTimer);
   document.getElementById('payOverlay').classList.remove('show');
   window._isMatching = false; // 关闭支付弹窗时释放锁，允许重新触发匹配
+  // 仅当未完成支付时记录（已有 payToken 说明刚支付成功，不算 dismissed）
+  try { if (!getPayToken()) _trackEvent('pay_modal_dismissed', { agent_id: window._currentAgent?.id || null, level: window._v2Result?.level || null }); } catch (e) {}
 }
 
 function cancelPay() {
