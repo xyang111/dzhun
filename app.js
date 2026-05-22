@@ -2904,7 +2904,7 @@ function renderMatchResult(r) {
     const ub=document.getElementById('convUrgentBody');
     if(ub)ub.innerHTML='你现在处于<strong>关键窗口期（7–15天）</strong><br>如果这段时间继续查询或盲目申请：';
     const ur=document.getElementById('convUrgentResult');
-    if(ur)ur.textContent='查询次数再增加，直接降级为「银行无法通过」。恢复周期：1–3个月。现在的行动决定3个月后的结果。';
+    if(ur)ur.textContent='查询次数再增加，直接降级为「银行无法通过」。恢复期被显著拉长，现在的行动决定后续审批结果。';
   }
 
   // 预计可申请额度（2026-05-22 终版：按等级差异化展示，避免跟 Hero 口径矛盾）
@@ -2998,11 +2998,12 @@ function renderMatchResult(r) {
     const _ghostCard = () => `<div class="pw-ghost"><div class="pw-ghost-l"><div class="pw-ghost-name"></div><div class="pw-ghost-sub"></div></div><div class="pw-ghost-r"><div class="pw-ghost-pct"></div><div class="pw-ghost-rate"></div></div></div>`;
     const _lockOverlay = `<div class="pw-lock-overlay"><div class="pw-lock-ring"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="pw-lock-lbl">完整方案已生成，待解锁</div></div>`;
     // A2 钩子文案：把"顾问通道+精确执行细节"前置，明确告知付费后能拿到什么
+    // 注意：不暴露具体时间（如"9个月""3个月"），跟 Hero 模糊化策略一致
     const _hintByLevel = {
       A: '解锁后获得：白名单通道顾问 1v1 · 利率档位谈判路径 · PDF 完整诊断',
-      B: '解锁后获得：精准申请顺序 · 优化清单具体执行时间表 · 顾问 1v1 微信 · PDF',
-      C: '解锁后获得：过渡方案具体时间窗 · 上行至主流银行的路径 · 顾问 1v1 · PDF',
-      D: '解锁后获得：9 个月修复路线图 · 每月动作清单 · 顾问全程陪跑 · PDF',
+      B: '解锁后获得：精准申请顺序 · 优化清单执行时间表 · 顾问 1v1 微信 · PDF',
+      C: '解锁后获得：过渡方案时间窗 · 上行至主流银行的路径 · 顾问 1v1 · PDF',
+      D: '解锁后获得：完整修复路线图 · 每月动作清单 · 顾问全程陪跑 · PDF',
     };
     const _countHint = _hintByLevel[v2Level] || '解锁后获得：完整诊断 · 顾问 1v1 微信 · PDF';
     const _payYuan = (getPrice(window._currentAgent?.id) / 100).toString().replace(/\.0$/, '');
