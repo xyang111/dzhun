@@ -2907,11 +2907,11 @@ function renderMatchResult(r) {
     if(ur)ur.textContent='查询次数再增加，直接降级为「银行无法通过」。恢复周期：1–3个月。现在的行动决定3个月后的结果。';
   }
 
-  // 预计可申请额度（2026-05-22 两行版：当前 + 修复后，避免负债过高用户被劝退）
+  // 预计可申请额度（2026-05-22 终版：D 级隐藏当前，跟 Hero "通道关闭" 口径一致；文案中性化）
   const ccEl = document.getElementById('creditCapacityCard');
   const mrEl=document.getElementById('mrEstimate');
   if(income>0 && v2Level!=='B'){
-    const _hasCurrentAmt = estHi >= 10000;  // 当前资质至少能申请 1 万
+    const _hasCurrentAmt = estHi >= 10000 && v2Level !== 'D';   // D 级不展示"当前可申请"，避免跟"银行通道关闭"矛盾
     const _hasOptAmt    = estHiO >= 10000;
     const _gapW         = Math.max(0, Math.round((estHiO - estHi)/1e4));
 
@@ -2925,29 +2925,25 @@ function renderMatchResult(r) {
               <span style="color:var(--silver);font-size:13px">当前资质预计可申请</span>
               <span style="color:var(--accentB);font-weight:700;font-size:16px">${fw(estLo)}–${fw(estHi)} 万</span>
             </div>`;
-        } else {
-          _html += `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
-              <span style="color:var(--silver);font-size:13px">当前资质</span>
-              <span style="color:var(--danger);font-weight:600;font-size:13px">负债已超授信容量，建议先优化</span>
-            </div>`;
         }
-        if (_hasOptAmt && (estHiO > estHi || !_hasCurrentAmt)) {
+        if (_hasOptAmt) {
+          // D 级独显修复后；其他级别有当前则同时显示修复后
+          const _label = v2Level === 'D' ? '征信修复后可申请' : '征信修复后可申请';
           _html += `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--border);margin-top:4px">
-              <span style="color:var(--silver);font-size:13px">征信修复后可申请</span>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;${_hasCurrentAmt?'border-top:1px solid var(--border);margin-top:4px;':''}">
+              <span style="color:var(--silver);font-size:13px">${_label}</span>
               <span style="color:var(--success);font-weight:700;font-size:16px">${fw(estLoO)}–${fw(estHiO)} 万</span>
             </div>`;
-          if (_gapW > 0) {
+          if (_hasCurrentAmt && _gapW > 0) {
             _html += `<div style="font-size:11px;color:var(--success);opacity:.85;margin-top:4px;text-align:right">↑ 比当前多 ${_gapW} 万空间</div>`;
           }
         }
-        _html += `<div style="font-size:10px;color:var(--silver);opacity:.7;margin-top:8px;line-height:1.5">基于工薪族可贷倍数估算，实际审批受查询次数 / 负债结构 / 历史征信影响，以银行实际审批为准</div>`;
+        _html += `<div style="font-size:10px;color:var(--silver);opacity:.7;margin-top:8px;line-height:1.5">基于职业类型与负债比综合估算，实际审批受查询次数 / 负债结构 / 历史征信影响，以银行实际审批为准</div>`;
         document.getElementById('ccBody').innerHTML = _html;
       }
       if (mrEl) mrEl.style.display = 'none';
     } else {
-      // 当前和修复后估算都 < 1 万 → 极重负债场景，引导联系顾问
+      // 极重负债场景：当前和修复后估算都 < 1 万 → 引导联系顾问
       if (ccEl) {
         ccEl.style.display = 'block';
         document.getElementById('ccBody').innerHTML = `
