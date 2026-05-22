@@ -834,6 +834,20 @@ class ScoreEngine {
     const q3m = q.q_3m || 0;
     const q6m = q.q_6m || 0;
 
+    // 2026-05-22：查询机构类型分布（近6月窗口）— 银行类查询占比高 = 客户在理性尝试主流通道
+    const _qRecords6m = (() => {
+      const baseDate = ocr.report_date ? new Date(ocr.report_date) : new Date();
+      const cutoff = new Date(baseDate); cutoff.setMonth(cutoff.getMonth() - 6);
+      const APPLY_TYPES = new Set(['贷款审批','信用卡审批','担保资格审查','资信审查','保前审查','融资租赁审批']);
+      return (ocr.query_records || []).filter(qr => {
+        if (!APPLY_TYPES.has(qr.type)) return false;
+        const d = new Date(qr.date);
+        return !isNaN(d) && d >= cutoff && d <= baseDate;
+      });
+    })();
+    const _bankQ = _qRecords6m.filter(qr => classifyQueryInstitution(qr.institution) === 'bank').length;
+    const bankQueryRatio = _qRecords6m.length > 0 ? _bankQ / _qRecords6m.length : 0.5;  // 无查询时中性
+
     const income  = ui.income || 0;
     const pvdRates = { gov:0.12, institution:0.12, state:0.11, listed:0.09, private:0.06, self:0.05, freelance:0.05 };
     const wKey = (() => {
@@ -899,9 +913,28 @@ class ScoreEngine {
     const allAcc  = [...loans, ...cards];
     const dates   = allAcc.map(a => a.issued_date).filter(Boolean).map(d => new Date(d));
     const earliest = dates.length ? new Date(Math.min(...dates)) : null;
-    const accAge  = earliest ? this._mths(earliest.toISOString().split('T')[0]) : 0;
-    const accHealth = allAcc.length > 0 ? (allAcc.length - sumOv) / allAcc.length : 1;
+    const activeAccAge  = earliest ? this._mths(earliest.toISOString().split('T')[0]) : 0;
+    const activeAccHealth = allAcc.length > 0 ? (allAcc.length - sumOv) / allAcc.length : 1;
     const recent6mLoans = loans.filter(l => { const m = this._mths(l.issued_date); return m !== null && m <= 6; }).length;
+
+    // ── 2026-05-22：全息历史摘要（含已销户/已结清账户）──
+    // 反映客户真实长期信用轨迹。OCR 缺失字段时降级回活跃账户口径
+    const hs = ocr.history_summary || {};
+    const lifetimeCardCount    = (typeof hs.card_total === 'number') ? hs.card_total : cards.length;
+    const lifetimeCardActive   = (typeof hs.card_active === 'number') ? hs.card_active : cards.length;
+    const closedCardCount      = Math.max(0, lifetimeCardCount - lifetimeCardActive);
+    const lifetimeLoanCount    = ((typeof hs.loan_other_total === 'number') ? hs.loan_other_total : 0)
+                               + ((typeof hs.loan_mortgage_total === 'number') ? hs.loan_mortgage_total : 0)
+                               || loans.length;
+    const lifetimeAccCount     = lifetimeCardCount + lifetimeLoanCount;
+    const lifetimeOverdueCount = (typeof hs.ever_overdue_account_count === 'number') ? hs.ever_overdue_account_count : sumOv;
+    const lifetimeHealth       = lifetimeAccCount > 0 ? Math.max(0, (lifetimeAccCount - lifetimeOverdueCount) / lifetimeAccCount) : activeAccHealth;
+    const lifetimeAccAge       = hs.earliest_account_date ? this._mths(hs.earliest_account_date) : activeAccAge;
+    const closedCardRatio      = lifetimeCardCount > 0 ? closedCardCount / lifetimeCardCount : 0;
+
+    // 兼容旧引用：accAge/accHealth 现在指向 lifetime 版本，原"活跃账户"版本以 activeAccAge/activeAccHealth 保留
+    const accAge     = lifetimeAccAge;
+    const accHealth  = lifetimeHealth;
 
     const onlineL = loans.filter(l => l.type === 'online');
     const onlineI = [...new Set(onlineL.map(l => l.name.split('-')[0]))].length;
@@ -957,6 +990,12 @@ class ScoreEngine {
       wkScore, eduScore, hkScore, ageScore, astScore,
       cLimit, cUsed: cUsedAll, age, loans, cards,
       creditStartAge, netDebtTrend6m,
+      // 全息历史维度（2026-05-22 新增）
+      activeAccAge, activeAccHealth,
+      lifetimeCardCount, lifetimeLoanCount, lifetimeAccCount,
+      lifetimeOverdueCount, lifetimeHealth, lifetimeAccAge,
+      closedCardCount, closedCardRatio,
+      bankQueryRatio,
     };
   }
 
@@ -974,7 +1013,7 @@ class ScoreEngine {
     if (typeof console !== 'undefined') {
       const _domainW = 0.40+0.30+0.25+0.05;
       if (Math.abs(_domainW - 1.0) > 1e-9) console.error(`[ScoreEngine] 域权重不归一: Σ=${_domainW}`);
-      const _stW = 0.25+0.25+0.15+0.12+0.08+0.08+0.05+0.02;
+      const _stW = 0.25+0.25+0.15+0.12+0.08+0.08+0.03+0.02+0.02;
       if (Math.abs(_stW - 1.0) > 1e-9) console.error(`[ScoreEngine] 稳定性权重不归一: Σ=${_stW}`);
       const _asW = 0.40+0.26+0.20+0.12+0.02;
       if (Math.abs(_asW - 1.0) > 1e-9) console.error(`[ScoreEngine] 资产权重不归一: Σ=${_asW}`);
@@ -1000,26 +1039,33 @@ class ScoreEngine {
     // 负债率递增惩罚：月还款超过月收入后额外惩罚（360%应远比130%严重）
     if (f.dti > 1.0 && f.effIncome > 0) penalty += Math.min(130, Math.round((f.dti - 1.0) * 80));
 
+    // ── 2026-05-22 cb 域全息升级 ──
+    // 1) accAge/accHealth 改用 lifetimeAccAge/lifetimeHealth（含已销户/已结清）
+    // 2) 新增 historyVolumeBonus（历史账户数+0逾期=强信号）+ bankQueryRatio（银行查询占比）
+    // 3) q3m 10%→8% / q6m 4%→3% / monthlyCV 4%→2% / cardTrend 3%→1%，权重和 1.10 保持
     const ovTf  = tf(f.latestOvMths);
-    const cbW   = 0.10*tf(1)+0.06*tf(1)+0.04*tf(1)+0.14*ovTf+0.08*ovTf+0.08+0.06+0.06+0.06+0.05+0.06*tf(1)+0.06+0.06+0.04+0.03+0.06+0.06*tf(3);
+    const cbW   = 0.08*tf(1)+0.06*tf(1)+0.03*tf(1)+0.14*ovTf+0.08*ovTf+0.08+0.06+0.06+0.06+0.05+0.06*tf(1)+0.06+0.06+0.02+0.01+0.06+0.06*tf(3)+0.04+0.03;
     const cbRaw =
-      mm(f.q3m,0,15,true)              *0.10*tf(1) +
+      mm(f.q3m,0,15,true)              *0.08*tf(1) +
       mm(f.q30dConc,0,1,true)           *0.06*tf(1) +
-      mm(f.q6m,0,25,true)              *0.04*tf(1) +
+      mm(f.q6m,0,25,true)              *0.03*tf(1) +
       (f.ovCount===0?1:mm(f.ovCount,1,10,true))*0.14*ovTf +
       (f.ov90d===0?1:mm(f.ov90d,1,5,true))    *0.08*ovTf +
-      mm(f.accHealth,0,1)               *0.08 +
-      mm(f.accAge,0,180)                *0.06 +
+      mm(f.lifetimeHealth,0,1)          *0.08 +
+      mm(f.lifetimeAccAge,0,180)        *0.06 +
       mm(f.bankLR,0,1)                  *0.06 +
       mm(f.cfConc,0,1,true)             *0.06 +
       mm(f.entropy,0,2.3)               *0.05 +
       mm(f.recent6mLoans,0,8,true)      *0.06*tf(1) +
       mm(f.cardUtil,0,1,true)            *0.06 +
       mm(f.onlineI,0,10,true)           *0.06 +
-      mm(f.monthlyCV,0,2,true)           *0.04 +
-      mm(f.cardTrend,1,5)               *0.03 +
+      mm(f.monthlyCV,0,2,true)           *0.02 +
+      mm(f.cardTrend,1,5)               *0.01 +
       mm(f.latestOvMths,0,60)            *0.06 +
-      mm(f.recent6mLoans,0,6,true)      *0.06*tf(3);
+      mm(f.recent6mLoans,0,6,true)      *0.06*tf(3) +
+      // 新增维度
+      mm(f.lifetimeAccCount,0,50)       *0.04 +   // historyVolumeBonus: 50+ 账户 0 逾期=满分
+      mm(f.bankQueryRatio,0,0.7)        *0.03;    // bankQueryRatio: 银行查询占比 70%=满分
     const cbScore = cbW > 0 ? cbRaw / cbW : 0;
 
     const _creditStartAgeS = (() => {
@@ -1028,6 +1074,7 @@ class ScoreEngine {
       return a < 20 ? 0.4 : a <= 28 ? 0.9 : a <= 40 ? 1.0 : a <= 50 ? 0.7 : 0.5;
     })();
     const stMod = f.trustScore>=75?1.0:f.trustScore>=40?0.8:0.6;
+    // 2026-05-22：pvdScore 5%→3%（公积金信号已在 inferIncome 间接体现）；新增 activeMgmt 3%（主动信用管理：销户卡比例反映客户管理意识）
     const stScore = (
       f.wkScore              *0.25 +
       mm(f.socialMths,0,36)  *0.25 +
@@ -1035,8 +1082,9 @@ class ScoreEngine {
       f.eduScore             *0.12 +
       f.hkScore              *0.08 +
       f.ageScore             *0.08 +
-      (f.pvdTotal>0?mm(f.pvdTotal,0,3000):0.3)*0.05 +
-      _creditStartAgeS       *0.02
+      (f.pvdTotal>0?mm(f.pvdTotal,0,3000):0.3)*0.03 +
+      _creditStartAgeS       *0.02 +
+      mm(f.closedCardRatio,0,0.7) *0.02   // activeMgmt: 销户卡占比 70%=满分
     ) * stMod;
 
     // 2026-05-22 起：移除 fixedExp/income 维度，权重并入 dti；disposable 不再依赖 fixedExp，对齐银行真实 DTI 口径
@@ -1454,6 +1502,28 @@ async function startAnalysis() {
   }
 }
 
+
+// ═══════════════════════════════════════════
+// QUERY INSTITUTION CLASSIFIER (2026-05-22 新增，用于 bankQueryRatio)
+// 分类：bank（传统银行）/ consumer_finance（消费金融）/ microloan（小贷）/ guarantee（担保）/ other
+// 银行类查询占比高 = 客户在理性尝试主流通道，反向信号
+// ═══════════════════════════════════════════
+function classifyQueryInstitution(institutionName) {
+  if (!institutionName || typeof institutionName !== 'string') return 'other';
+  const s = institutionName;
+  // 担保类（独立判定，优先级最高）
+  if (/担保/.test(s)) return 'guarantee';
+  // 消费金融类
+  if (/消费金融/.test(s)) return 'consumer_finance';
+  // 小贷类
+  if (/小额贷款|小贷/.test(s)) return 'microloan';
+  // 互联网助贷银行（含"银行"字样但实际是 online_bank）
+  const ONLINE_BANK_KEYWORDS = ['网商', '微众', '百信', '新网', '众邦', '通商', '蓝海', '三湘', '苏宁', '富民', '亿联', '振兴', '苏商', '锡商', '中关村', '长安', '裕民', '华通', '新韩'];
+  if (ONLINE_BANK_KEYWORDS.some(k => s.includes(k))) return 'online_bank';
+  // 传统银行（含「银行」「信用社」「邮储」字样）
+  if (/银行|信用社|邮储/.test(s)) return 'bank';
+  return 'other';
+}
 
 // ═══════════════════════════════════════════
 // QUERY COUNT CALCULATOR (frontend, exact)
