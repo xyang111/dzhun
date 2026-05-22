@@ -886,8 +886,11 @@ class ScoreEngine {
       ? (trustScore >= 75 ? income : trustScore >= 40 ? Math.round(income * 0.8) : Math.round(income * 0.6)) : 0;
 
     const monthly    = calcTotalMonthly(loans, cards);
-    // 2026-05-22 起：移除 fixedExp 维度，对齐银行真实 DTI 口径（不扣生活开支）
-    const disposable = Math.max(0, effIncome - monthly);
+    // 2026-05-22 P0：国企/事业/公务员 + inferIncome > income 时，用 inferIncome 算 DTI/disposable
+    // 跟 mrEstimate 口径一致——公积金倒推的真实月薪反映银行真实视角，避免工资条低报的双重惩罚
+    const _asIncome  = (_isPublicSector && inferIncome > income) ? inferIncome : effIncome;
+    // disposable 不扣生活开支，对齐银行真实 DTI 口径
+    const disposable = Math.max(0, _asIncome - monthly);
 
     // 信用卡使用率：只对有授信数据的卡计算（避免 OCR 未识别授信的卡 used 计入分子但无对应 limit，
     // 导致 cardUtil > 100% 的伪问题，如 5 张卡仅 1 张有授信时算出 139%）
@@ -965,7 +968,7 @@ class ScoreEngine {
     const netDebtTrend6m = totalLoanBal > 0 ? recent6mBal / totalLoanBal : 0;
     const cardLimits = cards.map(c => c.limit || 0).filter(v => v > 0);
     const cardTrend  = cardLimits.length > 1 ? Math.max(...cardLimits) / Math.min(...cardLimits) : 1;
-    const dti      = effIncome > 0 ? monthly / effIncome : 1;
+    const dti      = _asIncome > 0 ? monthly / _asIncome : 1;
     const q30dConc = q3m > 0 ? q1m / q3m : 0;
     const socialMths = (() => {
       const s = ui.social || '';
@@ -985,9 +988,9 @@ class ScoreEngine {
       accAge, accHealth, recent6mLoans, bankLR, cfConc,
       latestOvMths, entropy, cardUtil, monthlyCV,
       cardTrend, onlineI, dti, disposable,
-      income, effIncome, monthly, trustScore, inferIncome,
+      income, effIncome, asIncome: _asIncome, monthly, trustScore, inferIncome,
       pvdTotal, pvdRate, pvdIndiv, socialMths,
-      wkScore, eduScore, hkScore, ageScore, astScore,
+      wkScore, eduScore, hkScore, ageScore, astScore, wKey,
       cLimit, cUsed: cUsedAll, age, loans, cards,
       creditStartAge, netDebtTrend6m,
       // 全息历史维度（2026-05-22 新增）
@@ -1037,7 +1040,11 @@ class ScoreEngine {
     // 网贷机构数递增惩罚：家数越多惩罚越重，14家≠5家
     if (f.onlineI >= 5) penalty += f.onlineI >= 12 ? 95 : f.onlineI >= 9 ? 70 : f.onlineI >= 7 ? 48 : 30;
     // 负债率递增惩罚：月还款超过月收入后额外惩罚（360%应远比130%严重）
-    if (f.dti > 1.0 && f.effIncome > 0) penalty += Math.min(130, Math.round((f.dti - 1.0) * 80));
+    // 2026-05-22 P1：DTI penalty 阈值按职业分层（对齐工薪族可贷额度倍数：私企30-50x→DTI~60%，国企50-60x→DTI~75%，事业/公务员80-100x→DTI~85%）
+    if (f.asIncome > 0) {
+      const _dtiThreshold = ({ gov: 0.85, institution: 0.85, state: 0.80, listed: 0.75, private: 0.65, self: 0.60, freelance: 0.60 })[f.wKey] || 0.70;
+      if (f.dti > _dtiThreshold) penalty += Math.min(130, Math.round((f.dti - _dtiThreshold) * 100));
+    }
 
     // ── 2026-05-22 cb 域全息升级 ──
     // 1) accAge/accHealth 改用 lifetimeAccAge/lifetimeHealth（含已销户/已结清）
@@ -1090,7 +1097,7 @@ class ScoreEngine {
     // 2026-05-22 起：移除 fixedExp/income 维度，权重并入 dti；disposable 不再依赖 fixedExp，对齐银行真实 DTI 口径
     const asScore =
       mm(f.dti,0,1.2,true)                              *0.40 +
-      (f.effIncome>0?mm(f.disposable,0,f.effIncome):0.5)*0.26 +
+      (f.asIncome>0?mm(f.disposable,0,f.asIncome):0.5)*0.26 +
       f.astScore                                         *0.20 +
       mm(f.cardUtil,0,1,true)                            *0.12 +
       mm(f.netDebtTrend6m,0,1,true)                      *0.02;
