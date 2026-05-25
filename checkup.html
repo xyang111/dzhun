@@ -11,7 +11,7 @@
 <meta property="og:url" content="https://dzhun.com.cn/checkup.html" />
 <meta property="og:type" content="website" />
 <meta name="description" content="AI 读懂你的简版征信报告，给出资质区间评估和方向级建议。不发起任何查询，不替你提交申请。" />
-<link rel="stylesheet" href="style.css?v=1779441571">
+<link rel="stylesheet" href="style.css?v=1779676518">
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 <script>
 // 工具页 logo 点击：跳回主页，完整透传 query string（agent / ref 等）
@@ -758,12 +758,12 @@ function goHome() {
             <div class="lift-compare">
               <div class="lift-col">
                 <div class="lift-col-lbl">当前评分</div>
-                <div class="lift-col-val" id="convLiftProdB">-- / 1000</div>
+                <div class="lift-col-val" id="convLiftProdB">--</div>
                 <div class="lift-col-sub" id="convLiftAmtB">当前区间</div>
               </div>
               <div class="lift-col">
                 <div class="lift-col-lbl">优化后</div>
-                <div class="lift-col-val green" id="convLiftProdA">-- / 1000</div>
+                <div class="lift-col-val green" id="convLiftProdA">--</div>
                 <div class="lift-col-sub" id="convLiftAmtA">目标区间</div>
               </div>
             </div>
@@ -801,7 +801,7 @@ function goHome() {
 
           <!-- 预计可申请额度 -->
           <div id="creditCapacityCard" style="display:none;width:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--border);padding:14px 16px;margin-bottom:10px">
-            <div style="font-family:'JetBrains Mono','SF Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">CREDIT ESTIMATE · 预计可申请额度</div>
+            <div style="font-family:'JetBrains Mono','SF Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">REFERENCE RANGE · 银行参考区间（实际以审批为准）</div>
             <div id="ccBody" style="font-size:12px;color:var(--silver);line-height:1.8"></div>
           </div>
 
@@ -936,8 +936,8 @@ function goHome() {
   </div>
 </footer>
 
-<script src="config.js?v=1779441571"></script>
-<script src="app.js?v=1779441571"></script>
+<script src="config.js?v=1779676518"></script>
+<script src="app.js?v=1779676518"></script>
 
 <!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
 <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">

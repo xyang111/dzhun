@@ -969,7 +969,7 @@ class ScoreEngine {
     const cardLimits = cards.map(c => c.limit || 0).filter(v => v > 0);
     const cardTrend  = cardLimits.length > 1 ? Math.max(...cardLimits) / Math.min(...cardLimits) : 1;
     const dti      = _asIncome > 0 ? monthly / _asIncome : 1;
-    const q30dConc = q3m > 0 ? q1m / q3m : 0;
+    const q30dConc = q3m >= 3 ? q1m / q3m : 0;  // 样本量保护：近3月硬查询<3次按"无集中度风险"(对齐 calcBlastRisk 设计)
     const socialMths = (() => {
       const s = ui.social || '';
       if (!s.includes('有')) return 0;
@@ -2529,7 +2529,7 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt, products) {
       <div class="hero-title">您已进入银行优质准入区间</div>
       <div class="hero-sub">征信状态优质 · 可尝试银行信用贷主流产品 · 利率可谈至最低档</div>
       <div class="hero-metrics cols-3">
-        ${_metricBox('综合评分', scoreDisp + ' / 1000', '')}
+        ${_metricBox('综合评分', scoreDisp, '')}
         ${_metricBox('资质等级', 'A 级优质', '')}
         ${_metricBox('利率档位', '最低档可谈', '')}
       </div>
@@ -2547,10 +2547,10 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt, products) {
         <div class="hero-title">差 <span style="color:#15803d">${nOpt} 步</span> 可以进入优质准入区间</div>
         <div class="hero-sub">优化清单与申请顺序已生成 · 顺序错了会多消耗查询次数（解锁后查看）</div>
         <div class="hero-metrics cols-2">
-          ${_metricBox('当前评分', scoreDisp + ' / 1000', '')}
+          ${_metricBox('当前评分', scoreDisp, '')}
           ${_metricBox('目标区间', 'A 级优质准入', 'gain')}
         </div>
-        <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span><span>申请顺序的错误代价高于优化本身 · 顾问可提供精准执行计划</span></div>
+        <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span><span>差几步就能进入 A 级优质准入 · 顾问 1v1 协助打通最后这步</span></div>
       </div>`;
       return;
     }
@@ -2559,7 +2559,7 @@ function _renderHero(level, r, cp, op, gapW, curAmt, optAmt, products) {
       <div class="hero-title">差 <span style="color:#15803d">${nOpt} 步</span> 可以进入优质准入区间</div>
       <div class="hero-sub">按顺序完成 ${nOpt} 个优化后，资质可进入银行优质准入区间 · 最快 3 个月见效</div>
       <div class="hero-metrics cols-2">
-        ${_metricBox('当前评分', scoreDisp + ' / 1000', '')}
+        ${_metricBox('当前评分', scoreDisp, '')}
         ${_metricBox('目标区间', 'A 级优质准入', 'gain')}
       </div>
       <div class="hero-note" style="display:flex;align-items:flex-start;gap:8px"><span class="hero-note-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span><span>申请顺序搞错会多等 3 个月 · 顾问可提供精准执行计划</span></div>
@@ -2862,7 +2862,7 @@ function renderMatchResult(r) {
         A: { cur: 'A 级优质准入', next: '最低利率档',     gain: '利率档位可下调' },
         C: { cur: 'C 级恢复期',   next: 'B 级优化空间',   gain: '资质分可进入优化区间' },
       }[v2Level] || { cur: '当前区间', next: '目标区间', gain: '整体提升' };
-      const pb=document.getElementById('convLiftProdB');if(pb)pb.textContent=scoreNow>0?scoreNow+' / 1000':'-- / 1000';
+      const pb=document.getElementById('convLiftProdB');if(pb)pb.textContent=scoreNow>0?String(scoreNow):'--';
       const pa=document.getElementById('convLiftProdA');if(pa)pa.textContent=_levelMap.next;
       const ab=document.getElementById('convLiftAmtB');if(ab)ab.textContent=_levelMap.cur;
       const aa=document.getElementById('convLiftAmtA');if(aa)aa.textContent=_levelMap.gain;
@@ -2926,21 +2926,21 @@ function renderMatchResult(r) {
         if (_showCurrent) {
           _html += `
             <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
-              <span style="color:var(--silver);font-size:13px">当前资质预计可申请</span>
+              <span style="color:var(--silver);font-size:13px">当前参考区间</span>
               <span style="color:var(--accentB);font-weight:700;font-size:16px">${fw(estLo)}–${fw(estHi)} 万</span>
             </div>`;
         }
         if (_showOpt) {
           _html += `
             <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;${_showCurrent?'border-top:1px solid var(--border);margin-top:4px;':''}">
-              <span style="color:var(--silver);font-size:13px">征信修复后可申请</span>
+              <span style="color:var(--silver);font-size:13px">优化后参考区间</span>
               <span style="color:var(--success);font-weight:700;font-size:16px">${fw(estLoO)}–${fw(estHiO)} 万</span>
             </div>`;
           if (_showCurrent && _gapW > 0) {
             _html += `<div style="font-size:11px;color:var(--success);opacity:.85;margin-top:4px;text-align:right">↑ 比当前多 ${_gapW} 万空间</div>`;
           }
         }
-        _html += `<div style="font-size:10px;color:var(--silver);opacity:.7;margin-top:8px;line-height:1.5">基于职业类型与负债比综合估算，实际审批受查询次数 / 负债结构 / 历史征信影响，以银行实际审批为准</div>`;
+        _html += `<div style="font-size:10px;color:var(--silver);opacity:.7;margin-top:8px;line-height:1.5">此为基于职业类型 + 负债比的参考估算，银行实际审批因人而异。具体可申请方案请联系专属顾问获取</div>`;
         document.getElementById('ccBody').innerHTML = _html;
       }
       if (mrEl) mrEl.style.display = 'none';
