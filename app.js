@@ -459,7 +459,10 @@ function calcCreditScore(data, ui) {
       { name: '资产偿债', s: null,   w: 0.25, c: '#888', masked: true, mask: '填写补充信息后解锁' },
       { name: '反欺诈',   s: fraud,  w: 0.05, c: _color(fraud) },
     ];
-    return { score, level, cls, hint, dims, isBasic, isObjective: true };
+    // 方案 B（2026-05-25）：百分制圆圈不显示分数，改为定性标签 + 等级填充比
+    const objTag    = level.replace('客观信号', '');                                  // 良好/一般/偏弱
+    const gaugeRatio = score >= 75 ? 0.75 : score >= 55 ? 0.50 : 0.25;                  // 客观三档视觉填充
+    return { score, level, cls, hint, dims, isBasic, isObjective: true, objTag, gaugeRatio };
   }
 
   // 完整 V2.0 模式：千分制 → 百分制分段映射
@@ -490,7 +493,12 @@ function calcCreditScore(data, ui) {
     { name: '反欺诈',   s: _round(ds.fraud),     w: 0.05, c: _color(_round(ds.fraud))     },
   ];
 
-  return { score, level, cls, hint: '', dims, isBasic };
+  // 方案 B（2026-05-25）：完整模式圆圈展示千分制 + 等级，不再用百分制（避免 81→8 这种心理断崖）
+  const v2Score    = Math.round(v2.score || 0);
+  const v2Level    = v2.level || 'D';
+  const gaugeRatio = ({ A: 0.90, B: 0.70, C: 0.50, D: 0.25 })[v2Level] || 0.5;
+
+  return { score, level, cls, hint: '', dims, isBasic, v2Score, v2Level, gaugeRatio };
 }
 
 function renderCreditScore(data,ui) {
@@ -499,19 +507,48 @@ function renderCreditScore(data,ui) {
   el.style.display='block';
   const r = calcCreditScore(data,ui);
   const C = 207;
-  const offset = C-(r.score/100)*C;
+  // 方案 B：圆圈填充按等级（客观三档 / 完整 A-D），颜色按填充比映射
+  const ratio  = r.gaugeRatio != null ? r.gaugeRatio : (r.score / 100);
+  const offset = C - ratio * C;
   const fill = document.getElementById('csGaugeFill');
   if(fill){
-    const col = r.score>=85?'#4ade80':r.score>=70?'#60a5fa':r.score>=55?'#fbbf24':r.score>=40?'#fb923c':'#f87171';
+    const col = ratio>=0.85?'#4ade80':ratio>=0.65?'#60a5fa':ratio>=0.45?'#fbbf24':ratio>=0.30?'#fb923c':'#f87171';
     fill.style.stroke=col;
     fill.style.strokeDashoffset=C;
     setTimeout(()=>{fill.style.strokeDashoffset=offset;},80);
   }
-  const sv=document.getElementById('csScoreVal');if(sv)sv.textContent=r.score;
+  // ring-num：客观模式显示定性标签（良好/一般/偏弱），完整模式显示千分制
+  const sv=document.getElementById('csScoreVal');
+  if(sv){
+    if(r.isObjective){ sv.textContent = r.objTag || '--'; sv.style.fontSize = '28px'; }
+    else             { sv.textContent = r.v2Score || '--'; sv.style.fontSize = ''; }
+  }
+  // ring-lbl：客观模式隐藏，完整模式显示等级（如 "D 级"）
+  const ll=document.querySelector('#csWrap .ring-lbl');
+  if(ll){
+    if(r.isObjective){ ll.style.display='none'; }
+    else             { ll.textContent = (r.v2Level || '') + ' 级'; ll.style.display=''; }
+  }
   const lv=document.getElementById('csLevel');
-  if(lv){lv.className='cs-level '+r.cls;lv.textContent=r.level;}
-  const ht=document.getElementById('csHint');if(ht){ht.textContent=r.hint;ht.style.display=r.hint?'':'none';}
-  const ul=document.getElementById('csUnlock');if(ul)ul.style.display=r.isBasic?'flex':'none';
+  if(lv){
+    lv.className='cs-level '+r.cls;
+    // 方案 B：客观模式 badge 合并 CTA，可点击触发滚动到匹配表单；完整模式保持原 level 文字
+    if(r.isObjective){
+      lv.textContent = r.level + ' · 补充信息查看完整评分 →';
+      lv.style.cursor = 'pointer';
+      lv.onclick = () => {
+        const btn = document.getElementById('matchBtn');
+        if(btn){ btn.click(); btn.scrollIntoView({behavior:'smooth'}); }
+      };
+    } else {
+      lv.textContent = r.level;
+      lv.style.cursor = '';
+      lv.onclick = null;
+    }
+  }
+  // 方案 B：csHint 和 csUnlock 在客观模式下隐藏（CTA 已合并到 csLevel）
+  const ht=document.getElementById('csHint');if(ht){ ht.style.display = r.isObjective ? 'none' : (r.hint?'':'none'); if(!r.isObjective) ht.textContent=r.hint; }
+  const ul=document.getElementById('csUnlock');if(ul) ul.style.display = (r.isObjective || !r.isBasic) ? 'none' : 'flex';
   const grid=document.getElementById('csDims');
   if(grid){
     grid.innerHTML=r.dims.map(d=>{
