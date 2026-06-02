@@ -54,26 +54,7 @@
     } catch (e) { /* 静默失败，OG 标签兜底 */ }
   })();
 </script>
-<script>
-  /* Landing 所有 CTA 自动透传当前 URL 的 query string（agent / ref 等），
-     保证主站、代理商、转介绍三种入口在 Landing ↔ 工具页之间 URL 完全一致：
-       主站                       /              ↔ /checkup.html
-       代理商                     /?agent=AHX    ↔ /checkup.html?agent=AHX
-       代理商 + 转介绍            /?agent=AHX&ref=R001 ↔ /checkup.html?agent=AHX&ref=R001 */
-  document.addEventListener('DOMContentLoaded', function () {
-    var qs = location.search;
-    if (!qs) return;
-    document.querySelectorAll('a[href="/checkup.html"]').forEach(function (el) {
-      el.href = '/checkup.html' + qs;
-    });
-    document.querySelectorAll('button[onclick]').forEach(function (el) {
-      var oc = el.getAttribute('onclick') || '';
-      if (oc.indexOf("/checkup.html'") >= 0) {
-        el.setAttribute('onclick', oc.replace("/checkup.html'", "/checkup.html" + qs + "'"));
-      }
-    });
-  });
-</script>
+<script src="/nav-agent.js?v=1780373710"></script>
 <style>
 :root {
   --bg:        #F5F7FA;
@@ -124,7 +105,7 @@ nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.97);backdrop-
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .nav-btn{font-size:13px;font-weight:700;background:var(--blue);color:#fff;border:none;padding:9px 22px;cursor:pointer;transition:all .2s;white-space:nowrap;border-radius:2px;}
 .nav-btn:hover{background:var(--blue-d);box-shadow:0 4px 16px rgba(27,80,204,.3);}
-@media(max-width:640px){.logo-div,.logo-desc,.nav-link,.nav-online{display:none;}}
+@media(max-width:640px){.logo-div,.logo-desc,.nav-online,.nav-link[href^="#"]{display:none;}}
 
 /* ── SECTION ── */
 .label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px;margin-bottom:12px;}
