@@ -87,12 +87,22 @@ scp index.html style.css config.js app.js qr.jpg qr_agent_1.jpg root@8.136.1.233
 - 存储：Cloudflare KV — ORDERS（支付订单/token）、CACHE（OCR结果缓存）；D1 — dzhun-scores（score_records 评分记录）
 - 邮件：Resend（report@dzhun.com.cn → 651047968@qq.com）
 
-## 核心业务流程
-1. 用户上传简版征信截图（JPG/PNG，支持多张）
-2. OCR提取：调用Claude Vision识别账户/查询记录（免费）
-3. 用户填写补充信息（收入/社保/公积金/学历/户籍/资产）
-4. 产品匹配：付费9.9元后调用Claude分析，返回匹配产品+建议
-5. 结果推送：自动发送报告到运营邮箱，代理商渠道额外推企业微信
+## 核心业务流程（2026-06-02 重构后）
+1. 用户上传简版征信截图（JPG/PNG/PDF，支持多张）
+2. OCR提取：Textin + Claude Haiku（免费）
+3. 用户填写补充信息（收入/社保/公积金/学历/户籍/资产 + **手机号必填**）
+4. 点"开始 AI 智能解析"：
+   - 本地 ScoreEngine + localFallbackMatch（同步）
+   - 后台 fetch `/match` 跑 DeepSeek AI advice/optimization（preview 模式，无需付费，5 次/手机号/24h 滑动配额，代理商手机号白名单豁免）
+   - 终端动画 + 渲染 hero/问题/优化区
+   - 产品区显示付费墙「🔓 解锁完整报告 ¥28」
+   - **autoSendReport fire-and-forget**：推送含 AI advice 的完整 PDF + 手机号到企微（直客 fallback AHX 群）
+5. 用户付费 ¥28（**三轨统一定价：直客/AHX/XRT 全部 28**）→ 解锁产品列表 + 通过率 + PDF 下载按钮
+6. 付费 token 24h 有效，**没有 30 天复查**——付费墙文案不能写未实现的功能（详见 memory `feedback-dzhun-no-unimplemented-promises`）
+
+## 付费墙文案（方向 A · 2026-06-02 定稿）
+位于 `app.js` 付费墙渲染处。可写：5 大维度深度解读 / 个性化优化方向建议 / 可下载 PDF。
+**不可写**：30 天复查 / 顾问 1v1 / 加急通道 / 白名单通道 / 利率档位谈判 等未实现功能。
 
 ## 核心架构：双引擎 + V2.0 评分
 - **ScoreEngine V2.0**（app.js）：102维，300-1000分，4个域（信用行为40%/稳定性30%/资产偿债25%/反欺诈5%）
@@ -207,10 +217,14 @@ scp index.html style.css config.js app.js qr.jpg qr_agent_1.jpg root@8.136.1.233
 - 修改：改 config.js 的 BANK_PRODUCTS，重新 deploy 即生效（最高频改动文件）
 
 ## 代理商系统
-- URL参数：?agent=AHX
-- 配置位置：`config.js` 顶部 AGENTS 对象
+- URL 参数：`?agent=AHX` 或 `?agent=XRT`
+- 推广链接（landing 优先）：`https://dzhun.com.cn/?agent=AHX` / `?agent=XRT`
+  - landing 和 blog 页面通过 `/nav-agent.js` 自动将 `?agent=` 写入 sessionStorage 并追加到所有内部链接（保证跨页面不丢 agent）
+- 配置位置：`config.js` 顶部 AGENTS 对象 + `worker.js` AGENT_WEBHOOKS + AGENT_OPERATOR_PHONES（**三处必须同步**）
 - 二维码：每个代理商对应独立图片文件（如 qr_agent_1.jpg），不内嵌 base64
-- 效果：替换页面电话和微信二维码，报告推送给代理商企业微信群
+- 效果：替换页面电话和微信二维码；报告推送给代理商企微群；**直客 fallback 到 AHX 群**
+- **代理商手机号白名单**：填自己手机号（AHX 18250760433 / XRT 15260211119）跳过 5 次/24h preview 配额，无限刷
+- **价格**：三轨统一 ¥28，不再有"免费代理商"概念
 
 ## 注意事项
 - 前端已拆分为4文件，不要再合并回单文件
