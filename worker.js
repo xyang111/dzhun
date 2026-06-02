@@ -35,10 +35,11 @@ var ALLOWED_ORIGINS = [
   "https://dzhun.com.cn",
   "https://www.dzhun.com.cn",
 ];
-var PRODUCT_PRICE = 990;
-// 代理商价格覆盖（单位：分；未列出 = 默认 PRODUCT_PRICE）— 与 config.js AGENT_PRICES 保持一致
+var PRODUCT_PRICE = 2800;
+// 三轨统一定价 ¥28（2026-06-02）— 与 config.js AGENT_PRICES 保持一致
 var AGENT_PRICES = {
-  'XRT': 2800,  // 鑫融腾 ¥28
+  'AHX': 2800,
+  'XRT': 2800,
 };
 function getPrice(agentId) {
   return (agentId && AGENT_PRICES[agentId]) || PRODUCT_PRICE;
@@ -62,17 +63,31 @@ const ONLINE_BANK_LIST_TOP = [
   '营口银行','阜新银行','晋商银行','晋中银行',
 ];
 
+// 主流银行品牌豁免名单：六大行 + 12 家股份制银行
+// 命中即视为银行直营，不论额度大小都保留 type=bank（豁免小额兜底规则）
+// 注意：ONLINE_BANK_LIST_TOP 优先级更高（如有冲突仍按 online_bank 处理）
+const MAJOR_BANK_BRANDS = [
+  // 国有六大行
+  '工商银行','农业银行','中国银行','建设银行','交通银行','邮储银行','邮政储蓄',
+  // 股份制 12 家
+  '招商银行','兴业银行','平安银行','中信银行','浦发','浦东发展',
+  '光大银行','华夏银行','民生银行','广发银行','浙商银行','渤海银行','恒丰银行',
+];
+
 // 后处理：助贷资方银行二次校验
-// 规则1：机构名命中白名单 → 强制 online_bank
+// 规则1：机构名命中 ONLINE_BANK_LIST_TOP → 强制 online_bank
 // 规则2：type=bank + cat=credit + credit_limit < 50000 → 兜底转 online_bank
 //        （真·银行信用贷起步通常 ≥5 万，小额几乎都是助贷场景）
+//        豁免：命中 MAJOR_BANK_BRANDS（六大行+12股份制）即视为银行直营，不兜底
 function reclassifyLoans(loans) {
   if (!Array.isArray(loans)) return loans;
   return loans.map(l => {
     if (!l || typeof l !== 'object') return l;
     const name = l.name || '';
     const inWhitelist = ONLINE_BANK_LIST_TOP.some(k => name.includes(k));
-    const isSmallBankCredit = l.type === 'bank'
+    const isMajorBrand = MAJOR_BANK_BRANDS.some(k => name.includes(k));
+    const isSmallBankCredit = !isMajorBrand
+      && l.type === 'bank'
       && l.loan_category === 'credit'
       && Number(l.credit_limit) > 0
       && Number(l.credit_limit) < 50000;
@@ -108,6 +123,20 @@ const PROMPT_OCR = `你是银行信贷审核员，精通人行简版征信报告
 - summary_overdue_accounts：「发生过逾期的账户数」中的贷款数，「--」或空记为 0
 - summary_overdue_90days：「发生过90天以上逾期的账户数」中的贷款数，「--」或空记为 0
 
+【全息历史摘要提取 ⚠️ 必填字段，不可省略】
+信息概要表是 4 列（信用卡 / 贷款-购房 / 贷款-其他 / 其他业务）× 4 行（账户数 / 未结清未销户 / 发生过逾期 / 90天+逾期）。
+**必须输出 history_summary 对象，全部 8 字段都要给值（不知道就填 0 或 null，绝不省略字段）**：
+- card_total：信用卡-账户数（含已销户）
+- card_active：信用卡-未结清未销户账户数
+- loan_other_total：贷款-其他-账户数（含已结清，可能 80+ 也属于正常）
+- loan_mortgage_total：贷款-购房-账户数
+- loan_active：贷款未结清账户数合计（购房+其他）
+- ever_overdue_account_count：所有"发生过逾期"格子求和（信用卡+购房+其他）
+- overdue_90d_account_count：所有"90天+逾期"格子求和
+- earliest_account_date：扫描全部信用卡明细（含"X年X月X日销户"的卡）找最早开户日期，转 YYYY-MM-DD 格式。如"2010年08月03日中国银行发放的贷记卡"→"2010-08-03"。无法识别填 null
+
+参考输出示例（真实数据，仅展示格式）："history_summary":{"card_total":17,"card_active":2,"loan_other_total":83,"loan_mortgage_total":0,"loan_active":7,"ever_overdue_account_count":0,"overdue_90d_account_count":0,"earliest_account_date":"2010-08-03"}
+
 【严重不良记录识别】
 除逾期外，还需识别以下严重不良，写入 has_bad_record 和 bad_record_notes：
 - 呆账：账户状态栏出现「呆账」
@@ -126,6 +155,11 @@ const PROMPT_OCR = `你是银行信贷审核员，精通人行简版征信报告
 1. 贷款账户：只提取当前未结清账户（含余额为0但在有效期内的循环授信账户——余额为0≠已结清，报告中明确写「已结清」才能跳过）。已结清账户跳过，但若有历史逾期需记入 overdue_history_notes。
 2. 信用卡账户：只提取人民币账户且未销户的贷记卡（含尚未激活的卡）。外币账户跳过不提取。已销户账户跳过不提取。
    ⚠️ 信用卡 used 字段规则：取「已使用额度」或「余额」中数值较大的那个。若信用额度为0但存在余额或未出账大额专项分期余额，used 必须填写实际余额数值，绝不能填0。
+   ⚠️ 信用卡 big_install 字段规则（大额专项分期余额，独立提取）：
+      征信报告中常出现"余额X（含未出单的大额专项分期余额Y）"的写法，Y 就是大额专项分期未还本金。
+      - 含「含未出单的大额专项分期余额 Z」或「大额专项分期余额 Z」等表述：big_install 填写 Z 的数值
+      - 无此类表述：big_install 填 0
+      这个字段不影响 used（used 仍是总余额），仅用于下游算法区分"循环透支"和"大额分期"。
 3. 查询记录：严格逐条核对查询原因列，以下6类才能写入 query_records，type 字段必须原文照抄：
    ✅ 「贷款审批」「信用卡审批」「担保资格审查」「资信审查」「保前审查」「融资租赁审批」
    ❌ 其余所有查询原因一律跳过，禁止写入，包括：
@@ -196,6 +230,7 @@ name 字段格式统一为「银行简称-账户类型」：
       "name": "建设银行-贷记卡",
       "limit": 5000,
       "used": 0,
+      "big_install": 0,
       "status": "正常"
     }
   ],
@@ -210,6 +245,16 @@ name 字段格式统一为「银行简称-账户类型」：
   "has_overdue_history": false,
   "has_bad_record": false,
   "bad_record_notes": "无",
+  "history_summary": {
+    "card_total": 17,
+    "card_active": 2,
+    "loan_other_total": 83,
+    "loan_mortgage_total": 0,
+    "loan_active": 7,
+    "ever_overdue_account_count": 0,
+    "overdue_90d_account_count": 0,
+    "earliest_account_date": "2010-08-03"
+  },
   "ocr_warnings": [],
   "notes": "识别到X笔未结清贷款，Y张未销户人民币信用卡"
 }`;
@@ -217,21 +262,36 @@ name 字段格式统一为「银行简称-账户类型」：
 // ── 精简版Prompt：专为Textin文本路径设计，去掉图片识别说明，减少token消耗 ──
 const PROMPT_OCR_TEXT = `从以下人行征信报告文字中提取结构化数据，直接输出JSON，不含其他文字。
 
+⚠️ history_summary 字段是必须输出的强制字段，不得省略，不得全 0。下面是真实示例（参考林根旺报告，仅作格式样例）：
+"history_summary":{"card_total":17,"card_active":2,"loan_other_total":83,"loan_mortgage_total":0,"loan_active":7,"ever_overdue_account_count":0,"overdue_90d_account_count":0,"earliest_account_date":"2010-08-03"}
+
 提取规则：
 1. 基本信息：person_name姓名、id_number身份证号18位、report_date报告日期YYYY-MM-DD
-2. 信息概要：summary_overdue_accounts逾期账户数（--记0）、summary_overdue_90days 90天逾期账户数（--记0）
+2. 【必填】信息概要表格在报告第1页，含「信用卡 / 贷款-购房 / 贷款-其他 / 其他业务」四列 × 「账户数 / 未结清未销户账户数 / 发生过逾期的账户数 / 发生过90天+逾期的账户数」四行：
+   - summary_overdue_accounts：第3行"贷款-其他"列的数字（--记0）
+   - summary_overdue_90days：第4行"贷款-其他"列的数字（--记0）
+   - history_summary.card_total：第1行"信用卡"列（含已销户卡）
+   - history_summary.card_active：第2行"信用卡"列
+   - history_summary.loan_other_total：第1行"贷款-其他"列（含已结清贷款）
+   - history_summary.loan_mortgage_total：第1行"贷款-购房"列
+   - history_summary.loan_active：第2行"贷款"合计（购房+其他）
+   - history_summary.ever_overdue_account_count：第3行全部数字求和（信用卡+贷款）
+   - history_summary.overdue_90d_account_count：第4行全部数字求和
+   - history_summary.earliest_account_date：扫描全部信用卡明细（含已销户），找最早的"YYYY年MM月DD日"开户日期，转 YYYY-MM-DD。无法识别填 null
+   ⚠️ 必填：以上 8 个字段全部输出，未识别到就填 0 或 null，绝不省略字段
 3. 不良记录：has_bad_record（含呆账/担保代还/代偿/资产处置/止付/冻结→true）、bad_record_notes具体描述
 4. 贷款：只取未结清账户（含余额为0但有效期内的循环授信，余额0≠已结清，报告明确写「已结清」才跳过）。name格式"银行简称-消费贷/住房贷/车贷/其他贷"；due_date到期日YYYY-MM-DD（循环授信填null）；is_revolving循环授信填true
    type判断：国有行/股份制/城商/农商/农信/村镇银行→bank；消费金融公司或含「消费金融」字样→online(consumer_finance)；含「小贷」「小额贷款」字样→online(microloan)；其余含「银行」字样但不属于上述传统银行的→online(online_bank)。⚠️特别注意：长安银行、三湘银行、蓝海银行、振兴银行、苏商银行、锡商银行、中关村银行虽含地名，但属于online_bank，不能归为城商行。
    loan_category：住房/按揭/公积金→mortgage，汽车/车贷→car，经营/个人经营性贷款→business，bank非以上→credit，online→finance
 5. 信用卡：只取未销户人民币贷记卡（含未激活）。name格式"银行简称-贷记卡"
    ⚠️ used字段：取「已使用额度」与「余额」中较大的值。信用额度为0但存在余额或大额专项分期余额时，used必须填实际余额，绝不能填0。
+   ⚠️ big_install字段：从"余额X（含未出单的大额专项分期余额Y）"或"大额专项分期余额Z"中提取数值（Y/Z），无此类表述填 0；不影响 used。
 6. 查询记录：只取以下6类（原文照抄type）：贷款审批、信用卡审批、担保资格审查、资信审查、保前审查、融资租赁审批。其余全部跳过。⚠️"贷后管理"≠"贷款审批"，绝对不能混淆。institution填写查询机构名称（如"招商银行"），识别不清填""。
 7. 历史逾期：has_overdue_history（信息概要逾期账户数>0→true），overdue_history_notes记录详情
 8. overdue_current：当前逾期笔数
 
 输出格式（严格JSON，无其他文字）：
-{"person_name":"","id_number":"","report_date":"","summary_overdue_accounts":0,"summary_overdue_90days":0,"loans":[{"name":"","type":"","online_subtype":null,"loan_category":"","issued_date":"","due_date":null,"is_revolving":false,"credit_limit":0,"balance":0,"monthly":null,"status":""}],"cards":[{"name":"","limit":0,"used":0,"status":""}],"query_records":[{"date":"","type":"","institution":""}],"overdue_current":0,"overdue_history_notes":"无","has_overdue_history":false,"has_bad_record":false,"bad_record_notes":"无","ocr_warnings":[],"notes":""}`;
+{"person_name":"","id_number":"","report_date":"","summary_overdue_accounts":0,"summary_overdue_90days":0,"loans":[{"name":"","type":"","online_subtype":null,"loan_category":"","issued_date":"","due_date":null,"is_revolving":false,"credit_limit":0,"balance":0,"monthly":null,"status":""}],"cards":[{"name":"","limit":0,"used":0,"big_install":0,"status":""}],"query_records":[{"date":"","type":"","institution":""}],"overdue_current":0,"overdue_history_notes":"无","has_overdue_history":false,"has_bad_record":false,"bad_record_notes":"无","history_summary":{"card_total":0,"card_active":0,"loan_other_total":0,"loan_mortgage_total":0,"loan_active":0,"ever_overdue_account_count":0,"overdue_90d_account_count":0,"earliest_account_date":null},"ocr_warnings":[],"notes":""}`;
 
 // ── Markdown预处理：深度清洗Textin返回的噪音，最大化减少Claude输入token ──
 // 征信报告的有效信息密度极高但版面噪音也多，这里激进清洗
@@ -377,6 +437,9 @@ function parseReportByRules(md) {
   // ── 2. 信息概要 HTML 表格 ─────────────────────────────────────
   let summary_overdue_accounts = 0, summary_overdue_90days = 0;
   let summaryActiveCards = -1, summaryActiveLoans = -1;
+  // 2026-05-22：全息历史摘要（含已销户/已结清账户）
+  let hsCardTotal = 0, hsLoanMortgage = 0, hsLoanOther = 0;
+  let hsEverOverdue = 0, hsOverdue90d = 0;
 
   const summaryTblM = s.match(/<table[^>]*>([\s\S]*?发生过逾期[\s\S]*?)<\/table>/);
   if (summaryTblM) {
@@ -385,13 +448,19 @@ function parseReportByRules(md) {
       const tds = [...tr[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)]
         .map(m => m[1].replace(/<[^>]+>/g, '').replace(/\s+/g,'').trim());
       const label = tds[0] || '';
-      if (/未结清|未销户/.test(label)) {
+      if (/^账户数$/.test(label)) {
+        hsCardTotal    = toN(tds[1]);
+        hsLoanMortgage = toN(tds[2]);
+        hsLoanOther    = toN(tds[3]);
+      } else if (/未结清|未销户/.test(label)) {
         summaryActiveCards = toN(tds[1]);
         summaryActiveLoans = toN(tds[2]) + toN(tds[3]) + toN(tds[4] ?? '--'); // 含其他业务
       } else if (/发生过逾期的账户数/.test(label) && !/90/.test(label)) {
         summary_overdue_accounts = toN(tds[1]) + toN(tds[2]) + toN(tds[3]);
+        hsEverOverdue = toN(tds[1]) + toN(tds[2]) + toN(tds[3]) + toN(tds[4] ?? '--');
       } else if (/90/.test(label)) {
         summary_overdue_90days = toN(tds[1]) + toN(tds[2]) + toN(tds[3]);
+        hsOverdue90d = toN(tds[1]) + toN(tds[2]) + toN(tds[3]) + toN(tds[4] ?? '--');
       }
     }
   }
@@ -414,12 +483,20 @@ function parseReportByRules(md) {
 
   // ── 4. 解析信用卡 ─────────────────────────────────────────────
   const cards = [];
+  let earliestCardDate = null;   // 2026-05-22：扫描全部卡（含已销户）的最早开户日，用于 history_summary
   for (const blk of cardSection.split(/\n(?=\d+[\.．])/)) {
     const line = blk.trim();
     if (!line || !/^\d+/.test(line)) continue;
     const text = line.replace(/^\d+[\.．]\s*/, '');
 
-    if (/\d{4}年\d{1,2}月销户/.test(text)) continue;             // 跳过已销户
+    // 卡块开头格式 "YYYY年MM月DD日...发放的贷记卡"，提取开户日（包括已销户卡）
+    const openDateM = text.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日/);
+    if (openDateM) {
+      const d = `${openDateM[1]}-${openDateM[2].padStart(2,'0')}-${openDateM[3].padStart(2,'0')}`;
+      if (!earliestCardDate || d < earliestCardDate) earliestCardDate = d;
+    }
+
+    if (/\d{4}年\d{1,2}月销户/.test(text)) continue;             // 跳过已销户（但日期已记录）
 
     // 提取机构名：日期后、"发放的贷记卡"前
     const afterDateM = text.match(/\d{4}年\d{1,2}月\d{1,2}日([\s\S]+?)发放的贷记卡/);
@@ -427,21 +504,24 @@ function parseReportByRules(md) {
     const instShort = shortName(rawInst);
 
     if (/尚未激活/.test(text)) {
-      cards.push({ name:`${instShort}-贷记卡`, limit:0, used:0, status:'未激活' });
+      cards.push({ name:`${instShort}-贷记卡`, limit:0, used:0, big_install:0, status:'未激活' });
       continue;
     }
     // 美元账户：只计数（与摘要表对齐），额度/已用归0，避免以USD数值虚增人民币总额
     if (/美元账户/.test(text)) {
-      cards.push({ name:`${instShort}-贷记卡(美元)`, limit:0, used:0, status:'正常', currency:'USD' });
+      cards.push({ name:`${instShort}-贷记卡(美元)`, limit:0, used:0, big_install:0, status:'正常', currency:'USD' });
       continue;
     }
     const limitM   = text.match(/信用额度([\d,]+)/);
     const usedM    = text.match(/已使用额度([\d,]+)/);
     const balanceM = text.match(/余额([\d,]+)/);
-    const limit  = parseNum(limitM?.[1])   ?? 0;
-    const usedAmt = parseNum(usedM?.[1])   ?? 0;
-    const bal    = parseNum(balanceM?.[1]) ?? 0;
-    cards.push({ name:`${instShort}-贷记卡`, limit, used:Math.max(usedAmt, bal), status:'正常' });
+    // big_install：从"（含未出单的大额专项分期余额 X）"或"大额专项分期余额 X"提取
+    const installM = text.match(/大额专项分期余额\s*([\d,]+)/);
+    const limit       = parseNum(limitM?.[1])   ?? 0;
+    const usedAmt     = parseNum(usedM?.[1])    ?? 0;
+    const bal         = parseNum(balanceM?.[1]) ?? 0;
+    const bigInstall  = parseNum(installM?.[1]) ?? 0;
+    cards.push({ name:`${instShort}-贷记卡`, limit, used:Math.max(usedAmt, bal), big_install:bigInstall, status:'正常' });
   }
 
   // ── 5. 解析贷款 ───────────────────────────────────────────────
@@ -598,6 +678,18 @@ function parseReportByRules(md) {
     conf += d === 0 ? 0.12 : d <= 2 ? 0.10 : d <= 4 ? 0.07 : 0;
   } else { conf += 0.07; }
 
+  // 2026-05-22：全息历史摘要（含已销户/已结清账户的统计 + 最早开户日）
+  const history_summary = {
+    card_total: hsCardTotal,
+    card_active: summaryActiveCards >= 0 ? summaryActiveCards : cards.length,
+    loan_other_total: hsLoanOther,
+    loan_mortgage_total: hsLoanMortgage,
+    loan_active: summaryActiveLoans >= 0 ? summaryActiveLoans : loans.length,
+    ever_overdue_account_count: hsEverOverdue,
+    overdue_90d_account_count: hsOverdue90d,
+    earliest_account_date: earliestCardDate,
+  };
+
   const result = {
     person_name, id_number, report_date,
     summary_overdue_accounts, summary_overdue_90days,
@@ -608,6 +700,7 @@ function parseReportByRules(md) {
     has_overdue_history,
     has_bad_record: false,
     bad_record_notes: '无',
+    history_summary,
     ocr_warnings: [],
     notes: `规则引擎：${loans.length}笔未结清贷款，${cards.length}张信用卡，${settledCount}笔已结清，${query_records.length}条申请类查询`,
   };
@@ -670,6 +763,16 @@ function buildMatchPrompt(payload) {
     : debtRatioPct < 70 ? `偏高（${debtRatioPct}%，已超部分银行 50% 红线，需要降负债到 50% 以下）`
     : `严重超红线（${debtRatioPct}%，绝大多数银行不审批，必须先结清部分降到 50% 以下）`;
 
+  // 信用卡使用率分级（口径已按规则 2：只算有 limit 卡的 used/limit）
+  // Why: AI 看完 cardDesc 会自己重新汇总，把无授信卡的 used 也算进去（实测见 153% vs 118% 矛盾），
+  //      并把 used 远超 limit 的"大额分期专属额度"当成循环爆额恐吓客户
+  const _cardUtilPct = cardUtil != null ? Number(cardUtil) : null;
+  const cardUtilStatus = _cardUtilPct == null ? '未知'
+    : _cardUtilPct < 30 ? `健康（${_cardUtilPct}%，远低于 70% 警戒线，可写入 strengths）`
+    : _cardUtilPct < 50 ? `合规（${_cardUtilPct}%，低于 70% 警戒线，无需 issue）`
+    : _cardUtilPct < 70 ? `偏高（${_cardUtilPct}%，建议降至 50% 以下提升审批通过率）`
+    : `超红线（${_cardUtilPct}%，超 70% 警戒线，银行审批直接降分）`;
+
   // 查询次数分级（行业通用花户标准：3月>6 或 6月>12 即花户）
   const queryStatus = q6m >= 18 || q3m >= 10 ? `严重花户（近半年${q6m}次/近3月${q3m}次/近1月${q1m}次，远超花户红线，主流银行风控直接拒；当前申请只会继续打花征信，必须养征信 3-6 个月让查询自然减少）`
     : q6m >= 12 || q3m >= 6 ? `花户（近半年${q6m}次/近3月${q3m}次/近1月${q1m}次，已达多数银行花户标准，建议养征信 3 个月再申请主流银行；如急需用钱可走对查询不敏感的渠道但要承担较高利率档）`
@@ -705,7 +808,8 @@ function buildMatchPrompt(payload) {
 
   const creditTagsText = `- 负债率状态：${debtStatus}
 - 查询次数状态：${queryStatus}
-- 收入基数状态：${incomeStatus}`;
+- 收入基数状态：${incomeStatus}
+- 信用卡使用率状态：${cardUtilStatus}`;
 
   const xaiText = (xaiIssues || []).length > 0
     ? (xaiIssues || []).map(i => `• ${i.tag}：${i.desc}（修复后可回收约${i.gain}分，需${i.months}个月）→ ${i.fix}`).join('\n')
@@ -817,6 +921,11 @@ C. 收入基数约束（按状态文本里的关键词分情形处理，禁止�
    - 严禁对白名单职业/有公积金加成/有抵押物的客户写"收入偏低，可贷空间有限"——这是低估身份和资产价值
 D. 方向推荐与查询状态联动：
    - 若查询状态为"花户/严重花户"且方向映射显示"当前可尝试"，第一步要写"养征信 3 个月后再尝试 XX 方向"，不能写"当前可尝试 XX 方向"
+E. 信用卡使用率约束（严禁自算口径）：
+   - **必须**使用上方"信用卡使用率状态"中给出的百分比，**严禁**根据下方"信用卡明细"自己重新汇总计算（实测会算错：把无授信卡的余额也加进分子，得出虚高数字）
+   - 信用卡明细中若出现"已用额度远超授信额度"（如已用 38931 元、授信 9000 元）的卡，**几乎可以确定是大额分期专属额度**（信用卡分期不占循环授信，分期未还本金被记到"已用"里，授信只显示循环额度），属于固定月供的真实负债，**严禁**当成"循环爆额/透支风险"恐吓客户
+   - 信用卡使用率状态为"健康/合规"时，**严禁**在 issues 里写"信用卡使用率偏高/超标"等矛盾内容
+   - 信用卡使用率状态为"偏高/超红线"时，issues 数字必须与状态描述一致，不得自造别的百分比
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 【V2.0评分】${score}分 · ${level}级（A=800+优质准入 | B=650-799优化空间 | C=500-649恢复路径 | D=500以下修复计划）
@@ -850,7 +959,7 @@ ${creditTagsText}
 
 【贷款明细（仅供分析征信结构，不得在输出中引用具体机构名）】
 ${loanDesc}
-【信用卡明细（仅供分析使用率/账龄，不得在输出中引用具体银行名）】
+【信用卡明细（仅供分析账龄，不得在输出中引用具体银行名，不得用此处明细重新汇总使用率——使用率以上方"信用卡使用率状态"为准）】
 ${cardDesc}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 【当前客户等级专属写作指令】
@@ -955,7 +1064,7 @@ async function handleOCR(request, env) {
 
   // 缓存查询：命中直接返回，不计入限流也不扣代理商配额
   if (cacheKey && env.CACHE) {
-    const cached = await env.CACHE.get(`ocr:${cacheKey}`);
+    const cached = await env.CACHE.get(`ocr:v5:${cacheKey}`);
     if (cached) {
       console.log('[OCR] cache hit, key:', cacheKey);
       return jsonResp({ raw: reclassifyRaw(cached), _cached: true }, 200, request);
@@ -1032,6 +1141,7 @@ async function handleOCR(request, env) {
         has_overdue_history:  d.hoh ?? d.has_overdue_history  ?? false,
         has_bad_record:       d.hbr ?? d.has_bad_record        ?? false,
         bad_record_notes:     d.brn ?? d.bad_record_notes      ?? '无',
+        history_summary:      d.hs  ?? d.history_summary        ?? null,
         ocr_warnings:         d.w   ?? d.ocr_warnings          ?? [],
         notes:                d.notes ?? '',
       };
@@ -1045,7 +1155,7 @@ async function handleOCR(request, env) {
   // ── 辅助：只缓存合法JSON ──
   async function writeCache(raw) {
     if (!cacheKey || !env.CACHE) return;
-    try { JSON.parse(raw); await env.CACHE.put(`ocr:${cacheKey}`, raw, { expirationTtl: 7200 }); }
+    try { JSON.parse(raw); await env.CACHE.put(`ocr:v5:${cacheKey}`, raw, { expirationTtl: 7200 }); }
     catch (_) { console.error('[OCR] invalid JSON, skip cache, len:', raw.length); }
   }
 
@@ -1195,32 +1305,64 @@ async function handleMatch(request, env) {
     return jsonResp({ error: '请求格式错误' }, 400, request);
   }
 
-  // 付费鉴权：pay token 或 agentId 二选一
+  // 付费鉴权：pay token / agentId / preview 模式 三选一
   const payToken = body._pay_token || '';
   const agentId  = body._agent_id  || '';
+  const previewMode = !!body._preview_mode;
+  const previewPhone = String(body._phone || '').trim();
   delete body._pay_token;
   delete body._agent_id;
+  delete body._preview_mode;
+  delete body._phone;
 
-  if (!payToken && !agentId) {
-    return jsonResp({ error: { message: '需要付费后才能查看匹配结果', code: 'PAYMENT_REQUIRED' } }, 402, request);
-  }
-  // 付费代理商（如 XRT）：agentId 仅识别渠道，仍必须有有效 pay_token
-  const isPaidAgentCh = agentId && AGENT_PRICES[agentId];
-  if (agentId) {
-    const agentRaw = await env.ORDERS.get(`agent:${agentId}`);
-    if (!agentRaw) return jsonResp({ error: { message: '代理商账号不存在', code: 'PAYMENT_REQUIRED' } }, 403, request);
-  }
-  if (!agentId || isPaidAgentCh) {
-    if (!payToken) {
+  // 2026-06-02：preview 模式 — 让后台拿到含 AI 建议段的完整 PDF
+  // 校验真实手机号 + KV 限流（5 次/手机号/24h）防滥用
+  // 代理商手机号白名单豁免（代理商自己手机号无限刷，演示/代客户场景）
+  if (previewMode && !payToken) {
+    if (!/^1[3-9]\d{9}$/.test(previewPhone)) {
+      return jsonResp({ error: { message: '手机号格式不正确', code: 'PHONE_INVALID' } }, 400, request);
+    }
+    // 代理商白名单：填自己手机号 → 跳过配额；填客户手机号 → 走 5 次/24h
+    // 与 config.js AGENTS phone 保持一致（新增代理商时同步追加）
+    const AGENT_OPERATOR_PHONES = new Set([
+      '18359711859', // AHX 安惠信
+      '15260211119', // XRT 鑫融腾
+    ]);
+    const agentBypass = AGENT_OPERATOR_PHONES.has(previewPhone);
+    if (!agentBypass && env.CACHE) {
+      const PREVIEW_LIMIT = 5;
+      const quotaKey = `ai_preview:${previewPhone}`;
+      const countStr = await env.CACHE.get(quotaKey);
+      const count = parseInt(countStr || '0', 10);
+      if (count >= PREVIEW_LIMIT) {
+        return jsonResp({ error: { message: `该手机号 24h 内已生成 ${PREVIEW_LIMIT} 次分析，请明日再试或付费解锁`, code: 'PREVIEW_QUOTA' } }, 429, request);
+      }
+      // 计数 +1，TTL 24h（CF KV put 每次重置 TTL，相当于滑动窗口）
+      await env.CACHE.put(quotaKey, String(count + 1), { expirationTtl: 86400 });
+    }
+    // preview 模式跳过后续 token / agent 付费校验
+  } else {
+    if (!payToken && !agentId) {
       return jsonResp({ error: { message: '需要付费后才能查看匹配结果', code: 'PAYMENT_REQUIRED' } }, 402, request);
     }
-    const tokenRaw = await env.ORDERS.get(`token:${payToken}`);
-    if (!tokenRaw) {
-      return jsonResp({ error: { message: '支付凭证无效或已过期，请重新付费', code: 'PAYMENT_REQUIRED' } }, 402, request);
+    // 付费代理商（如 XRT/AHX）：agentId 仅识别渠道，仍必须有有效 pay_token
+    const isPaidAgentCh = agentId && AGENT_PRICES[agentId];
+    if (agentId) {
+      const agentRaw = await env.ORDERS.get(`agent:${agentId}`);
+      if (!agentRaw) return jsonResp({ error: { message: '代理商账号不存在', code: 'PAYMENT_REQUIRED' } }, 403, request);
     }
-    const td = JSON.parse(tokenRaw);
-    if (td.expiresAt < Date.now()) {
-      return jsonResp({ error: { message: '支付凭证已过期（24小时内有效），请重新付费', code: 'PAYMENT_REQUIRED' } }, 402, request);
+    if (!agentId || isPaidAgentCh) {
+      if (!payToken) {
+        return jsonResp({ error: { message: '需要付费后才能查看匹配结果', code: 'PAYMENT_REQUIRED' } }, 402, request);
+      }
+      const tokenRaw = await env.ORDERS.get(`token:${payToken}`);
+      if (!tokenRaw) {
+        return jsonResp({ error: { message: '支付凭证无效或已过期，请重新付费', code: 'PAYMENT_REQUIRED' } }, 402, request);
+      }
+      const td = JSON.parse(tokenRaw);
+      if (td.expiresAt < Date.now()) {
+        return jsonResp({ error: { message: '支付凭证已过期（24小时内有效），请重新付费', code: 'PAYMENT_REQUIRED' } }, 402, request);
+      }
     }
   }
 
@@ -1780,11 +1922,17 @@ async function handleScoreAdmin(request, env) {
   }
 }
 
-// 代理商企业微信群机器人 Webhook（key 与 config.js 保持一致）
+// 企业微信群机器人 Webhook
+// 2026-06-02：直客（agentId 为空）也走 AHX 群作为默认 lead 通知群
 const AGENT_WEBHOOKS = {
   'AHX': 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=eeac39a4-e6f8-487d-8a3c-92f6421829b2',
   'XRT': 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=59848f9e-272d-401c-bb5b-7d6150657c08',
 };
+// 直客 fallback 群（暂用 AHX 群，待业务量起来后另建直客专属群）
+const DEFAULT_WEBHOOK = AGENT_WEBHOOKS['AHX'];
+function resolveWebhook(agentId) {
+  return (agentId && AGENT_WEBHOOKS[agentId]) || DEFAULT_WEBHOOK;
+}
 
 async function handleReport(request, env, ctx) {
   let body;
@@ -1815,13 +1963,15 @@ async function handleReport(request, env, ctx) {
     const data = await resendResp.json();
     const ok   = resendResp.status === 200 || resendResp.status === 201;
 
-    // 代理商渠道：fire-and-forget 推送 PDF 到企业微信群
+    // 2026-06-02：三轨统一推送 PDF 到企业微信群（直客 fallback 到 AHX 群）
     const agentId  = body.agent_id;
     const pdfData  = body.pdfData;
     const refId    = (body.ref_id || '').toString().replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20);
-    const webhook  = agentId && AGENT_WEBHOOKS[agentId];
+    const webhook  = resolveWebhook(agentId);
+    const clientPhone = (body['客户手机'] || '').toString().slice(0, 11);
+    const agentLabel = body['渠道代理'] || (agentId || '直客');
     if (webhook && pdfData?.ocrData && env.PDF_SERVICE_SECRET) {
-      ctx.waitUntil(sendWechatPdf(pdfData, name, time, body['渠道代理'] || agentId, refId, webhook, env).catch(e => {
+      ctx.waitUntil(sendWechatPdf(pdfData, name, time, agentLabel, refId, webhook, env, clientPhone).catch(e => {
         console.error('[WeChat] sendWechatPdf 顶层错误:', e.message);
       }));
     }
@@ -1835,7 +1985,7 @@ async function handleReport(request, env, ctx) {
   }
 }
 
-async function sendWechatPdf(pdfData, clientName, submitTime, agentLabel, refId, webhookUrl, env) {
+async function sendWechatPdf(pdfData, clientName, submitTime, agentLabel, refId, webhookUrl, env, clientPhone) {
   const key = new URL(webhookUrl).searchParams.get('key');
   if (!key) { console.error('[WeChat] invalid webhook URL, no key'); return; }
 
@@ -1885,13 +2035,14 @@ async function sendWechatPdf(pdfData, clientName, submitTime, agentLabel, refId,
   // 3. 先发文字摘要，再发 PDF 文件
   const scoreLabel = v2Score?.level ? `${v2Score.level}级（${v2Score.score}分）` : '--';
   const refLine    = refId ? `> **推荐人**：${refId}\n` : '';
+  const phoneLine  = clientPhone ? `> **手机**：${clientPhone}\n` : '';
   await fetch(webhookUrl, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({
       msgtype:  'markdown',
       markdown: {
-        content: `## 新客户报告\n> **姓名**：${personName}\n> **评分**：${scoreLabel}\n> **渠道**：${agentLabel}\n${refLine}> **时间**：${submitTime}`,
+        content: `## 新客户报告\n> **姓名**：${personName}\n${phoneLine}> **评分**：${scoreLabel}\n> **渠道**：${agentLabel}\n${refLine}> **时间**：${submitTime}`,
       },
     }),
   });
@@ -1954,8 +2105,8 @@ async function handleLead(request, env, ctx) {
     }).catch(e => console.error('[lead] email error:', e.message)));
   }
 
-  // 2. 企微推送（代理商群，按 agent_id）
-  const webhook = agentId && AGENT_WEBHOOKS[agentId];
+  // 2. 企微推送（直客 fallback 到 AHX 群）
+  const webhook = resolveWebhook(agentId);
   if (webhook) {
     const refLine = refId ? `\n> **推荐人**：${refId}` : '';
     const content = `## 新咨询线索（opt-in）\n> **手机号**：${phone}\n> **姓名**：${personName}\n> **评分**：${scoreLevel}级（${score}分）${refLine}\n> **时间**：${submitTime}`;
@@ -2169,6 +2320,42 @@ async function handlePdf(request, env) {
   }
 }
 
+// ── 机构名简化（与 app.js shortenBankName 保持一致）──
+// 处理 OCR 没 normalize 干净的长字符串，以及 Textin 偶发截断（如「合肥分」缺「行」字）
+function shortenBankName(name) {
+  if (!name) return '--';
+  return name
+    .replace(/中国民生银行股份有限公司/g, '民生银行')
+    .replace(/上海浦东发展银行股份有限公司/g, '浦发银行')
+    .replace(/中国农业银行股份有限公司/g, '农业银行')
+    .replace(/中国工商银行股份有限公司/g, '工商银行')
+    .replace(/中国建设银行股份有限公司/g, '建设银行')
+    .replace(/中国邮政储蓄银行股份有限公司/g, '邮储银行')
+    .replace(/交通银行股份有限公司/g, '交通银行')
+    .replace(/招商银行股份有限公司/g, '招商银行')
+    .replace(/兴业银行股份有限公司/g, '兴业银行')
+    .replace(/平安银行股份有限公司/g, '平安银行')
+    .replace(/中信银行股份有限公司/g, '中信银行')
+    .replace(/光大银行股份有限公司/g, '光大银行')
+    .replace(/华夏银行股份有限公司/g, '华夏银行')
+    .replace(/广发银行股份有限公司/g, '广发银行')
+    .replace(/浦发银行股份有限公司/g, '浦发银行')
+    .replace(/民生银行股份有限公司/g, '民生银行')
+    .replace(/北京阳光消费金融股份有限公司/g, '阳光消费金融')
+    .replace(/马上消费金融股份有限公司/g, '马上消费金融')
+    .replace(/招联消费金融有限公司/g, '招联消费金融')
+    .replace(/股份有限公司|有限责任公司|有限公司|股份公司/g, '')
+    .replace(/信用卡中心/g, '')
+    // 「分行?」让「行」字可选，兼容 Textin 在列宽边界截断「行」字的情况（如「合肥分」）
+    .replace(/(?:厦门市|厦门|上海|北京|广州|深圳|重庆|成都|武汉|南京|杭州|西安|天津|苏州|郑州|长沙|宁波|青岛|济南|福州|合肥|福建)(?:市)?分行?/g, '')
+    .replace(/其他个人消费贷款/g, '个消')
+    .replace(/个人消费贷款/g, '个消')
+    .replace(/个人经营性贷款/g, '个经')
+    .replace(/个人经营贷款/g, '个经')
+    .replace(/\s+/g, '')
+    .trim() || '--';
+}
+
 // ── buildPdfHtml：将报告数据渲染为可供 Puppeteer 使用的 HTML ──
 function buildPdfHtml(data, v2, userInfo, pdfStats, aiResult) {
   const name    = data.person_name || '--';
@@ -2210,7 +2397,7 @@ function buildPdfHtml(data, v2, userInfo, pdfStats, aiResult) {
     const grey    = isSettled(l) ? 'color:#aaa' : '';
     const monthly = l.estMonthly > 0 ? fmtNum(Math.round(l.estMonthly)) + '元' : '--';
     return `<tr style="${grey}">
-      <td>${l.name || '--'}${l.is_revolving ? ' <span style="font-size:10px;color:#0cb87a">[循环]</span>' : ''}</td>
+      <td>${shortenBankName(l.name)}${l.is_revolving ? ' <span style="font-size:10px;color:#0cb87a">[循环]</span>' : ''}</td>
       <td>${catLabel(l)}</td>
       <td style="text-align:right">${l.credit_limit ? fmtNum(l.credit_limit) + '元' : '--'}</td>
       <td style="text-align:right">${l.balance != null ? fmtNum(l.balance) + '元' : '--'}</td>
@@ -2222,15 +2409,25 @@ function buildPdfHtml(data, v2, userInfo, pdfStats, aiResult) {
   }).join('') || '<tr><td colspan="8" style="color:#999;text-align:center">无贷款记录</td></tr>';
 
   // ── 信用卡明细 ──
+  // 已用额度列同时显示总余额与含大额分期拆解；使用率按"循环口径"（剔除 big_install）
   const cards = data.cards || [];
   const activeCards = cards.filter(c => c.status !== '销户' && c.status !== '已销户');
   const cardRows = cards.map(c => {
-    const util    = c.limit > 0 ? Math.round((c.used || 0) / c.limit * 100) : null;
+    const used    = c.used != null ? c.used : null;
+    const inst    = c.big_install || 0;
+    const revolv  = used != null ? Math.max(0, used - inst) : null;
+    // 循环使用率：剔除大额分期，反映真实"信用卡爆额"风险
+    const util    = c.limit > 0 && revolv != null ? Math.round(revolv / c.limit * 100) : null;
     const settled = c.status === '销户' || c.status === '已销户';
+    const usedCell = used == null
+      ? '--'
+      : inst > 0
+        ? `${fmtNum(used)}元<div style="font-size:9px;color:#888;line-height:1.4">含分期 ${fmtNum(inst)}元</div>`
+        : `${fmtNum(used)}元`;
     return `<tr style="${settled ? 'color:#aaa' : ''}">
-      <td>${c.name || '--'}</td>
+      <td>${shortenBankName(c.name)}</td>
       <td style="text-align:right">${c.limit ? fmtNum(c.limit) + '元' : '--'}</td>
-      <td style="text-align:right">${c.used != null ? fmtNum(c.used) + '元' : '--'}</td>
+      <td style="text-align:right">${usedCell}</td>
       <td style="text-align:right">${util != null ? util + '%' : '--'}</td>
       <td>${c.status || '--'}</td>
     </tr>`;
@@ -2373,7 +2570,6 @@ function buildPdfHtml(data, v2, userInfo, pdfStats, aiResult) {
       ['公积金月缴', userInfo.provident ? fmtNum(userInfo.provident) + ' 元/月' : '未填写'],
       ['学历',     userInfo.edu        || '未填写'],
       ['户籍',     userInfo.hukou      || '未填写'],
-      ['固定支出', userInfo.fixed_expense ? fmtNum(userInfo.fixed_expense) + ' 元/月' : '未填写'],
       ['名下资产', userInfo.assets     || '未填写'],
     ];
     userInfoHtml = `
@@ -2464,7 +2660,7 @@ ${userInfoHtml}
 
 <div class="section">
   <div class="section-title">信用卡明细（共 ${cards.length} 张 / 未销户 ${activeCards.length} 张）</div>
-  <table><thead><tr><th>发卡行</th><th style="text-align:right">授信额度</th><th style="text-align:right">已用额度</th><th style="text-align:right">使用率</th><th>状态</th></tr></thead>
+  <table><thead><tr><th>发卡行</th><th style="text-align:right">授信额度</th><th style="text-align:right">已用额度</th><th style="text-align:right">循环使用率</th><th>状态</th></tr></thead>
   <tbody>${cardRows}</tbody></table>
 </div>
 

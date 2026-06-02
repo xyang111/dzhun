@@ -1934,6 +1934,10 @@ function _validateInfoForm() {
     ['asset-house','asset-car','asset-biz','asset-none'].forEach(id => { const el=document.getElementById(id); if(el){el.style.outline='2px solid var(--danger)';setTimeout(()=>{el.style.outline='';},3000);} });
     missing.push('名下资产');
   }
+  const phone = document.getElementById('if-phone');
+  const phoneVal = (phone?.value || '').trim();
+  if (!phone || !phoneVal) { _hi('if-phone'); missing.push('联系手机号'); }
+  else if (!/^1[3-9]\d{9}$/.test(phoneVal)) { _hi('if-phone'); missing.push('联系手机号格式不正确（11 位，1 开头）'); }
   if (missing.length > 0) {
     alert('以下信息未填写，请补充后再提交：\n\n• ' + missing.join('\n• '));
     return false;
@@ -2316,11 +2320,12 @@ async function startMatching() {
   await new Promise(r => setTimeout(r, 50)); // 让浏览器渲染第一帧
 
   // ── AI 在后台补充文字建议（不阻塞结果展示）──
+  // 2026-06-02：无条件跑 AI（含未付费）—— 让顾问拿到含完整 advice/optimization 的 PDF
+  // 未付费时 worker 凭 phone + KV 限流（24h/手机号 一次）防滥用
   const aiPayToken = getPayToken() || '';
-  const _isAgentMode = !!window._currentAgent;
-  const _isPaidAgentMode = _isAgentMode && isPaidAgent(window._currentAgent.id);
-  // 付费代理商：必须有 token；普通代理商：免费豁免
-  if (aiPayToken || (_isAgentMode && !_isPaidAgentMode)) {
+  const _aiPreviewMode = !aiPayToken;
+  const _aiPhone = (userInfo?.phone || '').toString().slice(0, 11);
+  if (true) {
     const _matchPayload = {
       creditData: {
         loanCount:           loans.length,
@@ -2374,7 +2379,7 @@ async function startMatching() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
-          body: JSON.stringify({ _pay_token: aiPayToken, _agent_id: window._currentAgent?.id || null, payload: _matchPayload }),
+          body: JSON.stringify({ _pay_token: aiPayToken, _agent_id: window._currentAgent?.id || null, _preview_mode: _aiPreviewMode, _phone: _aiPhone, payload: _matchPayload }),
         });
         clearTimeout(t);
         if (!resp.ok) { _showAiBar('AI分析请求失败 HTTP ' + resp.status, true); return; }
@@ -3033,20 +3038,17 @@ function renderMatchResult(r) {
   }
   if (!isPaid) {
     const _ghostCard = () => `<div class="pw-ghost"><div class="pw-ghost-l"><div class="pw-ghost-name"></div><div class="pw-ghost-sub"></div></div><div class="pw-ghost-r"><div class="pw-ghost-pct"></div><div class="pw-ghost-rate"></div></div></div>`;
-    const _lockOverlay = `<div class="pw-lock-overlay"><div class="pw-lock-ring"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="pw-lock-lbl">专属方案已生成 · 付费解锁顾问 1v1 跟进</div></div>`;
-    // A2 钩子文案：把"顾问通道+精确执行细节"前置，明确告知付费后能拿到什么
-    // 注意：不暴露具体时间（如"9个月""3个月"），跟 Hero 模糊化策略一致
-    const _hintByLevel = {
-      A: '解锁后获得：白名单通道顾问 1v1 · 利率档位谈判路径 · PDF 完整诊断',
-      B: '解锁后获得：精准申请顺序 · 优化清单执行时间表 · 顾问 1v1 微信 · PDF',
-      C: '解锁后获得：过渡方案时间窗 · 上行至主流银行的路径 · 顾问 1v1 · PDF',
-      D: '解锁后获得：完整修复路线图 · 每月动作清单 · 顾问全程陪跑 · PDF',
-    };
-    const _countHint = _hintByLevel[v2Level] || '解锁后获得：完整诊断 · 顾问 1v1 微信 · PDF';
+    const _lockOverlay = `<div class="pw-lock-overlay"><div class="pw-lock-ring"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="pw-lock-lbl">完整《征信体检报告》已生成 · 付费解锁查看</div></div>`;
+    // 方向 A 文案（2026-06-02）：付费 = 客户自费购买看完整报告 + 方向建议
+    // 不提"顾问 1v1"（顾问联系靠话术引导，不在前端承诺）
+    const _countHint = '解锁后获得：5 大维度深度解读 · 个性化优化方向建议 · 可下载 PDF · 30 天免费复查 1 次';
     const _payYuan = (getPrice(window._currentAgent?.id) / 100).toString().replace(/\.0$/, '');
-    document.getElementById('productsGrid').innerHTML = `<div class="pw-wrap"><div class="pw-preview">${_ghostCard()}${_ghostCard()}${_ghostCard()}${_lockOverlay}<div class="pw-fade"></div></div><div class="pw-hint">${_countHint}</div><button class="pw-btn" onclick="showPayModal(()=>startMatching())">解锁顾问 1v1 + 完整方案 &nbsp; ¥${_payYuan}</button></div>`;
+    document.getElementById('productsGrid').innerHTML = `<div class="pw-wrap"><div class="pw-preview">${_ghostCard()}${_ghostCard()}${_ghostCard()}${_lockOverlay}<div class="pw-fade"></div></div><div class="pw-hint">${_countHint}</div><button class="pw-btn" onclick="showPayModal(()=>startMatching())">🔓 解锁完整报告 &nbsp; ¥${_payYuan}</button></div>`;
     document.getElementById('matchResult').style.display='block';
     document.getElementById('matchResult').scrollIntoView({behavior:'smooth',block:'start'});
+    // 2026-06-02：未付费也推送 PDF + 手机号到企微，含完整 AI 建议段
+    // autoSendReport 内部 await _aiDonePromise，AI 跑完才发（最多 45s 兜底）
+    autoSendReport(); // fire-and-forget
     window._isMatching = false;
     return;
   }
@@ -3266,7 +3268,8 @@ function renderMatchResult(r) {
   window._isMatching = false; // 释放匹配状态锁
   _trackEvent('match_result_shown', { product_count: (r.products||[]).length, level: r.level || null });
   autoSendReport();
-  scheduleLeadModal(); // opt-in 调度：停留 15s+滚动 40% 触发，30s 兜底
+  // 2026-06-02：表单已强制收手机号，不再触发 opt-in leadModal（避免骚扰已留号用户）
+  // scheduleLeadModal();
 }
 
 // ═══════════════════════════════════════════
@@ -3347,6 +3350,7 @@ function collectInfoData() {
     provident:      v('if-provident') ? parseInt(v('if-provident')) : null,
     fixed_expense:  null,
     assets:         assets.length > 0 ? assets.join(' / ') : '未填写',
+    phone:          v('if-phone') || '',
   };
 }
 
@@ -3568,43 +3572,43 @@ async function autoSendReport() {
     }
     const name = window._personName || '未识别';
 
-    // 代理商渠道：额外携带 PDF 所需数据，Worker 会推送 PDF 到企业微信群
+    // 2026-06-02：三轨统一推 PDF（含直客），Worker 兜底到 AHX 企业微信群
     let pdfData = null;
-    if (_currentAgent) {
-      try {
-        const ui      = collectInfoData();
-        const loans   = getActiveLoans(_recognizedData || {});
-        const cards   = getActiveCards(_recognizedData || {});
-        const online  = [...new Set(loans.filter(l=>l.type==='online').map(l=>l.name.split('-')[0]))].length;
-        const monthly = calcTotalMonthly(loans, cards);
-        const debt    = loans.reduce((s,l)=>s+(l.balance||0),0) + cards.reduce((s,c)=>s+(c.used||0),0);
-        pdfData = {
-          ocrData:  { ...(_recognizedData||{}), loans: (_recognizedData?.loans||[]).map(l=>({...l, estMonthly: calcLoanMonthly(l)})) },
-          v2Score:  window._v2Result,
-          userInfo: ui,
-          pdfStats: {
-            totalDebt:        debt,
-            totalMonthly:     monthly,
-            activeLoansCount: loans.length,
-            activeCardsCount: cards.length,
-            onlineInstCount:  online,
-            debtRatio:        ui?.income > 0 ? Math.round(monthly / ui.income * 100) : null,
-            age:              calcAgeFromId(_recognizedData?.id_number),
-          },
-          aiResult: window._lastReportAi || null,
-        };
-      } catch(e) { pdfData = null; }
-    }
+    try {
+      const ui      = collectInfoData();
+      const loans   = getActiveLoans(_recognizedData || {});
+      const cards   = getActiveCards(_recognizedData || {});
+      const online  = [...new Set(loans.filter(l=>l.type==='online').map(l=>l.name.split('-')[0]))].length;
+      const monthly = calcTotalMonthly(loans, cards);
+      const debt    = loans.reduce((s,l)=>s+(l.balance||0),0) + cards.reduce((s,c)=>s+(c.used||0),0);
+      pdfData = {
+        ocrData:  { ...(_recognizedData||{}), loans: (_recognizedData?.loans||[]).map(l=>({...l, estMonthly: calcLoanMonthly(l)})) },
+        v2Score:  window._v2Result,
+        userInfo: ui,
+        pdfStats: {
+          totalDebt:        debt,
+          totalMonthly:     monthly,
+          activeLoansCount: loans.length,
+          activeCardsCount: cards.length,
+          onlineInstCount:  online,
+          debtRatio:        ui?.income > 0 ? Math.round(monthly / ui.income * 100) : null,
+          age:              calcAgeFromId(_recognizedData?.id_number),
+        },
+        aiResult: window._lastReportAi || null,
+      };
+    } catch(e) { pdfData = null; }
 
     const _idLast4 = (_recognizedData?.id_number || '').slice(-4);
     const _dedupeKey = (name && name !== '未识别' && _idLast4) ? `${name}:${_idLast4}` : '';
 
+    const _clientPhone = pdfData?.userInfo?.phone || '';
     await fetch(REPORT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         '来源':     _currentAgent ? `代理商渠道 · ${_currentAgent.name}（${_currentAgent.id}）` : '贷准官网 · AI征信匹配报告',
         '客户姓名': name,
+        '客户手机': _clientPhone,
         '提交时间': new Date().toLocaleString('zh-CN'),
         '渠道代理': _currentAgent ? `${_currentAgent.name} / ${_currentAgent.phone} / ID:${_currentAgent.id}` : '直客',
         '完整报告': reportText,
