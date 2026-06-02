@@ -1937,7 +1937,7 @@ function _validateInfoForm() {
   const phone = document.getElementById('if-phone');
   const phoneVal = (phone?.value || '').trim();
   if (!phone || !phoneVal) { _hi('if-phone'); missing.push('联系手机号'); }
-  else if (!/^1[3-9]\d{9}$/.test(phoneVal)) { _hi('if-phone'); missing.push('联系手机号格式不正确（11 位，1 开头）'); }
+  else if (!/^1(3\d|4[5-9]|5[0-35-9]|6[2567]|7[0-8]|8\d|9[0-35-9])\d{8}$/.test(phoneVal)) { _hi('if-phone'); missing.push('联系手机号格式不正确（11 位，1 开头）'); }
   if (missing.length > 0) {
     alert('以下信息未填写，请补充后再提交：\n\n• ' + missing.join('\n• '));
     return false;
@@ -4466,7 +4466,7 @@ async function submitLead() {
   const _btn   = document.getElementById('leadSubmitBtn');
   if (!_input || !_btn || !_msg) return;
   const phone = (_input.value || '').trim();
-  if (!/^1[3-9]\d{9}$/.test(phone)) {
+  if (!/^1(3\d|4[5-9]|5[0-35-9]|6[2567]|7[0-8]|8\d|9[0-35-9])\d{8}$/.test(phone)) {
     _msg.textContent = '手机号格式不正确';
     _msg.className = 'lead-msg show error';
     return;

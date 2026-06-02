@@ -1319,7 +1319,7 @@ async function handleMatch(request, env) {
   // 校验真实手机号 + KV 限流（5 次/手机号/24h）防滥用
   // 代理商手机号白名单豁免（代理商自己手机号无限刷，演示/代客户场景）
   if (previewMode && !payToken) {
-    if (!/^1[3-9]\d{9}$/.test(previewPhone)) {
+    if (!/^1(3\d|4[5-9]|5[0-35-9]|6[2567]|7[0-8]|8\d|9[0-35-9])\d{8}$/.test(previewPhone)) {
       return jsonResp({ error: { message: '手机号格式不正确', code: 'PHONE_INVALID' } }, 400, request);
     }
     // 代理商白名单：填自己手机号 → 跳过配额；填客户手机号 → 走 5 次/24h
@@ -2065,7 +2065,7 @@ async function handleLead(request, env, ctx) {
   }
 
   const phone = String(body.phone || '').trim();
-  if (!/^1[3-9]\d{9}$/.test(phone)) {
+  if (!/^1(3\d|4[5-9]|5[0-35-9]|6[2567]|7[0-8]|8\d|9[0-35-9])\d{8}$/.test(phone)) {
     return jsonResp({ ok: false, error: '手机号格式不正确' }, 400, request);
   }
 
