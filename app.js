@@ -3041,7 +3041,7 @@ function renderMatchResult(r) {
     const _lockOverlay = `<div class="pw-lock-overlay"><div class="pw-lock-ring"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="pw-lock-lbl">完整《征信体检报告》已生成 · 付费解锁查看</div></div>`;
     // 方向 A 文案（2026-06-02）：付费 = 客户自费购买看完整报告 + 方向建议
     // 不提"顾问 1v1"（顾问联系靠话术引导，不在前端承诺）
-    const _countHint = '解锁后获得：5 大维度深度解读 · 个性化优化方向建议 · 可下载 PDF · 30 天免费复查 1 次';
+    const _countHint = '解锁后获得：5 大维度深度解读 · 个性化优化方向建议 · 可下载 PDF';
     const _payYuan = (getPrice(window._currentAgent?.id) / 100).toString().replace(/\.0$/, '');
     document.getElementById('productsGrid').innerHTML = `<div class="pw-wrap"><div class="pw-preview">${_ghostCard()}${_ghostCard()}${_ghostCard()}${_lockOverlay}<div class="pw-fade"></div></div><div class="pw-hint">${_countHint}</div><button class="pw-btn" onclick="showPayModal(()=>startMatching())">🔓 解锁完整报告 &nbsp; ¥${_payYuan}</button></div>`;
     document.getElementById('matchResult').style.display='block';
