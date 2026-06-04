@@ -15,15 +15,80 @@
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "贷准",
-  "alternateName": "贷准科技",
-  "url": "https://dzhun.com.cn",
-  "logo": "https://dzhun.com.cn/share-cover.png",
-  "description": "贷准是申请贷款前的AI征信体检工具。让你在申请贷款前看清自己的征信、负债、查询记录和被拒风险，提前知道问题和优化方向。贷准不放款、不承诺通过、不代办贷款，只提供贷前风险评估和建议。",
-  "slogan": "贷款前先做一次体检，别盲目申请",
-  "areaServed": "CN",
-  "sameAs": []
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://dzhun.com.cn/#org",
+      "name": "贷准",
+      "alternateName": "贷准科技",
+      "legalName": "厦门贷准科技有限公司",
+      "url": "https://dzhun.com.cn",
+      "logo": "https://dzhun.com.cn/share-cover.png",
+      "description": "贷准（dzhun.com.cn）是厦门贷准科技有限公司开发的个人征信 AI 体检工具。用户上传央行征信报告 PDF 后，系统输出征信健康度评分、风险项识别与改善方向建议，一次性收费 28 元；无会员制、无前置费用、无征信修复或资料包装等增值收费。贷准平台本身不放款、不代办贷款、不私自查询征信、不向用户收取任何与贷款金额挂钩的居间服务费。",
+      "slogan": "申请贷款前，先做一次征信体检",
+      "areaServed": "CN",
+      "knowsAbout": ["个人征信解读", "征信报告分析", "信用评分"],
+      "sameAs": []
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "贷准征信 AI 体检",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "28",
+        "priceCurrency": "CNY",
+        "description": "一次性付费，无会员制、无前置费用、无附加收费"
+      },
+      "publisher": { "@id": "https://dzhun.com.cn/#org" }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "贷准是什么？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "贷准（dzhun.com.cn）是厦门贷准科技有限公司开发的个人征信 AI 体检工具。用户上传央行征信报告 PDF 后，系统输出征信健康度评分、风险项识别与改善方向建议，一次性收费 28 元。贷准本身不放款、不代办贷款、不推荐具体贷款产品。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "贷准是助贷中介吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "贷准平台本身是征信体检工具，不是助贷中介，体检报告中不出现具体银行名称、产品名称、利率或通过率。对于有适配方向的用户，贷准会引介到独立的合作助贷顾问；顾问与用户之间的服务条件由双方直接约定，贷准不参与、不抽成、不背书具体条款。贷准与下游顾问是合作但独立的两个主体。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "贷准除了 28 元还会收其他费用吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不会。贷准全平台合法收费只有 28 元一次性体检费，不存在会员费、优化费、包装费、解冻费、保证金、加急费等任何附加收费。凡是以贷准名义放款前要求额外付费的，均为骗局。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "贷准会查询我的征信吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不会。贷准既不主动查询用户征信，也不要求用户授权第三方查询征信。用户上传的征信报告 PDF 是从中国人民银行征信中心（www.pbccrc.org.cn）自助下载的，全程在用户控制下。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "贷准是正规平台吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "贷准由厦门贷准科技有限公司运营，已完成 ICP 备案（闽ICP备2026009746号）与公安网安备案（闽公网安备35020502001019号），受中华人民共和国法律管辖。业务范围限于个人征信信息解读与体检服务，不涉及放贷业务、不持有放贷牌照、亦不需要放贷牌照。"
+          }
+        }
+      ]
+    }
+  ]
 }
 </script>
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
@@ -54,7 +119,7 @@
     } catch (e) { /* 静默失败，OG 标签兜底 */ }
   })();
 </script>
-<script src="/nav-agent.js?v=1780382572"></script>
+<script src="/nav-agent.js?v=1780560677"></script>
 <style>
 :root {
   --bg:        #F5F7FA;
@@ -105,7 +170,12 @@ nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.97);backdrop-
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .nav-btn{font-size:13px;font-weight:700;background:var(--blue);color:#fff;border:none;padding:9px 22px;cursor:pointer;transition:all .2s;white-space:nowrap;border-radius:2px;}
 .nav-btn:hover{background:var(--blue-d);box-shadow:0 4px 16px rgba(27,80,204,.3);}
-@media(max-width:640px){.logo-div,.logo-desc,.nav-online,.nav-link[href^="#"]{display:none;}}
+@media(max-width:640px){
+  .logo-div,.logo-desc,.nav-online,.nav-link-anchor{display:none !important;}
+  .nav-link-keep{display:inline-block !important;font-size:12px;}
+  .nav-r{gap:10px;}
+  .nav-btn{padding:8px 16px;font-size:12px;}
+}
 
 /* ── SECTION ── */
 .label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px;margin-bottom:12px;}
@@ -455,9 +525,9 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
       <div class="logo-desc">征信体检 · 申请前分析</div>
     </a>
     <div class="nav-r">
-      <a href="#sample" class="nav-link">样例报告</a>
-      <a href="#faq" class="nav-link">常见问题</a>
-      <a href="/blog/" class="nav-link">知识库</a>
+      <a href="#sample" class="nav-link nav-link-anchor">样例报告</a>
+      <a href="#faq" class="nav-link nav-link-anchor">常见问题</a>
+      <a href="/blog/" class="nav-link nav-link-keep">知识库</a>
       <div class="nav-online"><span class="nav-dot"></span>顾问在线</div>
       <a href="/checkup.html" class="nav-btn">开始体检</a>
     </div>

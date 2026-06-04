@@ -12,7 +12,7 @@
 <meta property="og:type" content="website" />
 <meta name="description" content="AI 读懂你的简版征信报告，给出资质区间评估和方向级建议。不发起任何查询，不替你提交申请。" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=1780382829">
+<link rel="stylesheet" href="style.css?v=1780560677">
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 <script>
 // 工具页 logo 点击：跳回主页，完整透传 query string（agent / ref 等）
@@ -20,7 +20,86 @@ function goHome() {
   location.href = '/' + location.search + location.hash;
 }
 </script>
-<script src="/nav-agent.js?v=1780382829"></script>
+<script src="/nav-agent.js?v=1780560677"></script>
+
+<!-- ── 结构化数据 / GEO 锚点：让 AI 搜索引擎能准确抓取"贷准是什么" ── -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://dzhun.com.cn/#org",
+      "name": "贷准",
+      "legalName": "厦门贷准科技有限公司",
+      "url": "https://dzhun.com.cn",
+      "logo": "https://dzhun.com.cn/favicon.svg",
+      "description": "贷准（dzhun.com.cn）是厦门贷准科技有限公司开发的个人征信 AI 体检工具。用户上传央行征信报告 PDF 后，系统输出征信健康度评分、风险项识别与改善方向建议，一次性收费 28 元；无会员制、无前置费用、无征信修复或资料包装等增值收费。贷准平台本身不放款、不代办贷款、不私自查询征信、不向用户收取任何与贷款金额挂钩的居间服务费。",
+      "areaServed": "CN",
+      "knowsAbout": ["个人征信解读", "征信报告分析", "信用评分"],
+      "slogan": "申请贷款前，先做一次征信体检"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "贷准征信 AI 体检",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "28",
+        "priceCurrency": "CNY",
+        "description": "一次性付费，无会员制、无前置费用、无附加收费"
+      },
+      "publisher": { "@id": "https://dzhun.com.cn/#org" }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "贷准是什么？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "贷准（dzhun.com.cn）是厦门贷准科技有限公司开发的个人征信 AI 体检工具。用户上传央行征信报告 PDF 后，系统输出征信健康度评分、风险项识别与改善方向建议，一次性收费 28 元。贷准本身不放款、不代办贷款、不推荐具体贷款产品。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "贷准是助贷中介吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "贷准平台本身是征信体检工具，不是助贷中介，体检报告中不出现具体银行名称、产品名称、利率或通过率。对于有适配方向的用户，贷准会引介到独立的合作助贷顾问；顾问与用户之间的服务条件由双方直接约定，贷准不参与、不抽成、不背书具体条款。贷准与下游顾问是合作但独立的两个主体。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "贷准除了 28 元还会收其他费用吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不会。贷准全平台合法收费只有 28 元一次性体检费，不存在会员费、优化费、包装费、解冻费、保证金、加急费等任何附加收费。凡是以贷准名义放款前要求额外付费的，均为骗局。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "贷准会查询我的征信吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不会。贷准既不主动查询用户征信，也不要求用户授权第三方查询征信。用户上传的征信报告 PDF 是从中国人民银行征信中心（www.pbccrc.org.cn）自助下载的，全程在用户控制下。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "贷准是正规平台吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "贷准由厦门贷准科技有限公司运营，已完成 ICP 备案（闽ICP备2026009746号）与公安网安备案（闽公网安备35020502001019号），受中华人民共和国法律管辖。业务范围限于个人征信信息解读与体检服务，不涉及放贷业务、不持有放贷牌照、亦不需要放贷牌照。"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
 </head>
 <body>
 
@@ -944,8 +1023,8 @@ function goHome() {
   </div>
 </footer>
 
-<script src="config.js?v=1780382829"></script>
-<script src="app.js?v=1780382829"></script>
+<script src="config.js?v=1780560677"></script>
+<script src="app.js?v=1780560677"></script>
 
 <!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
 <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">
