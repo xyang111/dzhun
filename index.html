@@ -119,7 +119,7 @@
     } catch (e) { /* 静默失败，OG 标签兜底 */ }
   })();
 </script>
-<script src="/nav-agent.js?v=1780560677"></script>
+<script src="/nav-agent.js?v=1780561072"></script>
 <style>
 :root {
   --bg:        #F5F7FA;
@@ -170,12 +170,7 @@ nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.97);backdrop-
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .nav-btn{font-size:13px;font-weight:700;background:var(--blue);color:#fff;border:none;padding:9px 22px;cursor:pointer;transition:all .2s;white-space:nowrap;border-radius:2px;}
 .nav-btn:hover{background:var(--blue-d);box-shadow:0 4px 16px rgba(27,80,204,.3);}
-@media(max-width:640px){
-  .logo-div,.logo-desc,.nav-online,.nav-link-anchor{display:none !important;}
-  .nav-link-keep{display:inline-block !important;font-size:12px;}
-  .nav-r{gap:10px;}
-  .nav-btn{padding:8px 16px;font-size:12px;}
-}
+@media(max-width:640px){.logo-div,.logo-desc,.nav-online,.nav-link{display:none;}}
 
 /* ── SECTION ── */
 .label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px;margin-bottom:12px;}
