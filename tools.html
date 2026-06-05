@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>贷准 · 贷款小工具 · 月供计算 / 被拒自查</title>
+<meta name="description" content="免费贷款计算器：月供估算、可贷额度反算；贷款被拒原因自查；信用影响因素科普。无需注册，即用即走。">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<script src="/nav-agent.js?v=1780561072"></script>
+<style>
+:root {
+  --bg:      #F5F7FA;
+  --bg2:     #EDF0F5;
+  --surface: #FFFFFF;
+  --border:  #E2E8F2;
+  --border2: #C8D3E8;
+  --ink:     #0F2742;
+  --ink2:    #2D4468;
+  --muted:   #607090;
+  --faint:   #98A8C0;
+  --blue:    #1B50CC;
+  --blue-d:  #1340A8;
+  --blue-lt: #EBF0FF;
+  --teal:    #1A7A64;
+  --teal-lt: #E4F4EF;
+  --amber:   #B85C00;
+  --amber-lt:#FEF3E2;
+  --red:     #C42B2B;
+  --red-lt:  #FEE8E8;
+  --shadow-sm: 0 1px 3px rgba(15,39,66,.07);
+  --shadow:  0 4px 16px rgba(15,39,66,.09),0 1px 4px rgba(15,39,66,.05);
+  --sans:'Noto Sans SC','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  --mono:'SF Mono','Menlo','Consolas','Courier New',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+a{text-decoration:none;color:inherit;}
+.inner{max-width:720px;margin:0 auto;padding:0 clamp(16px,4vw,40px);}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);box-shadow:0 1px 4px rgba(15,39,66,.06);}
+.nav-inner{max-width:1100px;margin:0 auto;padding:0 clamp(20px,5vw,52px);height:60px;display:flex;align-items:center;gap:28px;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:34px;height:34px;background:var(--ink);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo-name{font-size:18px;font-weight:900;color:var(--ink);letter-spacing:-.01em;}
+.logo-name em{font-style:normal;color:var(--blue);}
+.logo-div{width:1px;height:18px;background:var(--border2);margin:0 4px;}
+.logo-desc{font-size:11px;color:var(--muted);letter-spacing:.03em;white-space:nowrap;}
+.nav-r{margin-left:auto;display:flex;align-items:center;gap:14px;}
+.nav-link{font-size:13px;color:var(--muted);transition:color .2s;}
+.nav-link:hover,.nav-link.active{color:var(--blue);}
+.nav-btn{font-size:13px;font-weight:700;background:var(--blue);color:#fff;border:none;padding:9px 22px;cursor:pointer;transition:all .2s;white-space:nowrap;border-radius:2px;text-decoration:none;display:inline-block;}
+.nav-btn:hover{background:var(--blue-d);}
+@media(max-width:640px){.logo-div,.logo-desc{display:none;}}
+
+/* PAGE HEADER */
+.pg-header{padding:40px 0 32px;border-bottom:1px solid var(--border);background:var(--surface);}
+.pg-eyebrow{font-size:11px;font-weight:700;color:var(--blue);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;}
+.pg-h1{font-size:clamp(22px,3.5vw,32px);font-weight:900;letter-spacing:-.025em;color:var(--ink);margin-bottom:8px;}
+.pg-sub{font-size:14px;color:var(--muted);line-height:1.75;}
+
+/* TABS */
+.tabs-wrap{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:60px;z-index:100;}
+.tabs{max-width:720px;margin:0 auto;padding:0 clamp(16px,4vw,40px);display:flex;gap:0;}
+.tab-btn{font-size:13px;font-weight:600;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;padding:14px 20px 12px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.tab-btn:hover{color:var(--ink);}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
+@media(max-width:440px){.tab-btn{padding:12px 14px 10px;font-size:12px;}}
+
+/* TAB PANELS */
+.tab-panel{display:none;padding:32px 0 60px;}
+.tab-panel.active{display:block;}
+
+/* CARD */
+.tool-card{background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding:28px;margin-bottom:16px;}
+.card-title{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:4px;}
+.card-sub{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.65;}
+
+/* MODE SWITCH */
+.mode-switch{display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:3px;margin-bottom:24px;width:fit-content;}
+.mode-btn{font-size:13px;font-weight:600;color:var(--muted);background:none;border:none;padding:7px 20px;cursor:pointer;border-radius:2px;transition:all .18s;}
+.mode-btn.active{background:var(--surface);color:var(--blue);box-shadow:var(--shadow-sm);}
+
+/* FORM */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+@media(max-width:480px){.form-row{grid-template-columns:1fr;}}
+.form-row.single{grid-template-columns:1fr;}
+.field label{font-size:12px;font-weight:600;color:var(--ink2);letter-spacing:.03em;display:block;margin-bottom:6px;}
+.field input{width:100%;font-size:15px;font-family:var(--sans);font-weight:600;color:var(--ink);background:var(--bg);border:1.5px solid var(--border);padding:10px 14px;outline:none;transition:border-color .18s;border-radius:2px;}
+.field input:focus{border-color:var(--blue);background:var(--surface);}
+.field .hint{font-size:11px;color:var(--faint);margin-top:5px;}
+.presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.preset-btn{font-size:11px;font-weight:600;color:var(--blue);background:var(--blue-lt);border:1px solid rgba(27,80,204,.2);padding:3px 10px;cursor:pointer;border-radius:20px;transition:all .15s;}
+.preset-btn:hover{background:var(--blue);color:#fff;}
+
+/* CALC BTN */
+.calc-btn{width:100%;font-size:15px;font-weight:700;background:var(--blue);color:#fff;border:none;padding:14px;cursor:pointer;transition:all .2s;border-radius:2px;margin-top:8px;}
+.calc-btn:hover{background:var(--blue-d);box-shadow:0 4px 16px rgba(27,80,204,.3);}
+
+/* RESULT */
+.result-box{background:var(--blue-lt);border:1.5px solid rgba(27,80,204,.2);padding:20px 24px;margin-top:20px;border-radius:2px;display:none;}
+.result-box.show{display:block;}
+.result-main{text-align:center;margin-bottom:20px;}
+.result-label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.05em;margin-bottom:6px;}
+.result-num{font-size:36px;font-weight:900;color:var(--blue);line-height:1;font-family:var(--mono);}
+.result-unit{font-size:14px;color:var(--muted);margin-top:4px;}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);}
+.result-cell{background:var(--surface);padding:14px 16px;}
+.result-cell-lbl{font-size:11px;color:var(--muted);margin-bottom:4px;}
+.result-cell-val{font-size:16px;font-weight:800;color:var(--ink);font-family:var(--mono);}
+.result-note{font-size:11px;color:var(--faint);margin-top:12px;line-height:1.6;}
+
+/* DIAGNOSIS (Tool 2) */
+.q-block{margin-bottom:24px;}
+.q-label{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:12px;line-height:1.5;}
+.q-num{display:inline-block;width:22px;height:22px;background:var(--blue);color:#fff;font-size:11px;font-weight:700;border-radius:50%;text-align:center;line-height:22px;margin-right:8px;flex-shrink:0;}
+.options{display:flex;flex-direction:column;gap:8px;}
+.opt{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border:1.5px solid var(--border);cursor:pointer;transition:all .18s;border-radius:2px;}
+.opt:hover{border-color:var(--blue-d);background:var(--blue-lt);}
+.opt input[type=radio]{display:none;}
+.opt.checked{border-color:var(--blue);background:var(--blue-lt);}
+.opt-mark{width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;transition:all .18s;display:flex;align-items:center;justify-content:center;}
+.opt.checked .opt-mark{border-color:var(--blue);background:var(--blue);}
+.opt.checked .opt-mark::after{content:'';width:6px;height:6px;border-radius:50%;background:#fff;}
+.opt-text{font-size:13px;color:var(--ink2);font-weight:500;}
+
+/* DIAGNOSIS RESULT */
+.diag-result{display:none;margin-top:8px;}
+.diag-result.show{display:block;}
+.diag-intro{font-size:14px;color:var(--muted);margin-bottom:16px;line-height:1.65;}
+.diag-item{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--amber);padding:16px 18px;margin-bottom:12px;}
+.diag-item.primary{border-left-color:var(--red);}
+.diag-item-tag{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;}
+.diag-item.primary .diag-item-tag{color:var(--red);}
+.diag-item:not(.primary) .diag-item-tag{color:var(--amber);}
+.diag-item-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+.diag-item-body{font-size:13px;color:var(--muted);line-height:1.65;}
+.diag-tip{background:var(--teal-lt);border:1px solid rgba(26,122,100,.2);border-left:3px solid var(--teal);padding:14px 16px;margin-top:16px;}
+.diag-tip-lbl{font-size:11px;font-weight:700;color:var(--teal);letter-spacing:.08em;margin-bottom:6px;}
+.diag-tip-body{font-size:13px;color:#1A4A3A;line-height:1.65;}
+
+/* FACTORS (Tool 3) */
+.factor-list{display:flex;flex-direction:column;gap:12px;}
+.factor-item{background:var(--surface);border:1px solid var(--border);padding:18px 20px;cursor:pointer;transition:border-color .2s;}
+.factor-item:hover{border-color:var(--blue);}
+.factor-header{display:flex;align-items:center;justify-content:space-between;}
+.factor-left{display:flex;align-items:center;gap:12px;}
+.factor-icon{width:36px;height:36px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.factor-name{font-size:14px;font-weight:700;color:var(--ink);}
+.factor-weight{font-size:11px;color:var(--muted);margin-top:2px;}
+.factor-arrow{font-size:12px;color:var(--faint);transition:transform .2s;}
+.factor-item.open .factor-arrow{transform:rotate(90deg);}
+.factor-body{font-size:13px;color:var(--muted);line-height:1.75;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:none;}
+.factor-item.open .factor-body{display:block;}
+.factor-body strong{color:var(--ink2);}
+.factor-body .tip{background:var(--blue-lt);border-left:2px solid var(--blue);padding:8px 12px;margin-top:10px;font-size:12px;color:var(--ink2);}
+
+/* CTA STRIP */
+.cta-strip{background:var(--ink);padding:28px;margin-top:32px;text-align:center;}
+.cta-strip-label{font-size:12px;color:rgba(255,255,255,.5);letter-spacing:.08em;margin-bottom:8px;}
+.cta-strip-title{font-size:18px;font-weight:800;color:#fff;margin-bottom:6px;}
+.cta-strip-sub{font-size:13px;color:rgba(255,255,255,.6);margin-bottom:20px;line-height:1.6;}
+.cta-strip-btn{display:inline-block;font-size:14px;font-weight:700;background:var(--blue);color:#fff;padding:12px 32px;border-radius:2px;transition:all .2s;}
+.cta-strip-btn:hover{background:var(--blue-d);box-shadow:0 4px 16px rgba(27,80,204,.4);}
+
+/* FOOTER */
+footer{background:var(--surface);border-top:1px solid var(--border);padding:20px clamp(20px,5vw,52px);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.footer-name{font-size:14px;font-weight:700;color:var(--ink);}
+.footer-name em{font-style:normal;color:var(--blue);}
+.footer-r{font-size:11px;color:var(--faint);}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="logo">
+      <div class="logo-icon">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <rect x="1" y="1" width="5" height="5" stroke="white" stroke-width="1"/>
+          <rect x="8" y="1" width="5" height="5" fill="white" opacity=".5"/>
+          <rect x="1" y="8" width="5" height="5" fill="white" opacity=".25"/>
+          <rect x="8" y="8" width="5" height="5" stroke="white" stroke-width="1" stroke-dasharray="1.5 1"/>
+        </svg>
+      </div>
+      <div class="logo-name"><em>贷</em>准</div>
+      <div class="logo-div"></div>
+      <div class="logo-desc">贷款小工具</div>
+    </a>
+    <div class="nav-r">
+      <a href="/" class="nav-link">首页</a>
+      <a href="/blog/" class="nav-link">知识库</a>
+      <a href="/checkup.html" class="nav-btn">征信体检 →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="pg-header">
+  <div class="inner">
+    <div class="pg-eyebrow">免费工具</div>
+    <h1 class="pg-h1">贷款小工具箱</h1>
+    <p class="pg-sub">月供计算、被拒原因自查、信用影响因素科普 · 无需注册，即用即走</p>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs-wrap">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('calc',this)">月供 / 额度计算</button>
+    <button class="tab-btn" onclick="switchTab('diag',this)">被拒原因自查</button>
+    <button class="tab-btn" onclick="switchTab('factors',this)">影响贷款的因素</button>
+  </div>
+</div>
+
+<!-- TAB 1: 月供 / 额度计算器 -->
+<div class="tab-panel active" id="panel-calc">
+  <div class="inner">
+    <div class="tool-card">
+      <div class="card-title">月供 / 额度双向计算器</div>
+      <div class="card-sub">知道贷款金额，算每月还多少；或反过来，先定好月供上限，算最多能贷多少。</div>
+
+      <div class="mode-switch">
+        <button class="mode-btn active" id="modeMonthly" onclick="switchMode('monthly')">算月供</button>
+        <button class="mode-btn" id="modeAmount" onclick="switchMode('amount')">算额度</button>
+      </div>
+
+      <!-- 算月供 -->
+      <div id="formMonthly">
+        <div class="form-row">
+          <div class="field">
+            <label>贷款金额（元）</label>
+            <input type="number" id="loanAmount" placeholder="如 100000" min="1000">
+            <div class="presets">
+              <span class="preset-btn" onclick="setField('loanAmount',50000)">5万</span>
+              <span class="preset-btn" onclick="setField('loanAmount',100000)">10万</span>
+              <span class="preset-btn" onclick="setField('loanAmount',200000)">20万</span>
+              <span class="preset-btn" onclick="setField('loanAmount',500000)">50万</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>年利率（%）</label>
+            <input type="number" id="loanRate" placeholder="如 4.35" step="0.01" min="0.1">
+            <div class="presets">
+              <span class="preset-btn" onclick="setField('loanRate',3.6)">3.6%</span>
+              <span class="preset-btn" onclick="setField('loanRate',4.35)">4.35%</span>
+              <span class="preset-btn" onclick="setField('loanRate',7.2)">7.2%</span>
+              <span class="preset-btn" onclick="setField('loanRate',18)">18%</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-row single">
+          <div class="field">
+            <label>还款期限（月）</label>
+            <input type="number" id="loanTerm" placeholder="如 36" min="1" max="360">
+            <div class="presets">
+              <span class="preset-btn" onclick="setField('loanTerm',12)">12月</span>
+              <span class="preset-btn" onclick="setField('loanTerm',24)">24月</span>
+              <span class="preset-btn" onclick="setField('loanTerm',36)">36月</span>
+              <span class="preset-btn" onclick="setField('loanTerm',60)">60月</span>
+              <span class="preset-btn" onclick="setField('loanTerm',120)">10年</span>
+              <span class="preset-btn" onclick="setField('loanTerm',240)">20年</span>
+              <span class="preset-btn" onclick="setField('loanTerm',360)">30年</span>
+            </div>
+          </div>
+        </div>
+        <button class="calc-btn" onclick="calcMonthly()">计算月供</button>
+      </div>
+
+      <!-- 算额度 -->
+      <div id="formAmount" style="display:none">
+        <div class="form-row">
+          <div class="field">
+            <label>可承受月供（元）</label>
+            <input type="number" id="maxMonthly" placeholder="如 3000" min="100">
+            <div class="presets">
+              <span class="preset-btn" onclick="setField('maxMonthly',1000)">1000</span>
+              <span class="preset-btn" onclick="setField('maxMonthly',2000)">2000</span>
+              <span class="preset-btn" onclick="setField('maxMonthly',5000)">5000</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>年利率（%）</label>
+            <input type="number" id="revRate" placeholder="如 4.35" step="0.01" min="0.1">
+            <div class="presets">
+              <span class="preset-btn" onclick="setField('revRate',3.6)">3.6%</span>
+              <span class="preset-btn" onclick="setField('revRate',4.35)">4.35%</span>
+              <span class="preset-btn" onclick="setField('revRate',7.2)">7.2%</span>
+              <span class="preset-btn" onclick="setField('revRate',18)">18%</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-row single">
+          <div class="field">
+            <label>还款期限（月）</label>
+            <input type="number" id="revTerm" placeholder="如 36" min="1" max="360">
+            <div class="presets">
+              <span class="preset-btn" onclick="setField('revTerm',12)">12月</span>
+              <span class="preset-btn" onclick="setField('revTerm',24)">24月</span>
+              <span class="preset-btn" onclick="setField('revTerm',36)">36月</span>
+              <span class="preset-btn" onclick="setField('revTerm',60)">60月</span>
+              <span class="preset-btn" onclick="setField('revTerm',120)">10年</span>
+            </div>
+          </div>
+        </div>
+        <button class="calc-btn" onclick="calcAmount()">计算可贷额度</button>
+      </div>
+
+      <!-- 结果区（月供模式） -->
+      <div class="result-box" id="resultMonthly">
+        <div class="result-main">
+          <div class="result-label">每月还款</div>
+          <div class="result-num" id="resMonthlyNum">-</div>
+          <div class="result-unit">元 / 月</div>
+        </div>
+        <div class="result-grid">
+          <div class="result-cell">
+            <div class="result-cell-lbl">还款总额</div>
+            <div class="result-cell-val" id="resTotalPayment">-</div>
+          </div>
+          <div class="result-cell">
+            <div class="result-cell-lbl">支付利息</div>
+            <div class="result-cell-val" id="resTotalInterest">-</div>
+          </div>
+          <div class="result-cell">
+            <div class="result-cell-lbl">月供占比建议</div>
+            <div class="result-cell-val" id="resDTITip">-</div>
+          </div>
+          <div class="result-cell">
+            <div class="result-cell-lbl">建议月收入下限</div>
+            <div class="result-cell-val" id="resMinIncome">-</div>
+          </div>
+        </div>
+        <div class="result-note">以上为等额本息计算结果，仅供参考。实际月供以银行合同为准。月供建议不超过月收入的 50%。</div>
+      </div>
+
+      <!-- 结果区（额度模式） -->
+      <div class="result-box" id="resultAmount">
+        <div class="result-main">
+          <div class="result-label">估算可贷额度</div>
+          <div class="result-num" id="resAmountNum">-</div>
+          <div class="result-unit">元</div>
+        </div>
+        <div class="result-grid">
+          <div class="result-cell">
+            <div class="result-cell-lbl">总还款额</div>
+            <div class="result-cell-val" id="resRevTotal">-</div>
+          </div>
+          <div class="result-cell">
+            <div class="result-cell-lbl">总利息</div>
+            <div class="result-cell-val" id="resRevInterest">-</div>
+          </div>
+        </div>
+        <div class="result-note">按等额本息计算。实际可贷额度还取决于你的征信状况、收入流水和负债情况。</div>
+      </div>
+    </div>
+
+    <div class="cta-strip">
+      <div class="cta-strip-label">想知道你实际能申请多少？</div>
+      <div class="cta-strip-title">上传征信报告，AI 给出真实资质判断</div>
+      <div class="cta-strip-sub">额度计算只是理论值。实际审批还看征信评分、负债结构、查询次数。</div>
+      <a href="/checkup.html" class="cta-strip-btn">免费征信体检 →</a>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: 被拒原因自查 -->
+<div class="tab-panel" id="panel-diag">
+  <div class="inner">
+    <div class="tool-card">
+      <div class="card-title">贷款被拒原因自查</div>
+      <div class="card-sub">回答 5 个问题，帮你推断最可能的被拒原因，给出改善方向。结果为方向性参考，不是确定结论。</div>
+
+      <div id="diagForm">
+        <div class="q-block">
+          <div class="q-label"><span class="q-num">1</span>被哪类机构拒绝了？</div>
+          <div class="options" id="q1">
+            <label class="opt" onclick="selectOpt(this,'q1','bank')"><span class="opt-mark"></span><span class="opt-text">国有银行 / 股份制银行（工农中建交、招浦兴民等）</span></label>
+            <label class="opt" onclick="selectOpt(this,'q1','city')"><span class="opt-mark"></span><span class="opt-text">城商行 / 农商行</span></label>
+            <label class="opt" onclick="selectOpt(this,'q1','consumer')"><span class="opt-mark"></span><span class="opt-text">消费金融公司（招联、马上、中银消金等）</span></label>
+            <label class="opt" onclick="selectOpt(this,'q1','online')"><span class="opt-mark"></span><span class="opt-text">网贷 / 小额贷款平台（借呗、微粒贷、京东金融等）</span></label>
+          </div>
+        </div>
+        <div class="q-block">
+          <div class="q-label"><span class="q-num">2</span>近半年申请贷款或信用卡的次数？</div>
+          <div class="options" id="q2">
+            <label class="opt" onclick="selectOpt(this,'q2','low')"><span class="opt-mark"></span><span class="opt-text">1 次（就这一次）</span></label>
+            <label class="opt" onclick="selectOpt(this,'q2','mid')"><span class="opt-mark"></span><span class="opt-text">2 — 4 次</span></label>
+            <label class="opt" onclick="selectOpt(this,'q2','high')"><span class="opt-mark"></span><span class="opt-text">5 — 9 次</span></label>
+            <label class="opt" onclick="selectOpt(this,'q2','blast')"><span class="opt-mark"></span><span class="opt-text">10 次及以上</span></label>
+          </div>
+        </div>
+        <div class="q-block">
+          <div class="q-label"><span class="q-num">3</span>拒绝时有没有给出原因？</div>
+          <div class="options" id="q3">
+            <label class="opt" onclick="selectOpt(this,'q3','credit')"><span class="opt-mark"></span><span class="opt-text">提到征信问题（查询多、负债高、有逾期）</span></label>
+            <label class="opt" onclick="selectOpt(this,'q3','income')"><span class="opt-mark"></span><span class="opt-text">收入或流水不足</span></label>
+            <label class="opt" onclick="selectOpt(this,'q3','job')"><span class="opt-mark"></span><span class="opt-text">工作不稳定 / 社保公积金缴纳时间短</span></label>
+            <label class="opt" onclick="selectOpt(this,'q3','none')"><span class="opt-mark"></span><span class="opt-text">没有说明原因 / 系统直接拒绝</span></label>
+          </div>
+        </div>
+        <div class="q-block">
+          <div class="q-label"><span class="q-num">4</span>目前有没有逾期记录？</div>
+          <div class="options" id="q4">
+            <label class="opt" onclick="selectOpt(this,'q4','none')"><span class="opt-mark"></span><span class="opt-text">完全没有逾期</span></label>
+            <label class="opt" onclick="selectOpt(this,'q4','old')"><span class="opt-mark"></span><span class="opt-text">有逾期但已结清，且超过 2 年</span></label>
+            <label class="opt" onclick="selectOpt(this,'q4','recent')"><span class="opt-mark"></span><span class="opt-text">有逾期，近 2 年内，已结清</span></label>
+            <label class="opt" onclick="selectOpt(this,'q4','active')"><span class="opt-mark"></span><span class="opt-text">目前还有未还清的逾期</span></label>
+          </div>
+        </div>
+        <div class="q-block">
+          <div class="q-label"><span class="q-num">5</span>现有贷款月供 + 信用卡最低还款，大概是月收入的多少？</div>
+          <div class="options" id="q5">
+            <label class="opt" onclick="selectOpt(this,'q5','low')"><span class="opt-mark"></span><span class="opt-text">不到 20%</span></label>
+            <label class="opt" onclick="selectOpt(this,'q5','mid')"><span class="opt-mark"></span><span class="opt-text">20% — 40%</span></label>
+            <label class="opt" onclick="selectOpt(this,'q5','high')"><span class="opt-mark"></span><span class="opt-text">40% — 60%</span></label>
+            <label class="opt" onclick="selectOpt(this,'q5','over')"><span class="opt-mark"></span><span class="opt-text">超过 60%，或者没有固定收入</span></label>
+          </div>
+        </div>
+        <button class="calc-btn" onclick="runDiag()">查看可能的被拒原因</button>
+      </div>
+
+      <div class="diag-result" id="diagResult"></div>
+    </div>
+
+    <div class="cta-strip">
+      <div class="cta-strip-label">想知道真实原因？</div>
+      <div class="cta-strip-title">上传征信报告，AI 精准定位问题</div>
+      <div class="cta-strip-sub">自查只能给出方向，征信报告里有准确的数字和记录。</div>
+      <a href="/checkup.html" class="cta-strip-btn">上传征信体检 →</a>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: 影响贷款的因素 -->
+<div class="tab-panel" id="panel-factors">
+  <div class="inner">
+    <div class="tool-card">
+      <div class="card-title">银行审批贷款，主要看哪些因素？</div>
+      <div class="card-sub">点击每个因素，了解它如何影响你的贷款申请，以及你能做什么。</div>
+
+      <div class="factor-list">
+        <div class="factor-item" onclick="toggleFactor(this)">
+          <div class="factor-header">
+            <div class="factor-left">
+              <div class="factor-icon" style="background:#EBF0FF;color:#1B50CC;">📋</div>
+              <div>
+                <div class="factor-name">征信查询次数</div>
+                <div class="factor-weight">影响程度：高</div>
+              </div>
+            </div>
+            <div class="factor-arrow">›</div>
+          </div>
+          <div class="factor-body">
+            每次你申请贷款或信用卡，机构都会查一次你的征信，留下"审批查询"记录。<strong>近 3 个月超过 6 次，大部分银行会自动拒绝</strong>，认为你资金紧张、到处借钱。
+            <div class="tip">✦ 建议：申请前先暂停 1–2 个月，让查询记录冷却。每次申请要有把握，不要广撒网。</div>
+          </div>
+        </div>
+
+        <div class="factor-item" onclick="toggleFactor(this)">
+          <div class="factor-header">
+            <div class="factor-left">
+              <div class="factor-icon" style="background:#FEE8E8;color:#C42B2B;">⚠️</div>
+              <div>
+                <div class="factor-name">逾期记录</div>
+                <div class="factor-weight">影响程度：极高（一票否决）</div>
+              </div>
+            </div>
+            <div class="factor-arrow">›</div>
+          </div>
+          <div class="factor-body">
+            有过逾期是征信上最严重的污点。<strong>近 2 年内有逾期，银行基本直接拒绝</strong>；超过 2 年且已结清，影响逐渐减弱；<strong>连三累六（连续 3 个月或累计 6 次逾期）</strong>会在征信上留存 7 年。
+            <div class="tip">✦ 建议：有逾期立即还清，等待时间自然修复。不要相信"征信修复"广告，那是骗局。</div>
+          </div>
+        </div>
+
+        <div class="factor-item" onclick="toggleFactor(this)">
+          <div class="factor-header">
+            <div class="factor-left">
+              <div class="factor-icon" style="background:#FEF3E2;color:#B85C00;">💳</div>
+              <div>
+                <div class="factor-name">负债率（债务收入比）</div>
+                <div class="factor-weight">影响程度：高</div>
+              </div>
+            </div>
+            <div class="factor-arrow">›</div>
+          </div>
+          <div class="factor-body">
+            银行会把你所有贷款月供加在一起，除以月收入。<strong>这个比例超过 50%，大多数银行不会再批新贷款</strong>，认为你已经没有还款能力了。信用卡按已用额度的 2% 估算月供。
+            <div class="tip">✦ 建议：申请新贷款前，先把小额网贷结清，降低总月供。信用卡尽量少挂账。</div>
+          </div>
+        </div>
+
+        <div class="factor-item" onclick="toggleFactor(this)">
+          <div class="factor-header">
+            <div class="factor-left">
+              <div class="factor-icon" style="background:#E4F4EF;color:#1A7A64;">🏢</div>
+              <div>
+                <div class="factor-name">工作稳定性 / 社保公积金</div>
+                <div class="factor-weight">影响程度：中—高</div>
+              </div>
+            </div>
+            <div class="factor-arrow">›</div>
+          </div>
+          <div class="factor-body">
+            银行更偏好<strong>国企、事业单位、大型私企员工</strong>，因为收入稳定、可预期。社保和公积金是"在职证明"，<strong>缴纳不足 6 个月，很多银行直接拒</strong>；满 1 年更稳；满 2 年以上最好。个体工商户、自由职业者门槛更高，需要额外的流水证明。
+            <div class="tip">✦ 建议：换工作后等待至少 6 个月社保记录再申请贷款。</div>
+          </div>
+        </div>
+
+        <div class="factor-item" onclick="toggleFactor(this)">
+          <div class="factor-header">
+            <div class="factor-left">
+              <div class="factor-icon" style="background:#EBF0FF;color:#1B50CC;">💰</div>
+              <div>
+                <div class="factor-name">收入与流水</div>
+                <div class="factor-weight">影响程度：中</div>
+              </div>
+            </div>
+            <div class="factor-arrow">›</div>
+          </div>
+          <div class="factor-body">
+            银行批贷款的底层逻辑是"你能还得起"。收入越高、流水越稳定，额度越高。<strong>银行流水（工资打卡记录）比微信/支付宝流水可信度高得多</strong>。申请大额贷款时，通常需要提供近 3–6 个月银行流水。
+            <div class="tip">✦ 建议：把工资发到银行卡而不是直接到微信，增加银行流水记录。</div>
+          </div>
+        </div>
+
+        <div class="factor-item" onclick="toggleFactor(this)">
+          <div class="factor-header">
+            <div class="factor-left">
+              <div class="factor-icon" style="background:#F5F7FA;color:#607090;">📊</div>
+              <div>
+                <div class="factor-name">信用卡使用率</div>
+                <div class="factor-weight">影响程度：中</div>
+              </div>
+            </div>
+            <div class="factor-arrow">›</div>
+          </div>
+          <div class="factor-body">
+            信用卡已用额度 ÷ 总额度 = 使用率。<strong>使用率超过 70%，银行会认为你资金紧张</strong>，影响新贷款审批。多张信用卡同时接近满额度，效果更差。
+            <div class="tip">✦ 建议：申请贷款前 1–2 个月，把信用卡使用率降到 30% 以下再申请。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cta-strip">
+      <div class="cta-strip-label">了解了因素，想知道你自己的情况？</div>
+      <div class="cta-strip-title">上传征信报告，看你的真实评分</div>
+      <div class="cta-strip-sub">AI 逐项分析你的征信数据，告诉你哪里有风险、怎么改善。</div>
+      <a href="/checkup.html" class="cta-strip-btn">开始征信体检 →</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-name"><em>贷</em>准科技</div>
+  <div class="footer-r">闽ICP备2026009746号 · 工具结果仅供参考，不构成金融建议</div>
+</footer>
+
+<script>
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'diag') {
+    Object.keys(diagAnswers).forEach(k => delete diagAnswers[k]);
+    document.querySelectorAll('.opt').forEach(o => o.classList.remove('checked'));
+    const r = document.getElementById('diagResult');
+    r.classList.remove('show');
+    r.innerHTML = '';
+  }
+}
+
+function switchMode(mode) {
+  const isMonthly = mode === 'monthly';
+  document.getElementById('formMonthly').style.display = isMonthly ? '' : 'none';
+  document.getElementById('formAmount').style.display  = isMonthly ? 'none' : '';
+  document.getElementById('resultMonthly').classList.remove('show');
+  document.getElementById('resultAmount').classList.remove('show');
+  document.getElementById('modeMonthly').classList.toggle('active', isMonthly);
+  document.getElementById('modeAmount').classList.toggle('active', !isMonthly);
+}
+
+function setField(id, val) {
+  document.getElementById(id).value = val;
+}
+
+function pmt(annualRate, months, principal) {
+  const r = annualRate / 100 / 12;
+  if (r === 0) return principal / months;
+  const factor = Math.pow(1 + r, months);
+  return principal * r * factor / (factor - 1);
+}
+
+function pvFromPmt(annualRate, months, monthly) {
+  const r = annualRate / 100 / 12;
+  if (r === 0) return monthly * months;
+  const factor = Math.pow(1 + r, months);
+  return monthly * (factor - 1) / (r * factor);
+}
+
+function fmt(n) {
+  return Math.round(n).toLocaleString('zh-CN');
+}
+
+function calcMonthly() {
+  const P = parseFloat(document.getElementById('loanAmount').value);
+  const R = parseFloat(document.getElementById('loanRate').value);
+  const N = parseInt(document.getElementById('loanTerm').value);
+  if (!P || !R || !N || P <= 0 || R <= 0 || N < 1) {
+    alert('请填写完整且有效的贷款金额、年利率和期限');
+    return;
+  }
+  const monthly = pmt(R, N, P);
+  const total = monthly * N;
+  const interest = total - P;
+  const minIncome = monthly / 0.5;
+  document.getElementById('resMonthlyNum').textContent = fmt(monthly);
+  document.getElementById('resTotalPayment').textContent = fmt(total) + ' 元';
+  document.getElementById('resTotalInterest').textContent = fmt(interest) + ' 元';
+  document.getElementById('resDTITip').textContent = '≤ 月收入 50%';
+  document.getElementById('resMinIncome').textContent = fmt(minIncome) + ' 元';
+  document.getElementById('resultMonthly').classList.add('show');
+  document.getElementById('resultMonthly').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function calcAmount() {
+  const M = parseFloat(document.getElementById('maxMonthly').value);
+  const R = parseFloat(document.getElementById('revRate').value);
+  const N = parseInt(document.getElementById('revTerm').value);
+  if (!M || !R || !N || M <= 0 || R <= 0 || N < 1) {
+    alert('请填写完整且有效的月供、年利率和期限');
+    return;
+  }
+  const principal = pvFromPmt(R, N, M);
+  const total = M * N;
+  const interest = total - principal;
+  document.getElementById('resAmountNum').textContent = fmt(principal);
+  document.getElementById('resRevTotal').textContent = fmt(total) + ' 元';
+  document.getElementById('resRevInterest').textContent = fmt(interest) + ' 元';
+  document.getElementById('resultAmount').classList.add('show');
+  document.getElementById('resultAmount').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+const diagAnswers = {};
+function selectOpt(el, qId, val) {
+  el.closest('.options').querySelectorAll('.opt').forEach(o => o.classList.remove('checked'));
+  el.classList.add('checked');
+  diagAnswers[qId] = val;
+}
+
+function runDiag() {
+  const a = diagAnswers;
+  if (Object.keys(a).length < 5) {
+    alert('请回答全部 5 个问题');
+    return;
+  }
+  const reasons = [];
+
+  if (a.q4 === 'active') {
+    reasons.push({ primary: true, tag: '主要原因', title: '当前有未结清逾期', body: '只要征信上有当前逾期，几乎所有机构都会直接拒绝。这是最硬的一票否决条件。必须先把逾期还清，才能谈其他事情。' });
+  } else if (a.q4 === 'recent') {
+    reasons.push({ primary: true, tag: '主要原因', title: '近 2 年内有逾期记录', body: '即使已经还清，近 2 年内的逾期记录仍会让大多数银行和消金公司直接拒绝。需要等待时间自然修复（至少 2 年后记录影响减弱）。' });
+  }
+
+  if (a.q2 === 'blast') {
+    reasons.push({ primary: reasons.length === 0, tag: reasons.length === 0 ? '主要原因' : '次要原因', title: '近半年征信查询次数过多（10次以上）', body: '10 次以上查询是严重的"爆查"信号，绝大多数银行会认为你资金极度紧张，自动拒绝。需要停止申请至少 3–6 个月，等查询记录冷却。' });
+  } else if (a.q2 === 'high') {
+    reasons.push({ primary: reasons.length === 0, tag: reasons.length === 0 ? '主要原因' : '次要原因', title: '近半年征信查询次数偏多（5–9次）', body: '5–9 次查询对大部分银行来说偏高，尤其是银行类机构。建议暂停申请 1–2 个月，查询次数降低后再尝试。' });
+  }
+
+  if (a.q5 === 'over') {
+    reasons.push({ primary: reasons.length === 0, tag: reasons.length === 0 ? '主要原因' : '次要原因', title: '现有负债月供占收入比例过高（超过 60%）', body: '银行计算你的还款能力时，现有月供 + 新贷款月供不能超过收入的 50%–60%。目前比例已超标，银行认为你没有额外还款能力。需要先结清部分贷款降低负债。' });
+  } else if (a.q5 === 'high') {
+    reasons.push({ primary: reasons.length === 0, tag: reasons.length === 0 ? '可能原因' : '次要原因', title: '负债月供占收入比例偏高（40%–60%）', body: '这个比例处于银行审批的临界区间，加上新贷款月供后很可能超标。申请额度越大风险越高。建议先结清 1–2 笔小额贷款，降低总月供比例。' });
+  }
+
+  if (a.q3 === 'job') {
+    reasons.push({ primary: reasons.length === 0, tag: reasons.length === 0 ? '主要原因' : '次要原因', title: '工作稳定性或社保缴纳不足', body: '银行对工作稳定性要求较高，通常需要连续社保缴纳 6 个月以上。频繁换工作、个体经营、自由职业者申请银行贷款门槛更高。建议在工作稳定后等待社保满 6 个月再申请。' });
+  } else if (a.q3 === 'income') {
+    reasons.push({ primary: reasons.length === 0, tag: reasons.length === 0 ? '主要原因' : '次要原因', title: '收入或银行流水不足', body: '银行要求月收入至少是贷款月供的 2 倍。如果提供的流水主要是微信/支付宝记录而不是银行打款，可信度也会打折扣。建议把工资发到银行账户，积累 3–6 个月的银行流水记录。' });
+  } else if (a.q3 === 'credit') {
+    reasons.push({ primary: reasons.length === 0, tag: reasons.length === 0 ? '主要原因' : '次要原因', title: '征信记录存在问题（查询多 / 负债高 / 历史逾期）', body: '机构明确提到了征信问题，最常见的三种情况：近期查询次数偏多（被认为资金紧张）、总负债占收入比偏高（还款能力不足）、或征信上有历史逾期记录。建议下载征信报告，逐项检查这三个维度，找出具体问题后有针对性地改善。' });
+  }
+
+  if (a.q3 === 'none' && reasons.length === 0) {
+    if (a.q1 === 'bank') {
+      reasons.push({ primary: true, tag: '推测原因', title: '系统自动拒绝，可能是征信评分未达标', body: '国有/股份制银行使用严格的评分模型，系统自动拒绝时通常不说明原因。最常见的触发条件是：查询次数超标、负债率偏高、或征信上有不良记录。建议下载征信报告，仔细核查这三项。' });
+    } else {
+      reasons.push({ primary: true, tag: '推测原因', title: '未告知原因，可能是综合评分不足', body: '平台拒绝但不说原因，通常是综合评分触发了风控阈值。建议下载征信报告，检查：近期查询次数、是否有不明逾期记录、总负债情况。' });
+    }
+  }
+
+  let html = '<div class="diag-intro">根据你的回答，以下是最可能的被拒原因（按重要程度排序）：</div>';
+  reasons.slice(0, 3).forEach(r => {
+    html += `<div class="diag-item${r.primary ? ' primary' : ''}"><div class="diag-item-tag">${r.tag}</div><div class="diag-item-title">${r.title}</div><div class="diag-item-body">${r.body}</div></div>`;
+  });
+  html += `<div class="diag-tip"><div class="diag-tip-lbl">下一步建议</div><div class="diag-tip-body">以上是基于你填写信息的方向性推断。要准确定位问题，需要看你的征信报告原文——报告上有具体的查询记录、逾期日期、每笔负债余额。上传征信报告后，AI 可以给出精准的诊断。</div></div>`;
+
+  const resultEl = document.getElementById('diagResult');
+  resultEl.innerHTML = html;
+  resultEl.classList.add('show');
+  resultEl.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function toggleFactor(el) {
+  const isOpen = el.classList.contains('open');
+  document.querySelectorAll('.factor-item').forEach(f => f.classList.remove('open'));
+  if (!isOpen) el.classList.add('open');
+}
+</script>
+</body>
+</html>

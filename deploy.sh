@@ -42,10 +42,10 @@ javascript-obfuscator config.js \
   --self-defending false
 
 # 同步前端到 ECS（上传混淆版，服务器上覆盖为 app.js / config.js）
-git add index.html checkup.html privacy.html auth.html style.css config.js app.js nav-agent.js qr.jpg qr_agent_1.jpg qr_agent_2.jpg
+git add index.html checkup.html tools.html privacy.html auth.html style.css config.js app.js nav-agent.js qr.jpg qr_agent_1.jpg qr_agent_2.jpg
 git commit -m "deploy $(date '+%Y-%m-%d %H:%M')" || true
 git push origin main
-scp index.html checkup.html privacy.html auth.html style.css nav-agent.js qr.jpg qr_agent_1.jpg qr_agent_2.jpg root@8.136.1.233:/usr/share/nginx/html/
+scp index.html checkup.html tools.html privacy.html auth.html style.css nav-agent.js qr.jpg qr_agent_1.jpg qr_agent_2.jpg root@8.136.1.233:/usr/share/nginx/html/
 scp app.obf.js root@8.136.1.233:/usr/share/nginx/html/app.js
 scp config.obf.js root@8.136.1.233:/usr/share/nginx/html/config.js
 scp sitemap.xml root@8.136.1.233:/usr/share/nginx/html/
