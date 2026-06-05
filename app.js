@@ -4303,10 +4303,10 @@ function toggleCreditGuide() {
 
     wx.ready(function () {
       const shareData = {
-        title:  '给征信做一次体检 — 贷准 AI',
-        desc:   '102项检测维度，3分钟出报告，首次免费。',
+        title:  '你的征信，该做次体检了 — 贷准 AI',
+        desc:   'AI 读懂你的征信：负债结构 / 查询风险 / 优化建议。',
         link:   pageUrl,
-        imgUrl: 'https://dzhun.com.cn/share-cover.png'
+        imgUrl: 'https://dzhun.com.cn/share-logo.png'
       };
       wx.updateAppMessageShareData(shareData);
       wx.updateTimelineShareData(shareData);
