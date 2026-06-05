@@ -266,6 +266,16 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
             </div>
           </div>
         </div>
+        <div class="form-row single">
+          <div class="field">
+            <label>还款方式</label>
+            <div class="mode-switch" style="margin-bottom:0">
+              <button class="mode-btn active" id="methodEBI" onclick="switchMethod('ebi')">等额本息</button>
+              <button class="mode-btn" id="methodXIHB" onclick="switchMethod('xihb')">先息后本</button>
+            </div>
+            <div class="hint" id="methodHint">每月还固定金额（含本金+利息），适合银行信用贷、房贷</div>
+          </div>
+        </div>
         <button class="calc-btn" onclick="calcMonthly()">计算月供</button>
       </div>
 
@@ -311,7 +321,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
       <!-- 结果区（月供模式） -->
       <div class="result-box" id="resultMonthly">
         <div class="result-main">
-          <div class="result-label">每月还款</div>
+          <div class="result-label" id="resMonthlyLabel">每月还款</div>
           <div class="result-num" id="resMonthlyNum">-</div>
           <div class="result-unit">元 / 月</div>
         </div>
@@ -324,16 +334,16 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
             <div class="result-cell-lbl">支付利息</div>
             <div class="result-cell-val" id="resTotalInterest">-</div>
           </div>
-          <div class="result-cell">
-            <div class="result-cell-lbl">月供占比建议</div>
+          <div class="result-cell" id="resCell3">
+            <div class="result-cell-lbl" id="resCell3Lbl">月供占比建议</div>
             <div class="result-cell-val" id="resDTITip">-</div>
           </div>
           <div class="result-cell">
-            <div class="result-cell-lbl">建议月收入下限</div>
+            <div class="result-cell-lbl" id="resCell4Lbl">建议月收入下限</div>
             <div class="result-cell-val" id="resMinIncome">-</div>
           </div>
         </div>
-        <div class="result-note">以上为等额本息计算结果，仅供参考。实际月供以银行合同为准。月供建议不超过月收入的 50%。</div>
+        <div class="result-note" id="resMonthlyNote">以上为等额本息计算结果，仅供参考。实际月供以银行合同为准。月供建议不超过月收入的 50%。</div>
       </div>
 
       <!-- 结果区（额度模式） -->
@@ -506,7 +516,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:20px
           </div>
           <div class="factor-body">
             银行更偏好<strong>国企、事业单位、大型私企员工</strong>，因为收入稳定、可预期。社保和公积金是"在职证明"，<strong>缴纳不足 6 个月，很多银行直接拒</strong>；满 1 年更稳；满 2 年以上最好。个体工商户、自由职业者门槛更高，需要额外的流水证明。
-            <div class="tip">✦ 建议：换工作后等待至少 6 个月社保记录再申请贷款。</div>
+            <div class="tip">✦ 建议：申请贷款期间保持工作稳定，避免换工作。如工作已有变动，需等新单位社保缴纳满 6 个月后再申请。</div>
           </div>
         </div>
 
@@ -590,6 +600,19 @@ function setField(id, val) {
   document.getElementById(id).value = val;
 }
 
+let currentMethod = 'ebi';
+
+function switchMethod(method) {
+  currentMethod = method;
+  const isEBI = method === 'ebi';
+  document.getElementById('methodEBI').classList.toggle('active', isEBI);
+  document.getElementById('methodXIHB').classList.toggle('active', !isEBI);
+  document.getElementById('methodHint').textContent = isEBI
+    ? '每月还固定金额（含本金+利息），适合银行信用贷、房贷'
+    : '每月只还利息，到期一次性归还本金，适合经营贷、部分消费贷';
+  document.getElementById('resultMonthly').classList.remove('show');
+}
+
 function pmt(annualRate, months, principal) {
   const r = annualRate / 100 / 12;
   if (r === 0) return principal / months;
@@ -616,15 +639,36 @@ function calcMonthly() {
     alert('请填写完整且有效的贷款金额、年利率和期限');
     return;
   }
-  const monthly = pmt(R, N, P);
-  const total = monthly * N;
-  const interest = total - P;
-  const minIncome = monthly / 0.5;
-  document.getElementById('resMonthlyNum').textContent = fmt(monthly);
-  document.getElementById('resTotalPayment').textContent = fmt(total) + ' 元';
-  document.getElementById('resTotalInterest').textContent = fmt(interest) + ' 元';
-  document.getElementById('resDTITip').textContent = '≤ 月收入 50%';
-  document.getElementById('resMinIncome').textContent = fmt(minIncome) + ' 元';
+
+  if (currentMethod === 'xihb') {
+    const r = R / 100 / 12;
+    const monthlyInterest = P * r;
+    const totalInterest = monthlyInterest * N;
+    const totalPayment = P + totalInterest;
+    document.getElementById('resMonthlyLabel').textContent = '每月利息';
+    document.getElementById('resMonthlyNum').textContent = fmt(monthlyInterest);
+    document.getElementById('resTotalPayment').textContent = fmt(totalPayment) + ' 元';
+    document.getElementById('resTotalInterest').textContent = fmt(totalInterest) + ' 元';
+    document.getElementById('resCell3Lbl').textContent = '到期归还本金';
+    document.getElementById('resDTITip').textContent = fmt(P) + ' 元';
+    document.getElementById('resCell4Lbl').textContent = '建议月收入下限';
+    document.getElementById('resMinIncome').textContent = fmt(monthlyInterest / 0.5) + ' 元';
+    document.getElementById('resMonthlyNote').textContent = '以上为先息后本计算结果。每月只还利息，到期一次性归还本金 ' + fmt(P) + ' 元。仅供参考，以合同为准。';
+  } else {
+    const monthly = pmt(R, N, P);
+    const total = monthly * N;
+    const interest = total - P;
+    document.getElementById('resMonthlyLabel').textContent = '每月还款';
+    document.getElementById('resMonthlyNum').textContent = fmt(monthly);
+    document.getElementById('resTotalPayment').textContent = fmt(total) + ' 元';
+    document.getElementById('resTotalInterest').textContent = fmt(interest) + ' 元';
+    document.getElementById('resCell3Lbl').textContent = '月供占比建议';
+    document.getElementById('resDTITip').textContent = '≤ 月收入 50%';
+    document.getElementById('resCell4Lbl').textContent = '建议月收入下限';
+    document.getElementById('resMinIncome').textContent = fmt(monthly / 0.5) + ' 元';
+    document.getElementById('resMonthlyNote').textContent = '以上为等额本息计算结果，仅供参考。实际月供以银行合同为准。月供建议不超过月收入的 50%。';
+  }
+
   document.getElementById('resultMonthly').classList.add('show');
   document.getElementById('resultMonthly').scrollIntoView({behavior:'smooth', block:'nearest'});
 }
