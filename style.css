@@ -1507,24 +1507,42 @@ main {
 
 /* ── QR overlay ── */
 .qr-overlay {
-  display:none;position:fixed;inset:0;
+  display:flex;position:fixed;inset:0;
   background:rgba(0,0,0,0.72);z-index:9999;
   align-items:center;justify-content:center;
   overflow:hidden;padding:16px;box-sizing:border-box;
   -webkit-overflow-scrolling:touch;
+  opacity:0;pointer-events:none;visibility:hidden;
+  transition:opacity .2s ease,visibility .2s ease;
 }
-.qr-overlay.show { display:flex; }
+.qr-overlay.show { opacity:1;pointer-events:auto;visibility:visible; }
 .qr-modal {
   background:var(--surface);border:1px solid var(--border);
   padding:28px 22px 22px;
   max-width:320px;width:90%;text-align:center;
   box-shadow:0 24px 80px rgba(0,0,0,0.5);position:relative;
-  animation:fadeUp .4s ease;
+  transform:translateY(14px) scale(.97);opacity:0;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1),opacity .2s ease;
   box-sizing:border-box;
 }
+.qr-overlay.show .qr-modal { transform:translateY(0) scale(1);opacity:1; }
 .qr-modal img {
   width:100%;max-width:200px;height:auto;display:block;margin:16px auto;
 }
+.qr-modal-title {
+  font-size:16px;font-weight:700;color:var(--white);margin-bottom:4px;letter-spacing:.02em;
+}
+.qr-modal-sub {
+  font-size:12px;color:var(--silver);letter-spacing:.02em;
+}
+.qr-modal-close {
+  margin-top:14px;width:100%;padding:11px;
+  background:var(--raised);border:1px solid var(--border);
+  color:var(--silver);font-size:13px;font-weight:600;
+  cursor:pointer;font-family:inherit;letter-spacing:.04em;
+  transition:color .15s,border-color .15s;
+}
+.qr-modal-close:hover { color:var(--white);border-color:var(--silver); }
 .qr-close {
   position:absolute;top:12px;right:12px;
   background:none;border:none;font-size:18px;

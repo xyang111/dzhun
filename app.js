@@ -3660,12 +3660,9 @@ function showQrModal() {
   document.body.style.top = '-' + scrollY + 'px';
   document.body.style.width = '100%';
 
-  // 打开时才加载图片（WeChat 在 display:none 父容器里可能不加载 img src）
+  // 图片已在 initContactPhone() 预加载，此处仅补 onerror 兜底
   const qrImg = document.getElementById('qrCodeImg');
-  if (qrImg) {
-    const qrSrc = (_currentAgent && _currentAgent.qr) ? _currentAgent.qr : (typeof DEFAULT_QR !== 'undefined' ? DEFAULT_QR : '/qr.jpg');
-    qrImg.src = qrSrc;
-    qrImg.style.display = 'block';
+  if (qrImg && !qrImg.onerror) {
     qrImg.onerror = function() {
       this.style.display = 'none';
       const fb = document.getElementById('qrFallback');
@@ -3719,8 +3716,10 @@ function initContactPhone() {
   const btn = document.getElementById('contactPhoneBtn');
   if (btn) { btn.href = 'tel:' + phone; }
 
-  // 二维码图片路径存到 _currentAgent 或全局，打开弹窗时才加载（WeChat 兼容）
+  // 二维码图片路径存到 _currentAgent 或全局，并提前预加载（overlay 改用 visibility:hidden，浏览器会真实加载 img）
   if (_currentAgent) _currentAgent.qr = qrSrc;
+  const _qrImgEl = document.getElementById('qrCodeImg');
+  if (_qrImgEl) { _qrImgEl.src = qrSrc; _qrImgEl.style.display = 'block'; }
 
   // 设置二维码备用文字（图片加载失败时显示）
   const qrPhone = document.getElementById('qrPhoneNum');
