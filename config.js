@@ -13,7 +13,7 @@ const AGENTS = {
   'AHX': {
     name:   '安惠信',
     phone:  '18359711859',
-    qr: '/qr_agent_1.jpg?v=20260608',
+    qr: '/qr_agent_1.jpg?v=20260608b',
     notify: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=eeac39a4-e6f8-487d-8a3c-92f6421829b2'
   },
   'XRT': {
