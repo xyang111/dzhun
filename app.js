@@ -396,7 +396,19 @@ function localFallbackMatch(data, v2Score = 0) {
 // State
 let _fileBlocks = [];       // array of API content blocks (image or document)
 let _recognizedData = null; // {loans, cards, queries, summary}
-window._pageSessionId = Math.random().toString(36).slice(2, 16) + Date.now().toString(36);
+// 访客标识持久化到 localStorage，用于埋点 UV 去重（同一设备跨刷新/重进保持同一 id）
+window._pageSessionId = (() => {
+  try {
+    let id = localStorage.getItem('_dz_uid');
+    if (!id) {
+      id = Math.random().toString(36).slice(2, 16) + Date.now().toString(36);
+      localStorage.setItem('_dz_uid', id);
+    }
+    return id;
+  } catch (e) {
+    return Math.random().toString(36).slice(2, 16) + Date.now().toString(36);
+  }
+})();
 
 function _trackEvent(event, props) {
   try {
