@@ -72,6 +72,18 @@ function getActiveLoans(data) {
 function getActiveCards(data) {
   return (data?.cards||[]).filter(c=>c.status!=='销户'&&c.status!=='已销户');
 }
+// 相关还款责任（对外担保/共同借款）——为他人/企业承担的还款责任，不是本人直接贷款
+function getLiabilities(data){
+  return (data?.liabilities||[]).filter(l=>(l.balance||0)>0 || (l.resp_amount||0)>0);
+}
+// 共同借款人/连带责任人：法律上本人需对全额负责 → 计入本人负债与 DTI
+function getCoborrowLiabs(data){
+  return getLiabilities(data).filter(l=>/共同借款|连带/.test(l.liability_type||''));
+}
+// 保证人等：或有负债，不计入硬月供，单列展示
+function getGuaranteeLiabs(data){
+  return getLiabilities(data).filter(l=>!/共同借款|连带/.test(l.liability_type||''));
+}
 
 // ═══════════════════════════════════════════
 // 产品库（唯一数据源，新增/修改产品只改这里）

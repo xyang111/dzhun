@@ -355,7 +355,7 @@ function goHome() {
           <div class="mcell">
             <div class="mlabel">当前负债 <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="12" height="4" rx="1"/><rect x="3" y="5" width="10" height="4" rx="1"/><rect x="4" y="1" width="8" height="4" rx="1"/></svg></div>
             <div class="mval" id="sumTotalDebt">--</div>
-            <div class="msub">贷款+信用卡合计</div>
+            <div class="msub" id="sumDebtSub">贷款+信用卡合计</div>
           </div>
           <div class="mcell">
             <div class="mlabel">月均还款 <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><line x1="5" y1="1" x2="5" y2="5"/><line x1="11" y1="1" x2="11" y2="5"/><line x1="2" y1="7" x2="14" y2="7"/><polyline points="8,10 10,10 10,12"/><line x1="8" y1="10" x2="8" y2="12"/></svg></div>
@@ -476,6 +476,9 @@ function goHome() {
         <!-- 网贷机构统计栏 -->
         <div id="onlineStatsBox" style="display:none;border-radius:0;padding:13px 16px;margin-bottom:12px;font-size:13px;line-height:1.8;border-width:1px;border-style:solid"></div>
 
+        <!-- 企业法人画像（法人资信审查 + 对外担保信号） -->
+        <div id="corpProfileBox" style="display:none"></div>
+
         <!-- Warn box -->
         <div class="warn-box" id="warnBox" style="display:none"></div>
 
@@ -511,6 +514,32 @@ function goHome() {
                 </tfoot>
               </table>
             </div>
+          </div>
+        </div>
+
+        <!-- 相关还款责任 / 对外担保 -->
+        <div class="result-section" id="liabSection" style="display:none">
+          <div class="rs-header">
+            <span class="rs-title">相关还款责任（对外担保 / 共同借款）</span>
+            <span class="rs-count" id="liabCount">0</span>
+          </div>
+          <div class="rs-body">
+            <div class="tbl-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>承担对象</th>
+                    <th>机构</th>
+                    <th>责任类型</th>
+                    <th style="text-align:right">责任金额</th>
+                    <th style="text-align:right">贷款余额</th>
+                    <th style="text-align:center">日期</th>
+                  </tr>
+                </thead>
+                <tbody id="liabBody"></tbody>
+              </table>
+            </div>
+            <div id="liabNote" style="font-size:12px;color:var(--silver);padding:10px 12px;line-height:1.7"></div>
           </div>
         </div>
 
@@ -1025,8 +1054,8 @@ function goHome() {
   </div>
 </footer>
 
-<script src="config.js?v=1780984343"></script>
-<script src="app.js?v=1780984343"></script>
+<script src="config.js?v=1781684695"></script>
+<script src="app.js?v=1781684695"></script>
 
 <!-- QR MODAL（移至 pcard 外，避免 overflow:hidden 裁剪 fixed 弹窗）-->
 <div class="qr-overlay" id="qrOverlay" onclick="hideQrModal(event)">

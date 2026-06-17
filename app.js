@@ -59,7 +59,7 @@ function localFallbackMatch(data, v2Score = 0) {
   // 负债率（提前计算，供一票否决使用）
   const _loansForDebt = getActiveLoans(data);
   const _cardsForDebt = getActiveCards(data);
-  const _tmForDebt = calcTotalMonthly(_loansForDebt, _cardsForDebt);
+  const _tmForDebt = calcTotalMonthly(_loansForDebt, _cardsForDebt, getCoborrowLiabs(data));
   const debtRatio = income > 0 && _tmForDebt > 0 ? Math.round(_tmForDebt / income * 100) : 0;
 
   const products = [];
@@ -341,7 +341,7 @@ function localFallbackMatch(data, v2Score = 0) {
   const _cUse3 = _cards3.reduce((s,c)=>s+(c.used||0),0);
   const _cUtil3 = _cLim3 > 0 ? Math.round(_cUse3/_cLim3*100) : 0;
   const _loans3 = (data.loans||[]).filter(l=>l.status!=='结清'&&l.status!=='已结清');
-  const _tm3 = calcTotalMonthly(_loans3, _cards3);
+  const _tm3 = calcTotalMonthly(_loans3, _cards3, getCoborrowLiabs(data));
   const _dr3 = (userInfo.income||0) > 0 ? Math.round(_tm3/(userInfo.income)*100) : 0;
 
   if (hasOverdue || hasSeriousOv || hasBadRecord || q3 > 12 || onlineInstCnt > 12 || _cUtil3 > 100 || _dr3 > 80) {
@@ -694,6 +694,54 @@ function toggleQueryDetail() {
   btn.textContent    = open ? '收起 ▲' : '查看明细 ▼';
 }
 
+// 相关还款责任（对外担保 / 共同借款）——为他人/企业承担的还款责任，独立成板块展示
+function renderLiabilities(data) {
+  const sec = document.getElementById('liabSection');
+  if (!sec) return;
+  const coborrow  = getCoborrowLiabs(data);
+  const guarantee = getGuaranteeLiabs(data);
+  const liabs     = [...coborrow, ...guarantee];
+  if (!liabs.length) { sec.style.display = 'none'; return; }
+  const fmtAmt = n => (n != null && n > 0) ? fmt(n) + '元' : '--';
+  const typeBadge = t => /共同借款|连带/.test(t || '')
+    ? `<span class="badge badge-warn">${t}</span>`
+    : `<span class="badge badge-ok">${t || '保证人'}</span>`;
+  document.getElementById('liabBody').innerHTML = liabs.map(l => `
+    <tr>
+      <td>${l.company || '--'}</td>
+      <td>${l.institution || '--'}</td>
+      <td>${typeBadge(l.liability_type)}</td>
+      <td style="text-align:right">${fmtAmt(l.resp_amount)}</td>
+      <td style="text-align:right;font-weight:600">${fmtAmt(l.balance)}</td>
+      <td style="text-align:center;font-size:12px;color:var(--silver)">${l.date || '--'}</td>
+    </tr>`).join('');
+  document.getElementById('liabCount').textContent = liabs.length;
+  const cobBal = coborrow.reduce((s, l) => s + (l.balance || 0), 0);
+  const guaBal = guarantee.reduce((s, l) => s + (l.balance || 0), 0);
+  const parts = [];
+  if (cobBal > 0) parts.push(`共同借款人 <strong>${fmt(cobBal)}元</strong>：法律上您需对全额负责，已计入上方"当前负债"与月还款。`);
+  if (guaBal > 0) parts.push(`保证人/担保 <strong>${fmt(guaBal)}元</strong>：或有负债，暂未计入月还款，但银行审批会关注此对外担保敞口。`);
+  document.getElementById('liabNote').innerHTML = parts.join('<br>');
+  sec.style.display = 'block';
+}
+
+// 企业法人画像：大量法人资信审查 + 对外担保 → 疑似企业法人/实控人，重塑"网贷"话术
+function renderCorpProfile(data) {
+  const box = document.getElementById('corpProfileBox');
+  if (!box) return;
+  const cr    = data.corp_review || [];
+  const liabs = getLiabilities(data);
+  const refMs = new Date(data.report_date || Date.now()).getTime();
+  const cr24  = cr.filter(r => r.date && (refMs - new Date(r.date).getTime()) / 86400000 <= 731).length;
+  const isCorp = liabs.length > 0 || cr24 >= 3;
+  if (!isCorp) { box.style.display = 'none'; return; }
+  const bits = [];
+  if (cr24 > 0)        bits.push(`近 2 年 <strong>${cr24} 次</strong>法人代表 / 负责人 / 高管资信审查`);
+  if (liabs.length > 0) bits.push(`<strong>${liabs.length} 笔</strong>对外担保 / 共同借款`);
+  box.style.cssText = 'display:block;border-radius:0;padding:13px 16px;margin-bottom:12px;font-size:13px;line-height:1.8;border:1px solid rgba(59,123,246,0.25);border-left:2px solid var(--accentB);background:rgba(59,123,246,0.06);color:var(--plat)';
+  box.innerHTML = `<span style="color:var(--accentB);font-weight:600">疑似企业法人 / 实际控制人</span><br>检测到 ${bits.join('、')}。法人资信审查是银行因您担任企业法人而发起的查询，<strong>不计入个人申请密集度/花户</strong>；您名下网贷多与企业经营周转相关，建议结合经营贷整体规划，而非单纯按"个人消费网贷"清理。`;
+}
+
 // ═══════════════════════════════════════════
 // 月供估算（银行风控规则）
 // 房贷 / 经营贷 / 信用贷：3.0% 年化（国内主流 2.45-3.2% 中位偏保守）
@@ -834,8 +882,11 @@ function calcLoanMonthly(loan) {
   return Math.round(bal * r / (1 - Math.pow(1 + r, -36)));
 }
 
-function calcTotalMonthly(loans, cards) {
+function calcTotalMonthly(loans, cards, coborrowLiabs) {
   const loanPart = loans.reduce((s, l) => s + calcLoanMonthly(l), 0);
+  // 共同借款人/连带责任：法律上需对全额负责，按经营贷先息后本口径（余额×3%/12）估月供并计入 DTI
+  // 保证人(或有负债)不在此列——由调用方只传 coborrow 部分
+  const coborrowPart = (coborrowLiabs || []).reduce((s, l) => s + Math.round((l.balance || 0) * (0.03 / 12)), 0);
   // 信用卡月供分两段（征信原文 big_install 字段可区分时使用）：
   // ① 循环已用 (used - big_install) × 2%：最低还款额类比，覆盖账单分期与循环利息
   // ② 大额专项分期 big_install / 36：按 36 期估算固定月供
@@ -847,7 +898,7 @@ function calcTotalMonthly(loans, cards) {
     const revolving = Math.max(0, used - inst);
     return s + Math.round(revolving * 0.02) + Math.round(inst / 36);
   }, 0);
-  return loanPart + cardPart;
+  return loanPart + cardPart + coborrowPart;
 }
 
 // ═══════════════════════════════════════════
@@ -934,7 +985,7 @@ class ScoreEngine {
     const effIncome  = income > 0
       ? (trustScore >= 75 ? income : trustScore >= 40 ? Math.round(income * 0.8) : Math.round(income * 0.6)) : 0;
 
-    const monthly    = calcTotalMonthly(loans, cards);
+    const monthly    = calcTotalMonthly(loans, cards, getCoborrowLiabs(ocr));
     // 2026-05-22 P0：国企/事业/公务员 + inferIncome > income 时，用 inferIncome 算 DTI/disposable
     // 跟 mrEstimate 口径一致——公积金倒推的真实月薪反映银行真实视角，避免工资条低报的双重惩罚
     const _asIncome  = (_isPublicSector && inferIncome > income) ? inferIncome : effIncome;
@@ -1670,7 +1721,7 @@ function renderResult(data) {
   const q = calcQueryCounts(data.query_records || []);
 
   // Summary bar - 月供估算（银行风控规则）
-  const totalMonthly = calcTotalMonthly(loans, cards);
+  const totalMonthly = calcTotalMonthly(loans, cards, getCoborrowLiabs(data));
   const hasOvHistForType = data.has_overdue_history || (data.summary_overdue_accounts||0) > 0;
 
   document.getElementById('sumLoans').textContent = loans.length;
@@ -1682,13 +1733,19 @@ function renderResult(data) {
   renderCreditScore(data, null);
   renderBlastRisk(data);
   renderQueryDetail(data);
+  renderLiabilities(data);
+  renderCorpProfile(data);
   document.getElementById('sumDebtHint').textContent = '填写月收入后显示';
-  // sumTotalDebt：当前负债 = 贷款余额合计 + 信用卡已用额度合计
+  // sumTotalDebt：当前负债 = 本人贷款余额 + 信用卡已用 + 共同借款余额（共借法律上需对全额负责）
+  // 保证人(或有负债)不计入此处，单列在「相关还款责任」板块
   const totalLoanBalance = loans.reduce((s, l) => s + (l.balance || 0), 0);
   const totalCardUsed = cards.reduce((s, c) => s + (c.used || 0), 0);
-  const totalDebt = totalLoanBalance + totalCardUsed;
+  const _coborrowDebt = getCoborrowLiabs(data).reduce((s, l) => s + (l.balance || 0), 0);
+  const totalDebt = totalLoanBalance + totalCardUsed + _coborrowDebt;
   const sumTotalDebtEl = document.getElementById('sumTotalDebt');
   if (sumTotalDebtEl) sumTotalDebtEl.textContent = totalDebt > 0 ? fmt(Math.round(totalDebt)) + ' 元' : '--';
+  const _sumDebtSubEl = document.getElementById('sumDebtSub');
+  if (_sumDebtSubEl) _sumDebtSubEl.textContent = _coborrowDebt > 0 ? '本人贷款+信用卡+共同借款' : '贷款+信用卡合计';
   // sumOnlineInst：网贷机构数（按机构去重）
   const sumOnlineInstEl = document.getElementById('sumOnlineInst');
   if (sumOnlineInstEl) {
@@ -2090,7 +2147,7 @@ async function startMatching() {
   const cards = getActiveCards(data);
   const q = calcQueryCounts(data.query_records || []);
 
-  const totalMonthly = calcTotalMonthly(loans, cards);
+  const totalMonthly = calcTotalMonthly(loans, cards, getCoborrowLiabs(data));
 
   // 月收入未填时警告（无法计算负债率，maxDebt检查全部失效）
   const _incomeCheck = (() => { try { return collectInfoData().income || 0; } catch(e) { return 0; } })();
@@ -2751,7 +2808,7 @@ function renderMatchResult(r) {
   const data2   = _recognizedData||{};
   const loans2  = getActiveLoans(data2);
   const cards2  = getActiveCards(data2);
-  const monthly = calcTotalMonthly(loans2,cards2);
+  const monthly = calcTotalMonthly(loans2,cards2, getCoborrowLiabs(data2));
   const dr      = income>0?Math.round(monthly/income*100):0;
   const q       = calcQueryCounts(data2.query_records||[]);
   const q3      = q.q_3m||0;
@@ -3504,7 +3561,7 @@ function buildReportText() {
   const totalLoanBal  = loans.reduce((s,l)=>s+(l.balance||0),0);
   const totalCardLimit= cards.reduce((s,c)=>s+(c.limit||0),0);
   const totalCardUsed = cards.reduce((s,c)=>s+(c.used||0),0);
-  const totalMonthly  = calcTotalMonthly(loans, cards);
+  const totalMonthly  = calcTotalMonthly(loans, cards, getCoborrowLiabs(data));
 
   const productLines = products.map((p, i) =>
     `  ${i+1}. ${p.bank} · ${p.product}`
@@ -3591,8 +3648,10 @@ async function autoSendReport() {
       const loans   = getActiveLoans(_recognizedData || {});
       const cards   = getActiveCards(_recognizedData || {});
       const online  = [...new Set(loans.filter(l=>l.type==='online').map(l=>l.name.split('-')[0]))].length;
-      const monthly = calcTotalMonthly(loans, cards);
-      const debt    = loans.reduce((s,l)=>s+(l.balance||0),0) + cards.reduce((s,c)=>s+(c.used||0),0);
+      const _cob    = getCoborrowLiabs(_recognizedData||{});
+      const _cobBal = _cob.reduce((s,l)=>s+(l.balance||0),0);
+      const monthly = calcTotalMonthly(loans, cards, _cob);
+      const debt    = loans.reduce((s,l)=>s+(l.balance||0),0) + cards.reduce((s,c)=>s+(c.used||0),0) + _cobBal;
       pdfData = {
         ocrData:  { ...(_recognizedData||{}), loans: (_recognizedData?.loans||[]).map(l=>({...l, estMonthly: calcLoanMonthly(l)})) },
         v2Score:  window._v2Result,
@@ -4338,8 +4397,9 @@ async function downloadPdfReport() {
   const _pdfLoans  = getActiveLoans(_recognizedData || {});
   const _pdfCards  = getActiveCards(_recognizedData || {});
   const _pdfOnline = [...new Set(_pdfLoans.filter(l => l.type === 'online').map(l => l.name.split('-')[0]))].length;
-  const _pdfMonthly = calcTotalMonthly(_pdfLoans, _pdfCards);
-  const _pdfDebt    = _pdfLoans.reduce((s,l) => s+(l.balance||0), 0) + _pdfCards.reduce((s,c) => s+(c.used||0), 0);
+  const _pdfMonthly = calcTotalMonthly(_pdfLoans, _pdfCards, getCoborrowLiabs(_recognizedData||{}));
+  const _pdfDebt    = _pdfLoans.reduce((s,l) => s+(l.balance||0), 0) + _pdfCards.reduce((s,c) => s+(c.used||0), 0)
+                    + getCoborrowLiabs(_recognizedData||{}).reduce((s,l)=>s+(l.balance||0),0);
   const _pdfIncome  = _pdfUi?.income || 0;
 
   try {
