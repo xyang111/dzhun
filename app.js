@@ -320,10 +320,15 @@ function localFallbackMatch(data, v2Score = 0) {
   // 改善建议
   if (q3 > 5)
     advSuggestions.push({ action: '停止一切网贷/信用卡申请3个月', goal: '让查询记录自然冷却', time: '3个月', effect: '查询降至6次以下后，股份制银行基本可申' });
+  const _isCorpFb = (data.liabilities||[]).length>0 || (data.corp_review||[]).length>=3;
   if (onlineInstCnt >= 5)
-    advSuggestions.push({ action: `结清${onlineInstCnt-2}家网贷并注销账户`, goal: '将网贷机构数降至2家以内', time: '1-2个月', effect: '消金和股份制银行准入条件达标' });
+    advSuggestions.push(_isCorpFb
+      ? { action: '梳理网贷结构、优先归集经营周转类账户', goal: '企业法人：结合经营资金规划压降多头，而非单纯注销', time: '1-2个月', effect: '降低多头借贷评级，兼顾经营周转' }
+      : { action: `结清${onlineInstCnt-2}家网贷并注销账户`, goal: '将网贷机构数降至2家以内', time: '1-2个月', effect: '消金和股份制银行准入条件达标' });
   else if (onlineInstCnt === 3 || onlineInstCnt === 4)
-    advSuggestions.push({ action: `结清${onlineInstCnt-2}家网贷并注销账户`, goal: '将网贷机构数降至2家以内', time: '1-2个月', effect: '消除轻度警示，显著提升银行审批通过率' });
+    advSuggestions.push(_isCorpFb
+      ? { action: '梳理网贷结构、优先归集经营周转类账户', goal: '企业法人：结合经营资金规划评估多头，而非单纯注销', time: '1-2个月', effect: '降低多头借贷信号，兼顾经营周转' }
+      : { action: `结清${onlineInstCnt-2}家网贷并注销账户`, goal: '将网贷机构数降至2家以内', time: '1-2个月', effect: '消除轻度警示，显著提升银行审批通过率' });
   if (!hasSocial && !provident)
     advSuggestions.push({ action: '入职并开始缴纳社保', goal: '积累稳定就业记录', time: '持续6个月+', effect: '满足绝大多数银行信用贷社保门槛' });
   else if (hasSocial && socialMonths < 12)
@@ -1088,6 +1093,7 @@ class ScoreEngine {
       accAge, accHealth, recent6mLoans, bankLR, cfConc,
       latestOvMths, entropy, cardUtil, monthlyCV,
       cardTrend, onlineI, dti, disposable,
+      isCorp: ((this.ocr.liabilities||[]).length>0)||((this.ocr.corp_review||[]).length>=3),
       income, effIncome, asIncome: _asIncome, monthly, trustScore, inferIncome,
       pvdTotal, pvdRate, pvdIndiv, socialMths,
       wkScore, eduScore, hkScore, ageScore, astScore, wKey,
@@ -1267,14 +1273,14 @@ class ScoreEngine {
       warn: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
       down: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>`,
     };
-    if (f.q3m > 3 || f.q6m > 12) {
+    if (f.q3m > 6 || f.q6m >= 12) {
       const gain = _gain('queries');
-      const huahu = f.q6m >= 18 ? '严重花户' : f.q6m > 12 ? '花户' : null;
-      const desc = huahu && f.q3m > 3
+      const huahu = f.q6m >= 18 ? '严重花户' : f.q6m >= 12 ? '花户' : null;
+      const desc = huahu && f.q3m > 6
         ? `近3月查询${f.q3m}次、近半年${f.q6m}次（达${huahu}红线）`
         : huahu
-          ? `近半年查询${f.q6m}次，已达${huahu}红线（>12次主流银行风控直接拒）`
-          : `近3月查询${f.q3m}次，超安全线${f.q3m-3}次`;
+          ? `近半年查询${f.q6m}次，已达${huahu}红线（≥12次主流银行风控直接拒）`
+          : `近3月查询${f.q3m}次，超花户线（近3月>6次）`;
       const months = huahu ? 6 : 3;
       const fix = huahu
         ? `今天起停止所有信贷申请，${months}个月后查询自然冷却至安全线`
@@ -1286,7 +1292,7 @@ class ScoreEngine {
       const gain = _gain('online');
       issues.push({ icon:_ico.net, tag:'网贷超标',
         desc:`网贷机构${f.onlineI}家，银行建议≤2家`,
-        cost:`拉低分数约${gain}分`, fix:`结清${f.onlineI-2}家并注销账户`, months:2, gain });
+        cost:`拉低分数约${gain}分`, fix: f.isCorp ? `企业法人：结合经营周转梳理多头，优先归集而非简单注销（建议顾问规划）` : `结清${f.onlineI-2}家并注销账户`, months:2, gain });
     }
     if (f.cardUtil > 0.7) {
       const gain = _gain('cardutil');
@@ -1314,7 +1320,7 @@ class ScoreEngine {
       const _rawPct  = Math.round(_rawDti * 100);
       const _hasDiscount = f.income > 0 && f.effIncome < f.income;
       const desc = _hasDiscount
-        ? `按可承受收入¥${f.effIncome}计算月还款占${_dtiPct}%，超50%上限（公积金反推月薪¥${f.inferIncome}远高于申报¥${f.income}，银行不全信申报口径、按折损后¥${f.effIncome}审批）`
+        ? `月还款占申报收入${_rawPct}%；银行按公积金倒推折损口径核算达${_dtiPct}%（反推月薪¥${f.inferIncome} vs 申报¥${f.income}，按折损后¥${f.effIncome}审批），已超 50% 上限`
         : `月还款占收入${_rawPct}%，超银行50%上限`;
       issues.push({ icon:_ico.down, tag:'负债率偏高',
         desc, cost:`拉低分数约${gain}分`, fix:`结清部分贷款，将负债率降至50%以下`, months:3, gain });
@@ -1788,8 +1794,9 @@ function renderResult(data) {
   const q3total = q.q_3m || 0;
   const q6total = q.q_6m || 0;
 
-  if (q3total >= 5) warns.push('近3月申请类查询 <strong>' + q3total + ' 次</strong>，征信已花，建议暂停申请养3-6个月');
-  else if (q3total >= 3) warns.push('近3月申请类查询 <strong>' + q3total + ' 次</strong>，偏多，部分银行可能拒贷');
+  // 查询警示口径与 calcBlastRisk 面板对齐：花户标准 = 近3月>6 或 近半年≥12（避免与"查询频率正常"矛盾）
+  if (q6total >= 18 || q3total > 10) warns.push('近半年申请类查询 <strong>' + q6total + ' 次</strong>（近3月 ' + q3total + ' 次），已达严重花户红线，主流银行风控直接拒，建议养征信 3-6 个月');
+  else if (q6total >= 12 || q3total > 6) warns.push('近3月申请类查询 <strong>' + q3total + ' 次</strong> / 近半年 <strong>' + q6total + ' 次</strong>，已达花户标准，建议养征信 3 个月再申请主流银行');
 
   // 信用卡综合使用率警告（循环口径：有授信卡 + 剔除 big_install）
   const _cardsWithLimitW = cards.filter(c => (c.limit || 0) > 0);
@@ -2847,11 +2854,13 @@ function renderMatchResult(r) {
                     : 1.0;
   const estHi = _incomeForAmt>0?Math.max(_amtFloor,Math.min(3e6,Math.round(_incomeForAmt*mult*_dtiPenalty*qf))):0;
   const estLo = _incomeForAmt>0?Math.round(estHi*0.45):0;
-  // 优化后额度：假设查询已冷却，移除查询次数惩罚，仅保留卡片惩罚
-  let qfOpt=1;
-  if(loans2.length>=5)qfOpt*=.8;
-  if(cUtil>90)qfOpt*=.7;else if(cUtil>70)qfOpt*=.85;
-  const estHiO = _incomeForAmt>0?Math.max(_amtFloor,Math.min(3e6,Math.round(_incomeForAmt*mult*_dtiPenalty*qfOpt))):0;
+  // 优化后额度：假设按报告建议完成优化（查询冷却 + 结清部分网贷 + 信用卡还款降使用率 + 负债降至舒适线）
+  // → 移除查询/网贷家数/卡使用率惩罚（均为可优化项）；DTI 惩罚改用"优化后"假设降一档（不无脑给满，避免过度承诺）
+  const qfOpt=1;
+  const _dtiPenaltyOpt = _dtiRatio>0.9  ? (_isPremium?0.95:0.85)
+                       : _dtiRatio>0.75 ? (_isPremium?1.0:0.95)
+                       : 1.0;
+  const estHiO = _incomeForAmt>0?Math.max(_amtFloor,Math.min(3e6,Math.round(_incomeForAmt*mult*_dtiPenaltyOpt*qfOpt))):0;
   const estLoO = _incomeForAmt>0?Math.round(estHiO*0.45):0;
   const fw     = v=>v<=0?'0':(v<1e4?'<1':Math.round(v/1e4)+'');
   const curAmt = income>0?(estHi>0?fw(estLo)+'–'+fw(estHi):'当前负债较高'):'填写收入后显示';
@@ -2910,7 +2919,7 @@ function renderMatchResult(r) {
   // ② 问题拆解
   const probs = r.problems||[];
   const lProbs=[];
-  if(q3>3) lProbs.push({name:'查询次数过多',value:'近3月'+q3+'次',threshold:'银行安全区≤3次',severity:'high'});
+  if(q3>6||(q.q_6m||0)>=12) lProbs.push({name:'查询偏多',value:'近3月'+q3+'次/近半年'+(q.q_6m||0)+'次',threshold:'花户线：近3月>6 或 近半年≥12',severity:(q.q_6m||0)>=18?'high':'medium'});
   if(onlineI>=3) lProbs.push({name:'网贷机构较多',value:onlineI+'家未结清',threshold:'银行红线≤4家',severity:onlineI>=5?'high':'medium'});
   if(income>0&&dr>65) lProbs.push({name:'负债率偏高',value:dr+'%',threshold:'银行舒适区≤65%',severity:dr>80?'high':'medium'});
   if(cUtil>70) lProbs.push({name:'信用卡使用率高',value:cUtil+'%',threshold:'银行红线≤70%',severity:'medium'});
@@ -3010,7 +3019,7 @@ function renderMatchResult(r) {
 
   // ⑦ 紧迫提醒
   const urgEl=document.getElementById('convUrgent');
-  if(urgEl && q3>=3 && v2Level !== 'A'){
+  if(urgEl && (q3 > 6 || (q.q_6m||0) >= 12) && v2Level !== 'A'){
     urgEl.style.display='block';
     const ub=document.getElementById('convUrgentBody');
     if(ub)ub.innerHTML='你现在处于<strong>关键窗口期（7–15天）</strong><br>如果这段时间继续查询或盲目申请：';
@@ -3041,7 +3050,9 @@ function renderMatchResult(r) {
               <span style="color:var(--accentB);font-weight:700;font-size:16px">${fw(estLo)}–${fw(estHi)} 万</span>
             </div>`;
         }
-        if (_showOpt) {
+        // 优化后区间只在确有提升时展示（避免与当前显示两个相同数字）；D 级无当前行时照常展示
+        const _optGain = estHiO > estHi;
+        if (_showOpt && (_optGain || !_showCurrent)) {
           _html += `
             <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;${_showCurrent?'border-top:1px solid var(--border);margin-top:4px;':''}">
               <span style="color:var(--silver);font-size:13px">优化后参考区间</span>
@@ -3050,6 +3061,8 @@ function renderMatchResult(r) {
           if (_showCurrent && _gapW > 0) {
             _html += `<div style="font-size:11px;color:var(--success);opacity:.85;margin-top:4px;text-align:right">↑ 比当前多 ${_gapW} 万空间</div>`;
           }
+        } else if (_showCurrent && _showOpt && !_optGain) {
+          _html += `<div style="font-size:11px;color:var(--silver);opacity:.85;margin-top:4px;text-align:right">已接近当前资质参考上限，短期优化提升空间有限</div>`;
         }
         _html += `<div style="font-size:10px;color:var(--silver);opacity:.7;margin-top:8px;line-height:1.5">此为基于职业类型 + 负债比的参考估算，银行实际审批因人而异。具体可申请方案请联系专属顾问获取</div>`;
         document.getElementById('ccBody').innerHTML = _html;
